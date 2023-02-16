@@ -1,5 +1,4 @@
 export { parseRegexp } from './regexpParser.js';
-export { explainRegexp } from './regexpExplainer.js';
 export { SyntaxKind } from './regexpNodes.js';
 export type {
   AnyCharNode,

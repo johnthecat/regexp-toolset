@@ -3,8 +3,11 @@
     "packages/*"
   ],
   "scripts": {
-    "lint": "eslint ./**/*.{ts,js}",
-    "test": "regexp-parser explain \"/^((https?:)(\\/\\/\\/?)([\\w]*(?::[\\w]*)?@)?([\\d\\w\\.-]+)(?::(\\d+))?)?([\\/\\\\\\w\\.()-]*)?(?:([?][^#]*)?(#.*)?)*/gmi\""
+    "build": "nx run-many --target=build",
+    "test": "nx run-many --target=test",
+    "lint": "nx run-many --target=lint",
+    "postinstall": "husky install",
+    "precommit": "nx affected --target=test && nx affected --target=lint"
   },
   "devDependencies": {
     "@types/node": "^18.13.0",
@@ -14,11 +17,14 @@
     "eslint-config-prettier": "8.6.0",
     "eslint-plugin-import": "2.27.5",
     "eslint-plugin-prettier": "4.2.1",
+    "husky": "^8.0.3",
+    "lerna": "^6.5.1",
+    "nx": "^15.7.1",
     "prettier": "2.8.4",
+    "rollup-plugin-node-externals": "^5.1.2",
     "typescript": "4.9.5",
-    "vitest": "^0.28.5",
     "vite": "^4.1.1",
     "vite-plugin-dts": "^1.7.2",
-    "rollup-plugin-node-externals": "^5.1.2"
+    "vitest": "^0.28.5"
   }
 }

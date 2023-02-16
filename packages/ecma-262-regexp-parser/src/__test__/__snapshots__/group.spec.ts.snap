@@ -41,14 +41,14 @@ exports[`Group > Capturing group > should parse simple capturing group 1`] = `
 
 exports[`Group > Common > should throw, if group is not closed 1`] = `
 "
- > /[1m(ab/[22m
+ ❱ /(ab/
     ════
  Group is not closed"
 `;
 
 exports[`Group > Common > should throw, there is unmatched parenthesis 1`] = `
 "
- > /(ab)[1m)[22m/
+ ❱ /(ab))/
         ═
  Unmatched parenthesis"
 `;

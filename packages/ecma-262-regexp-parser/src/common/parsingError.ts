@@ -1,4 +1,3 @@
-import pc from 'picocolors';
 import { createCodeFrame } from './console.js';
 
 export class ParsingError extends Error {
@@ -7,6 +6,6 @@ export class ParsingError extends Error {
   }
 
   toString() {
-    return pc.bold('Regexp parsing error:') + this.message;
+    return 'Regexp parsing error:' + this.message;
   }
 }

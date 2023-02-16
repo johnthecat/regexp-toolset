@@ -7,8 +7,7 @@ export const waterfall = <T extends ((...args: any[]) => any)[]>(list: T): T[num
       }
 
       const result = fn(...args);
-
-      if (result) {
+      if (result !== void 0 && result !== null) {
         return result;
       }
     }
