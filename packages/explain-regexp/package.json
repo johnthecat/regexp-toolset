@@ -1,0 +1,16 @@
+{
+  "name": "explain-regexp",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": "./bin/index.js",
+  "scripts": {
+    "watch": "vite build --mode development --watch",
+    "build": "vite build",
+    "prepublishOnly": "npm run build",
+    "eslint": "eslint src/*/**.ts"
+  },
+  "dependencies": {
+    "ecma-262-regexp-parser": "0.1.0",
+    "commander": "^10.0.0"
+  }
+}

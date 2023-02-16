@@ -1,0 +1,249 @@
+// Vitest Snapshot v1
+
+exports[`Group > Capturing group > should parse simple capturing group 1`] = `
+{
+  "body": {
+    "body": {
+      "end": 3,
+      "expressions": [
+        {
+          "charCode": 97,
+          "end": 2,
+          "kind": 6,
+          "start": 2,
+          "type": "simple",
+          "value": "a",
+        },
+        {
+          "charCode": 98,
+          "end": 3,
+          "kind": 6,
+          "start": 3,
+          "type": "simple",
+          "value": "b",
+        },
+      ],
+      "kind": 5,
+      "start": 2,
+    },
+    "end": 4,
+    "kind": 25,
+    "specifier": null,
+    "start": 1,
+    "type": "capturing",
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Group > Common > should throw, if group is not closed 1`] = `
+"
+ > /[1m(ab/[22m
+    ════
+ Group is not closed"
+`;
+
+exports[`Group > Common > should throw, there is unmatched parenthesis 1`] = `
+"
+ > /(ab)[1m)[22m/
+        ═
+ Unmatched parenthesis"
+`;
+
+exports[`Group > Negative lookahead > should parse simple negative lookahead 1`] = `
+{
+  "body": {
+    "body": {
+      "end": 5,
+      "expressions": [
+        {
+          "charCode": 97,
+          "end": 4,
+          "kind": 6,
+          "start": 4,
+          "type": "simple",
+          "value": "a",
+        },
+        {
+          "charCode": 98,
+          "end": 5,
+          "kind": 6,
+          "start": 5,
+          "type": "simple",
+          "value": "b",
+        },
+      ],
+      "kind": 5,
+      "start": 4,
+    },
+    "end": 6,
+    "kind": 25,
+    "specifier": null,
+    "start": 1,
+    "type": "negativeLookahead",
+  },
+  "end": 7,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Group > Negative lookbehind > should parse simple negative lookbehind 1`] = `
+{
+  "body": {
+    "body": {
+      "end": 6,
+      "expressions": [
+        {
+          "charCode": 97,
+          "end": 5,
+          "kind": 6,
+          "start": 5,
+          "type": "simple",
+          "value": "a",
+        },
+        {
+          "charCode": 98,
+          "end": 6,
+          "kind": 6,
+          "start": 6,
+          "type": "simple",
+          "value": "b",
+        },
+      ],
+      "kind": 5,
+      "start": 5,
+    },
+    "end": 7,
+    "kind": 25,
+    "specifier": null,
+    "start": 1,
+    "type": "negativeLookbehind",
+  },
+  "end": 8,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Group > Non Capturing group > should parse simple non capturing group 1`] = `
+{
+  "body": {
+    "body": {
+      "end": 5,
+      "expressions": [
+        {
+          "charCode": 97,
+          "end": 4,
+          "kind": 6,
+          "start": 4,
+          "type": "simple",
+          "value": "a",
+        },
+        {
+          "charCode": 98,
+          "end": 5,
+          "kind": 6,
+          "start": 5,
+          "type": "simple",
+          "value": "b",
+        },
+      ],
+      "kind": 5,
+      "start": 4,
+    },
+    "end": 6,
+    "kind": 25,
+    "specifier": null,
+    "start": 1,
+    "type": "nonCapturing",
+  },
+  "end": 7,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Group > Positive lookahead > should parse simple positive lookahead 1`] = `
+{
+  "body": {
+    "body": {
+      "end": 5,
+      "expressions": [
+        {
+          "charCode": 97,
+          "end": 4,
+          "kind": 6,
+          "start": 4,
+          "type": "simple",
+          "value": "a",
+        },
+        {
+          "charCode": 98,
+          "end": 5,
+          "kind": 6,
+          "start": 5,
+          "type": "simple",
+          "value": "b",
+        },
+      ],
+      "kind": 5,
+      "start": 4,
+    },
+    "end": 6,
+    "kind": 25,
+    "specifier": null,
+    "start": 1,
+    "type": "positiveLookahead",
+  },
+  "end": 7,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Group > Positive lookbehind > should parse simple positive lookbehind 1`] = `
+{
+  "body": {
+    "body": {
+      "end": 6,
+      "expressions": [
+        {
+          "charCode": 97,
+          "end": 5,
+          "kind": 6,
+          "start": 5,
+          "type": "simple",
+          "value": "a",
+        },
+        {
+          "charCode": 98,
+          "end": 6,
+          "kind": 6,
+          "start": 6,
+          "type": "simple",
+          "value": "b",
+        },
+      ],
+      "kind": 5,
+      "start": 5,
+    },
+    "end": 7,
+    "kind": 25,
+    "specifier": null,
+    "start": 1,
+    "type": "positiveLookbehind",
+  },
+  "end": 8,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
