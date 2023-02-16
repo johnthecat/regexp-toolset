@@ -2,21 +2,22 @@
 
 RegExp Parser, implemented according to [Specification](https://tc39.es/ecma262/#sec-patterns).
 
-## How to generate contract
-
-### Requirements
-- `Node >= 16`
+## Requirements
 - `Typescript >= 4.9`
 
-### Installation
+## Installation
   ```bash
   npm i ecma-262-regexp-parser --save
   ```
 
-### Usage
+## Usage
 
 ```ts
 import { parseRegexp } from 'ecma-262-regexp-parser';
+try {
+  const ast = parseRegexp('/[A-z]*/gm');
+  // ... do smth
+} catch (parsingError) {
+  throw parsingError;
+}
 ```
-
-`parseRegexp` doesn't provide any
