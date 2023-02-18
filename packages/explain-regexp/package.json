@@ -15,8 +15,8 @@
     "lint": "eslint src/*/**.ts"
   },
   "dependencies": {
-    "ecma-262-regexp-parser": "0.1.0",
-    "commander": "^10.0.0"
+    "commander": "^10.0.0",
+    "ecma-262-regexp-parser": "^0.1.0"
   },
   "engines": {
     "node": ">=16"
