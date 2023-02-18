@@ -1,0 +1,6 @@
+48 error Error: Command failed with exit code 128: git push --follow-tags --no-verify --atomic origin main
+48 error remote: Support for password authentication was removed on August 13, 2021.
+48 error remote: Please see https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories#cloning-with-https-urls for information on currently recommended modes of authentication.
+48 error fatal: Authentication failed for 'https://github.com/johnthecat/regexp-toolset.git/'
+48 error     at makeError (/Users/zhuravlev/Projects/swagger-codegen/regexp-toolset/node_modules/execa/lib/error.js:59:11)
+48 error     at handlePromise (/Users/zhuravlev/Projects/swagger-codegen/regexp-toolset/node_modules/execa/index.js:114:26)

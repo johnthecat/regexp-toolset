@@ -14,6 +14,10 @@
     "build": "vite build",
     "lint": "eslint src/*/**.ts"
   },
+  "files": [
+    "bin",
+    "dist"
+  ],
   "dependencies": {
     "commander": "^10.0.0",
     "ecma-262-regexp-parser": "^0.1.0"
