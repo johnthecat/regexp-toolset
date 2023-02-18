@@ -41,6 +41,7 @@ import {
   matchTokenSequence,
   numberMatcher,
   octalMatcher,
+  sealExpressions,
   wordMatcher,
 } from './regexpParseUtils.js';
 import type { InferHandlerResult } from './abstract/tokenizer.js';
@@ -103,7 +104,36 @@ export const parseRegexp = (source: string) => {
 };
 
 export const parseRegexpNode = (source: string): AnyRegexpNode => {
-  return parseRegexp(`/${source}/`).body;
+  const tokenizer = regexpTokenizer(source);
+  const parserState: ParserState = {
+    source,
+    tokenizer,
+    foundGroupSpecifiers: new Map(),
+    groupSpecifierDemands: new Set(),
+  };
+
+  const firstStep = tokenizer.getFirstStep();
+  if (!firstStep) {
+    throw new ParsingError(source, 0, source.length, "Can't parse input");
+  }
+
+  const { expressions, lastStep } = fillExpressions(firstStep, parserState, parseTokenInRegexp);
+
+  for (const [tag, node] of parserState.groupSpecifierDemands) {
+    const found = parserState.foundGroupSpecifiers.get(tag);
+    if (!found) {
+      throw new ParsingError(
+        source,
+        node.start,
+        node.end,
+        `This token references a non-existent or invalid subpattern`,
+      );
+    }
+
+    node.ref = found;
+  }
+
+  return sealExpressions(expressions, firstStep, lastStep);
 };
 
 const parseFlags = (step: Step, state: ParserState): string => {
@@ -419,7 +449,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
           }
 
           const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]);
-          const quantifierNode = factory.createQuantifierNode(token, {
+          const quantifierNode = factory.createQuantifierNode(lazy.match ? lazy : token, {
             type: token.value === '?' ? 'zeroOrOne' : token.value === '+' ? 'zeroOrMany' : 'oneOrMany',
             greedy: !lazy.match,
           });

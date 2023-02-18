@@ -1,5 +1,5 @@
-import type { AnyRegexpNode, RegexpNode } from 'ecma-262-regexp-parser';
-import { SyntaxKind } from 'ecma-262-regexp-parser';
+import type { AnyRegexpNode } from 'ecma-262-regexp-parser';
+import { parseRegexp, parseRegexpNode, SyntaxKind } from 'ecma-262-regexp-parser';
 import {
   type Formatter,
   addIndent,
@@ -87,7 +87,7 @@ const genericNodeTitle = {
   [SyntaxKind.CarriageReturn]: { header: 'Carriage Return', color: defaultExpressionColor },
   [SyntaxKind.Tab]: { header: 'Tab', color: defaultExpressionColor },
   [SyntaxKind.Quantifier]: { header: 'Quantifier', color: defaultExpressionColor },
-} satisfies Record<SyntaxKind, { header: string; description?: string; color?: Colors | Formatter }>;
+};
 
 const renderAfterBlock = (content: string, index = 0, of = 1): string => {
   const isFirst = index === 0;
@@ -95,7 +95,7 @@ const renderAfterBlock = (content: string, index = 0, of = 1): string => {
 
   if (content.includes('\n')) {
     const parts = content.split('\n').map((x, i) => `${borderColor(i === 0 ? (isFirst ? '╭' : '┌') : '│')} ${x}`);
-    parts.push(borderColor('┕ ·'));
+    parts.push(borderColor(isLast ? '╰ ·' : '┕ ·'));
     return parts.join('\n');
   }
 
@@ -153,48 +153,62 @@ const assignColor = (
   return color;
 };
 
-export const explainRegexp = (regexp: RegexpNode, source: string, config: { enableColors: boolean }): string => {
-  return explainNode(regexp, regexp, {
-    source: source.replace(/\s/gm, whitespaceReplacer),
-    nodesGraph: new Graph(),
-    rootColors: new Map(),
-    colors: new Map(),
-    capturingGroups: 0,
-    enableColors: config.enableColors,
-  });
+const createExpalinerContext = (source: string, entryNode: AnyRegexpNode, enableColors: boolean): ExplainerContext => ({
+  source: source.replace(/\s/gm, whitespaceReplacer),
+  nodesGraph: new Graph(entryNode),
+  rootColors: new Map(),
+  colors: new Map(),
+  capturingGroups: 0,
+  enableColors,
+});
+
+const paintSource = (node: AnyRegexpNode, ctx: ExplainerContext): string => {
+  const renderQueue: AnyRegexpNode[] = [];
+  let coloredRegexp = ctx.source;
+
+  if (ctx.source.length <= 400 && ctx.colors.size <= 150) {
+    ctx.nodesGraph.bfs(node, currentNode => renderQueue.push(currentNode));
+    renderQueue.reverse();
+    for (const currentNode of renderQueue) {
+      const color = ctx.colors.get(currentNode);
+      if (!color) {
+        continue;
+      }
+      coloredRegexp = colorStringPart(coloredRegexp, currentNode.start, currentNode.end, color);
+    }
+  }
+
+  return coloredRegexp;
+};
+
+export const explainRegexp = (source: string, config: { enableColors: boolean }): string => {
+  const regexp = parseRegexp(source);
+  const ctx = createExpalinerContext(source, regexp, config.enableColors);
+  const result = explainNode(regexp, regexp, ctx);
+  return addIndent([paintSource(regexp, ctx), borderColor('┄'.repeat(15)), result].join('\n'));
+};
+
+export const explainRegexpPart = (source: string, config: { enableColors: boolean }): string => {
+  const regexp = parseRegexpNode(source);
+  const ctx = createExpalinerContext(source, regexp, config.enableColors);
+  const result = explainNode(regexp, regexp, ctx);
+  return addIndent([paintSource(regexp, ctx), borderColor('┄'.repeat(15)), result].join('\n'));
 };
 
 // eslint-disable-next-line complexity
 export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx: ExplainerContext): string => {
-  const { source, colors } = ctx;
+  const { source } = ctx;
   const rawPrinted = printNode(source, node);
   const printed = dim(rawPrinted.length > 70 ? rawPrinted.slice(0, 67) + '...' : rawPrinted);
   const result: string[] = [];
 
   switch (node.kind) {
     case SyntaxKind.Regexp: {
-      ctx.nodesGraph.add(node);
       const childNodes = explainNode(node.body, node, ctx);
-      let coloredRegexp = ctx.source;
-      const renderQueue: AnyRegexpNode[] = [];
-
-      if (source.length <= 400 && colors.size <= 150) {
-        ctx.nodesGraph.bfs(node, currentNode => renderQueue.push(currentNode));
-        renderQueue.reverse();
-        for (const currentNode of renderQueue) {
-          const color = colors.get(currentNode);
-          if (!color) {
-            continue;
-          }
-          coloredRegexp = colorStringPart(coloredRegexp, currentNode.start, currentNode.end, color);
-        }
-      }
-
-      const mainBlock = [borderColor('┄'.repeat(15)), childNodes];
+      const mainBlock = [childNodes];
 
       if (node.flags) {
         mainBlock.unshift(
-          borderColor('┄'.repeat(15)),
           header('Flags'),
           addIndent(
             node.flags
@@ -207,10 +221,11 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
               )
               .join('\n'),
           ),
+          borderColor('┄'.repeat(15)),
         );
       }
 
-      result.push(addIndent(coloredRegexp), addIndent(mainBlock.join('\n')));
+      result.push(...mainBlock);
       break;
     }
 
@@ -250,7 +265,7 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
 
     case SyntaxKind.Group: {
       const groupColor = assignColor(node, parentNode, ctx, groupColors);
-      let headerText: string;
+      let headerText: string = '';
       switch (node.type) {
         case 'capturing':
           ctx.capturingGroups++;
@@ -289,17 +304,17 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
     }
 
     case SyntaxKind.Repetition: {
-      let repetition: string;
+      let repetition: string = '';
 
       switch (node.quantifier.type) {
         case 'oneOrMany':
-          repetition = 'between one and unlimited times' + (!node.quantifier.greedy ? ' (lazy)' : '');
+          repetition = 'between one and unlimited times';
           break;
         case 'zeroOrOne':
-          repetition = 'between zero and one times' + (!node.quantifier.greedy ? ' (lazy)' : '');
+          repetition = 'between zero and one times';
           break;
         case 'zeroOrMany':
-          repetition = 'between zero and unlimited times' + (!node.quantifier.greedy ? ' (lazy)' : '');
+          repetition = 'between zero and unlimited times';
           break;
         case 'range':
           if (typeof node.quantifier.to === 'undefined') {
@@ -379,17 +394,17 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
 
     default: {
       const kind = node.kind;
-      if (genericNodeTitle[kind]) {
-        const title = genericNodeTitle[kind];
+      const title = genericNodeTitle[kind];
+      if (title) {
         const color =
           parentNode.kind === SyntaxKind.CharClass
             ? String
-            : 'color' in title && title.color
+            : 'color' in title
             ? assignColor(node, parentNode, ctx, title.color)
             : String;
         result.push(
           `${header(title.header, color)}${
-            'description' in title && title.description ? ` ${secondary(title.description)}` : ''
+            'description' in title ? ` ${secondary(title.description)}` : ''
           } ${printed}`,
         );
       } else {

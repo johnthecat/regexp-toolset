@@ -122,15 +122,15 @@ export const createTokenizer = <T extends Handler<AnyToken>>(
             currentReturn = result;
             break;
           }
-          const nextStep = result.value.next() ?? null;
-          if (!nextStep) {
-            break;
-          }
+          const nextStep = result.value.next();
           currentReturn = {
             done: false,
             result: result.result,
-            value: nextStep,
+            value: nextStep ?? currentReturn.value,
           };
+          if (!nextStep) {
+            break;
+          }
         }
         return currentReturn;
       },

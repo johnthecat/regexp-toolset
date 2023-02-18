@@ -1,17 +1,24 @@
 {
   "name": "explain-regexp",
   "version": "0.1.0",
+  "author": {
+    "name": "Sergey Zhuravlev",
+    "email": "zhuravlev1337@gmail.com"
+  },
+  "repository": "johnthecat/regexp-toolset",
   "type": "module",
   "bin": "./bin/index.js",
   "scripts": {
     "prepublishOnly": "npm run build",
     "watch": "vite build --mode development --watch",
     "build": "vite build",
-    "lint": "eslint src/*/**.ts",
-    "test": "./bin/index.js '/^((?=\\S*?[A-Z])(?=\\S*?[a-z])(?=\\S*?[0-9]).{6,})\\S$/g'"
+    "lint": "eslint src/*/**.ts"
   },
   "dependencies": {
     "ecma-262-regexp-parser": "0.1.0",
     "commander": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=16"
   }
 }

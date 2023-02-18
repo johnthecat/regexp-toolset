@@ -1,33 +1,31 @@
-# Ecma-262 RegExp parser
+# Regexp explainer
 
-RegExp Parser, implemented according to [Specification](https://tc39.es/ecma262/#sec-patterns).
+> CLI util for generating comprehensive report about regexp.
 
+![Example in terminal](./static/example.gif)
 
+Requires `Node >= 16`
 
-## How to generate contract
+## Usage
 
-### Requirements
-- `Node >= 16`
-- `Typescript >= 4.9`
+You can install package through your package manager or use in directly with `npx`
 
 ### Installation
-  ```bash
-  npm i ecma-262-spec-compliant-regexp-parser --save
-  ```
-
-### Usage
-
-#### Node.js
-
-```js
-import { parseRegexp } from 'ecma-262-spec-compliant-regexp-parser';
+```shell
+$ npm i explain-regexp -g
 ```
 
-#### CLI
-You can use parser as a cli for analyze or storing parser result for later use.
-AST always outputs into `stdout`, so you should pipe it to desired file.
-```sh
-npx parse-regexp "/[A-z]+/" > ./regexp-ast.json
+### CLI
+Create report about full regexp:
+```shell
+$ explain-regexp "/[A-z]+/gm"
 ```
-##### options
-  * `-f, --format`, adds indent into JSON for readability.
+
+Create report about part of regexp:
+```shell
+$ explain-regexp part "(?:Hello)"
+```
+
+#### options
+  * `--color` `--no-color` forces colors on/off, default behavior depends on env;
+  * `-d, --debug` shows full error stacktrace;

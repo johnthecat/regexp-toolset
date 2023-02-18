@@ -7,6 +7,12 @@ export type GraphNode<T> = {
 export class Graph<T> {
   private map = new Map<T, GraphNode<T>>();
 
+  constructor(...nodes: T[]) {
+    for (const node of nodes) {
+      this.add(node);
+    }
+  }
+
   get(value: T): GraphNode<T> | null {
     return this.map.get(value) ?? null;
   }

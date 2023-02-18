@@ -3,8 +3,7 @@ import { isatty } from 'node:tty';
 import { readFileSync } from 'node:fs';
 import { stdout, stderr } from 'node:process';
 import { program } from 'commander';
-import { parseRegexp } from 'ecma-262-regexp-parser';
-import { explainRegexp } from '../dist/index.js';
+import { explainRegexp, explainRegexpPart } from '../dist/index.js';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), { encoding: 'utf-8' }));
 const isColorSupportedByEnv =
@@ -23,8 +22,28 @@ program
   .option('--color', 'Forces color output', isColorSupportedByEnv)
   .action((regexp, { debug, color: enableColors }) => {
     try {
-      const ast = parseRegexp(regexp);
-      stdout.write('\n' + explainRegexp(ast, regexp, { enableColors }) + '\n');
+      stdout.write('\n' + explainRegexp(regexp, { enableColors }) + '\n');
+    } catch (e) {
+      if (debug) {
+        console.error(e);
+      } else {
+        stderr.write('\n' + e.toString() + '\n');
+      }
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('part')
+  .description('Explains part of regexp, ex. "[A-z]"')
+  .argument('<regexp>', 'Partial regexp expression, wrapped into quotes')
+  .option('-d, --debug', 'Shows full error stacktrace', false)
+  .option('--no-color', 'Disabled color for output', false)
+  .option('--color', 'Forces color output', isColorSupportedByEnv)
+  .action((regexp, { debug, color: enableColors }) => {
+    try {
+      stdout.cursorTo(0);
+      stdout.write('\n' + explainRegexpPart(regexp, { enableColors }) + '\n');
     } catch (e) {
       if (debug) {
         console.error(e);

@@ -16,6 +16,7 @@ export const fillExpressions = (
     (currentStep, expressions) => tokenParser(currentStep, expressions, state),
     [],
   );
+
   return { expressions: reducerResult.result, lastStep: reducerResult.value };
 };
 
