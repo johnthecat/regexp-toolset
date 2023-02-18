@@ -23,7 +23,7 @@
     },
     "test": {
       "inputs": ["default", "tests"],
-      "dependsOn": ["^build", "build", "^test"],
+      "dependsOn": ["build"],
       "outputs": []
     }
   }
