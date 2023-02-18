@@ -7,7 +7,9 @@
     "test": "nx run-many --target=test",
     "lint": "nx run-many --target=lint",
     "postinstall": "husky install",
-    "precommit": "nx affected --target=test && nx affected --target=lint"
+    "precommit": "nx affected --target=test && nx affected --target=lint",
+    "publish": "lerna publish",
+    "prepublishOnly": "npm run lint && npm run test"
   },
   "devDependencies": {
     "@types/node": "^18.13.0",
