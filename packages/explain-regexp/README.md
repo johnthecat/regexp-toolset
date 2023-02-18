@@ -14,6 +14,12 @@ You can install package through your package manager or use in directly with `np
 ```shell
 $ npm i explain-regexp -g
 ```
+```shell
+$ yarn global add explain-regexp
+```
+```shell
+$ pnpm install --global explain-regexp
+```
 
 ### CLI
 Create report about full regexp:
