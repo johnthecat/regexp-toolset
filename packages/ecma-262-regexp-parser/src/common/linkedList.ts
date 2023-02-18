@@ -1,18 +1,21 @@
-export type LintedListNode<T, K extends PropertyKey = 'value'> = Record<K, T> & {
-  index: number;
-  next(): LintedListNode<T, K> | null;
-};
+export type LintedListNode<LocalValue extends object, NextValues extends object = LocalValue> = LocalValue extends any
+  ? LocalValue & {
+      index: number;
+      next(): LintedListNode<NextValues, NextValues> | null;
+      __linkedListValue?: LocalValue | undefined;
+    }
+  : never;
 
-export class LazyLinkedList<T, K extends string = 'value'> {
+export class LazyLinkedList<Value extends object> {
   private length = 0;
-  private rootNode: LintedListNode<T, K> | null = null;
-  private lastNode: LintedListNode<T, K> | null = null;
+  private rootNode: LintedListNode<Value> | null = null;
+  private lastNode: LintedListNode<Value> | null = null;
 
-  private cache: WeakMap<LintedListNode<T, K>, LintedListNode<T, K> | null> = new WeakMap();
+  private cache: WeakMap<LintedListNode<Value>, LintedListNode<Value> | null> = new WeakMap();
 
-  constructor(private valueFactory: () => [K, T] | null) {}
+  constructor(private valueFactory: () => Value | null) {}
 
-  private next(prevNode: LintedListNode<T, K>) {
+  private next(prevNode: LintedListNode<Value>) {
     let nextNode = this.cache.get(prevNode) ?? null;
     if (!nextNode) {
       nextNode = this.createNode(this.valueFactory());
@@ -21,14 +24,14 @@ export class LazyLinkedList<T, K extends string = 'value'> {
     return nextNode;
   }
 
-  private createNode(value: [K, T] | null): LintedListNode<T, K> | null {
+  private createNode(value: Value | null): LintedListNode<Value> | null {
     if (value === null) {
       return null;
     }
 
     // @ts-expect-error
-    const node: LintedListNode<T, K> = {
-      ...{ [value[0]]: value[1] },
+    const node: LintedListNode<Value> = {
+      ...value,
       index: this.length,
       next: () => this.next(node),
     };

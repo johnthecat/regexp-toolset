@@ -16,5 +16,8 @@
     "watch": "vite build --mode development --watch",
     "build": "vite build --mode production",
     "lint": "eslint src/*/**.ts"
+  },
+  "dependencies": {
+    "ecma-262-regexp-parser": "^0.1.0"
   }
 }

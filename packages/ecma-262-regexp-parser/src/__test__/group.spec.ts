@@ -4,11 +4,25 @@ import { parseRegexp } from '../index.js';
 describe('Group', () => {
   describe('Common', () => {
     it('should throw, if group is not closed', () => {
-      expect(() => parseRegexp('/(ab/')).toThrowErrorMatchingSnapshot();
+      expect(() => parseRegexp('/(ab/')).toThrowErrorMatchingInlineSnapshot(`
+        "
+         ❱ /(ab/
+            ════
+         Group is not closed"
+      `);
     });
 
     it('should throw, there is unmatched parenthesis', () => {
-      expect(() => parseRegexp('/(ab))/')).toThrowErrorMatchingSnapshot();
+      expect(() => parseRegexp('/(ab))/')).toThrowErrorMatchingInlineSnapshot(`
+        "
+         ❱ /(ab))/
+                ═
+         Unmatched parenthesis"
+      `);
+    });
+
+    it('should correctly parse nested groups', () => {
+      expect(parseRegexp('/(a(f|g)b)/')).toMatchSnapshot();
     });
   });
 

@@ -87,7 +87,7 @@ const genericNodeTitle = {
   [SyntaxKind.CarriageReturn]: { header: 'Carriage Return', color: defaultExpressionColor },
   [SyntaxKind.Tab]: { header: 'Tab', color: defaultExpressionColor },
   [SyntaxKind.Quantifier]: { header: 'Quantifier', color: defaultExpressionColor },
-};
+} satisfies Record<SyntaxKind, { header: string; description?: string; color?: Colors | Formatter }>;
 
 const renderAfterBlock = (content: string, index = 0, of = 1): string => {
   const isFirst = index === 0;
@@ -293,23 +293,27 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
 
       switch (node.quantifier.type) {
         case 'oneOrMany':
-          repetition = 'one to infinite times' + (!node.quantifier.greedy ? ' (lazy)' : '');
+          repetition = 'between one and unlimited times' + (!node.quantifier.greedy ? ' (lazy)' : '');
           break;
         case 'zeroOrOne':
-          repetition = 'zero or once' + (!node.quantifier.greedy ? ' (lazy)' : '');
+          repetition = 'between zero and one times' + (!node.quantifier.greedy ? ' (lazy)' : '');
           break;
         case 'zeroOrMany':
-          repetition = 'zero to infinite times' + (!node.quantifier.greedy ? ' (lazy)' : '');
+          repetition = 'between zero and unlimited times' + (!node.quantifier.greedy ? ' (lazy)' : '');
           break;
         case 'range':
           if (typeof node.quantifier.to === 'undefined') {
             repetition = `${node.quantifier.from} time${node.quantifier.from === 1 ? '' : 's'}`;
           } else {
-            repetition = `from ${node.quantifier.from} to ${
+            repetition = `between ${node.quantifier.from} to ${
               node.quantifier.to === Number.POSITIVE_INFINITY ? 'infinite' : node.quantifier.to
-            } times`;
+            } time${node.quantifier.to === 1 ? '' : 's'}`;
           }
           break;
+      }
+
+      if (!node.quantifier.greedy) {
+        repetition += ' (lazy)';
       }
 
       const childNode = explainNode(node.expression, parentNode, ctx);

@@ -1,25 +1,13 @@
 import type { AnyRegexpNode, GroupNode, SubpatternNode } from './regexpNodes.js';
-import type { AnyRegexpToken, RegexpTokenizer, Step } from './regexpTokenizer.js';
-import type { TokenizerStep } from './abstract/tokenizer.js';
+import type { RegexpTokenizer, Step } from './regexpTokenizer.js';
+import type { TokenReducerResult } from './abstract/tokenizer.js';
 
-/**
- * @return Last used step.
- */
-export type PartialParser<T extends AnyRegexpToken = AnyRegexpToken> = (
-  step: TokenizerStep<T>,
-  expressions: AnyRegexpNode[],
-  state: ParserState,
-) => Step;
-
-export type TokenParser<T extends AnyRegexpToken = AnyRegexpToken> = (
-  step: TokenizerStep<T>,
+export type TokenParser<T extends Step = Step> = (
+  step: T,
   expressions: AnyRegexpNode[],
   state: ParserState,
   recursiveFn?: TokenParser,
-) => {
-  shouldBreak: boolean;
-  lastStep: Step;
-};
+) => TokenReducerResult<Step, AnyRegexpNode[]>;
 
 export type ParserState = {
   source: string;

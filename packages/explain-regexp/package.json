@@ -7,7 +7,8 @@
     "prepublishOnly": "npm run build",
     "watch": "vite build --mode development --watch",
     "build": "vite build",
-    "lint": "eslint src/*/**.ts"
+    "lint": "eslint src/*/**.ts",
+    "test": "./bin/index.js '/^((?=\\S*?[A-Z])(?=\\S*?[a-z])(?=\\S*?[0-9]).{6,})\\S$/g'"
   },
   "dependencies": {
     "ecma-262-regexp-parser": "0.1.0",

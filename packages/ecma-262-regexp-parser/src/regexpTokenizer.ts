@@ -18,26 +18,25 @@ export enum TokenKind {
   DecimalEscape,
 }
 
-export const syntaxCharHandler = createHandler<
+export type SyntaxCharToken = Token<
   TokenKind.SyntaxChar,
   '$' | '^' | '\\' | '.' | '*' | '+' | '?' | '(' | ')' | '[' | ']' | '{' | '}' | '|'
->(TokenKind.SyntaxChar, /[$^\\.*+?()\[\]{}|]/);
-export const controlEscapeHandler = createHandler<TokenKind.ControlEscape, 'f' | 'n' | 'r' | 't' | 'v'>(
-  TokenKind.ControlEscape,
-  /\\(fnrtv)/,
-);
-export const charClassEscapeHandler = createHandler<TokenKind.CharClassEscape, 'd' | 'D' | 's' | 'S' | 'w' | 'W'>(
-  TokenKind.CharClassEscape,
-  /\\([dDsSwW])/,
-);
+>;
 
-export const charEscapeHandler = createHandler<TokenKind.CharEscape>(TokenKind.CharEscape, /\\(.)/);
-export const patternCharHandler = createHandler<TokenKind.PatternChar>(TokenKind.PatternChar, /[^$^\\.*+?()\[\]{}|]/);
-export const decimalEscapeHandler = createHandler<TokenKind.DecimalEscape, `${number}`>(
-  TokenKind.DecimalEscape,
-  /\\([0-9])/,
-);
-export const decimalHandler = createHandler<TokenKind.Decimal>(TokenKind.Decimal, /\d/);
+export type CharClassEscape = Token<TokenKind.CharClassEscape, 'd' | 'D' | 's' | 'S' | 'w' | 'W'>;
+export type ControlEscapeToken = Token<TokenKind.ControlEscape, 'f' | 'n' | 'r' | 't' | 'v'>;
+export type CharEscapeToken = Token<TokenKind.CharEscape>;
+export type PatternCharToken = Token<TokenKind.PatternChar>;
+export type DecimalEscapeToken = Token<TokenKind.DecimalEscape, `${number}`>;
+export type DecimalToken = Token<TokenKind.Decimal, `${number}`>;
+
+export const syntaxCharHandler = createHandler<SyntaxCharToken>(TokenKind.SyntaxChar, /[$^\\.*+?()\[\]{}|]/);
+export const controlEscapeHandler = createHandler<ControlEscapeToken>(TokenKind.ControlEscape, /\\(fnrtv)/);
+export const charClassEscapeHandler = createHandler<CharClassEscape>(TokenKind.CharClassEscape, /\\([dDsSwW])/);
+export const charEscapeHandler = createHandler<CharEscapeToken>(TokenKind.CharEscape, /\\(.)/);
+export const patternCharHandler = createHandler<PatternCharToken>(TokenKind.PatternChar, /[^$^\\.*+?()\[\]{}|]/);
+export const decimalEscapeHandler = createHandler<DecimalEscapeToken>(TokenKind.DecimalEscape, /\\([0-9])/);
+export const decimalHandler = createHandler<DecimalToken>(TokenKind.Decimal, /\d/);
 
 export const regexpTokenizer = createTokenizer(
   waterfall([
@@ -53,7 +52,7 @@ export const regexpTokenizer = createTokenizer(
 
 export type RegexpTokenizer = InferTokenizer<typeof regexpTokenizer>;
 export type AnyRegexpToken = InferTokenFromTokenizer<typeof regexpTokenizer>;
-export type Step = TokenizerStep<AnyRegexpToken>;
+export type Step<T extends AnyRegexpToken = AnyRegexpToken> = TokenizerStep<T, AnyRegexpToken>;
 
 const genericChecker = <T extends AnyRegexpToken>(
   kind: AnyRegexpToken['kind'],

@@ -10,7 +10,7 @@ export const createStringStream = (input: string) => {
     },
 
     size() {
-      return input.length;
+      return input.length - 1;
     },
 
     [Symbol.iterator](): InputStreamIterator {

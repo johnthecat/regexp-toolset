@@ -1,29 +1,22 @@
 import type { AnyRegexpToken, Step, TokenKind } from './regexpTokenizer.js';
 import { isPatternCharToken, isDecimalToken, isDecimalEscapeToken } from './regexpTokenizer.js';
-import type { AnyRegexpNode } from './regexpNodes.js';
+import type { AnyRegexpNode, NodePosition, ZeroLengthNode } from './regexpNodes.js';
 import type { ParserState, TokenParser } from './regexpParseTypes.js';
 import { isBoolean } from './common/typeCheckers.js';
+import { SyntaxKind } from './regexpNodes.js';
+import { createAlternativeNode, createSimpleNode } from './regexpNodeFactory.js';
 
 export const fillExpressions = (
   step: Step,
   state: ParserState,
   tokenParser: TokenParser,
 ): { expressions: AnyRegexpNode[]; lastStep: Step } => {
-  const expressions: AnyRegexpNode[] = [];
-  let currentStep = step;
-  while (currentStep) {
-    const result = tokenParser(currentStep, expressions, state);
-    if (result.shouldBreak) {
-      currentStep = result.lastStep;
-      break;
-    }
-    const nextStep = result.lastStep?.next() ?? null;
-    if (!nextStep) {
-      break;
-    }
-    currentStep = nextStep;
-  }
-  return { expressions, lastStep: currentStep };
+  const reducerResult = state.tokenizer.reducer<AnyRegexpNode[]>(
+    step,
+    (currentStep, expressions) => tokenParser(currentStep, expressions, state),
+    [],
+  );
+  return { expressions: reducerResult.result, lastStep: reducerResult.value };
 };
 
 type FullMatcherResult<V> = { step: Step; match: boolean; value: V | null };
@@ -35,7 +28,7 @@ type Matcher<V, T extends AnyRegexpToken = AnyRegexpToken> = T['kind'] | Partial
 type MatcherList<V, T extends AnyRegexpToken = AnyRegexpToken> = Matcher<V, T>[];
 
 const kindMatcher = <V>(a: Step, b: TokenKind): MatcherResult<V> => {
-  return a.token.kind === b;
+  return a.kind === b;
 };
 const partialMatcher = <V>(token: Record<string, unknown>, fields: Record<string, unknown>): MatcherResult<V> => {
   for (const key in fields) {
@@ -57,7 +50,7 @@ const applyMatcher = <V>(step: Step, matcher: Matcher<V>): FullMatcherResult<V> 
   } else if (typeof matcher === 'function') {
     result = matcher(step);
   } else {
-    result = partialMatcher(step.token, matcher);
+    result = partialMatcher(step, matcher);
   }
 
   return {
@@ -95,8 +88,8 @@ export const matchTokenSequence = <V>(
           return {
             match: false,
             lastStep: currentStep,
-            start: step.token.start,
-            end: currentStep.token.end,
+            start: step.start,
+            end: currentStep.end,
             values,
           };
         }
@@ -107,8 +100,8 @@ export const matchTokenSequence = <V>(
         return {
           match: false,
           lastStep: currentStep,
-          start: step.token.start,
-          end: currentStep.token.end,
+          start: step.start,
+          end: currentStep.end,
           values,
         };
       }
@@ -119,8 +112,8 @@ export const matchTokenSequence = <V>(
       return {
         match: false,
         lastStep: currentStep,
-        start: step.token.start,
-        end: currentStep.token.end,
+        start: step.start,
+        end: currentStep.end,
         values,
       };
     }
@@ -131,8 +124,8 @@ export const matchTokenSequence = <V>(
   return {
     match: true,
     lastStep: prevStep,
-    start: step.token.start,
-    end: prevStep?.token.end,
+    start: step.start,
+    end: prevStep?.end,
     values,
   };
 };
@@ -143,10 +136,10 @@ export const wordMatcher = (step: Step) => {
   let current: Step | null = step;
   let value = '';
   do {
-    if (/\w/.test(current.token.value)) {
+    if (/\w/.test(current.value)) {
       match = true;
       last = current;
-      value += current.token.value;
+      value += current.value;
     } else {
       break;
     }
@@ -161,10 +154,10 @@ export const numberMatcher: CustomMatcher<number> = step => {
   let current: Step | null = step;
   let value = '';
   do {
-    if (isDecimalToken(current.token) || isDecimalEscapeToken(current.token)) {
+    if (isDecimalToken(current) || isDecimalEscapeToken(current)) {
       match = true;
       last = current;
-      value += current.token.value;
+      value += current.value;
     } else {
       break;
     }
@@ -186,9 +179,8 @@ export const octalMatcher: CustomMatcher<string> = firstStep => {
   let value = '';
 
   for (const step of [firstStep, secondStep, thirdStep]) {
-    const { token } = step;
-    if ((step === firstStep && isDecimalEscapeToken(token)) || isDecimalToken(token)) {
-      value = value + token.value;
+    if ((step === firstStep && isDecimalEscapeToken(step)) || isDecimalToken(step)) {
+      value = value + step.value;
       if (parseInt(value) > 256) {
         return false;
       }
@@ -207,19 +199,40 @@ export const hexMatcher: CustomMatcher<string> = firstStep => {
   let value = '';
 
   for (const step of [firstStep, secondStep]) {
-    const { token } = step;
     if (
-      (isPatternCharToken(token) ||
-        isDecimalToken(token) ||
-        isDecimalEscapeToken(token) ||
-        isDecimalEscapeToken(token)) &&
-      /^[0-9A-Fa-f]$/.test(token.value)
+      (isPatternCharToken(step) || isDecimalToken(step) || isDecimalEscapeToken(step) || isDecimalEscapeToken(step)) &&
+      /^[0-9A-Fa-f]$/.test(step.value)
     ) {
-      value += token.value;
+      value += step.value;
     } else {
       return false;
     }
   }
 
   return { match: true, step: secondStep, value };
+};
+
+export const sealExpressions = (
+  expressions: AnyRegexpNode[],
+  firstToken: NodePosition | void = expressions.at(0),
+  lastToken: NodePosition | void = expressions.at(-1),
+): AnyRegexpNode => {
+  if (!expressions.length) {
+    return createSimpleNode<ZeroLengthNode>(SyntaxKind.ZeroLength, {
+      start: firstToken?.start ?? 0,
+      end: lastToken?.end ?? 0,
+    });
+  }
+
+  if (expressions.length === 1) {
+    return (
+      expressions.at(0) ??
+      createSimpleNode<ZeroLengthNode>(SyntaxKind.ZeroLength, {
+        start: firstToken?.start ?? 0,
+        end: lastToken?.end ?? 0,
+      })
+    );
+  }
+
+  return createAlternativeNode(expressions);
 };

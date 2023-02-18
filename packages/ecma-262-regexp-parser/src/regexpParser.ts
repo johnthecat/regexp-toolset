@@ -1,4 +1,4 @@
-import type { charClassEscapeHandler, charEscapeHandler, controlEscapeHandler, Step } from './regexpTokenizer.js';
+import type { charEscapeHandler, controlEscapeHandler, Step, charClassEscapeHandler } from './regexpTokenizer.js';
 import {
   isBracketsCloseToken,
   isBracketsOpenToken,
@@ -27,27 +27,14 @@ import type {
   NonWhitespaceNode,
   NonWordNode,
   NullCharNode,
-  RegexpNode,
   SubpatternNode,
   TabNode,
   VerticalWhitespaceNode,
 } from './regexpNodes.js';
-import {
-  createBackReferenceNode,
-  createCharClassNode,
-  createCharNode,
-  createCharRangeNode,
-  createControlCharNode,
-  createDisjunctionNode,
-  createGroupNameNode,
-  createGroupNode,
-  createQuantifierNode,
-  createRepetitionNode,
-  createSimpleNode,
-  sealExpressions,
-  SyntaxKind,
-} from './regexpNodes.js';
-import type { ParserState, PartialParser, TokenParser } from './regexpParseTypes.js';
+import { SyntaxKind } from './regexpNodes.js';
+import * as factory from './regexpNodeFactory.js';
+import { createRegexpNode } from './regexpNodeFactory.js';
+import type { ParserState, TokenParser } from './regexpParseTypes.js';
 import {
   fillExpressions,
   hexMatcher,
@@ -76,33 +63,27 @@ export const parseRegexp = (source: string) => {
     groupSpecifierDemands: new Set(),
   };
 
-  const firstStep = tokenizer.start();
+  const firstStep = tokenizer.getFirstStep();
   if (!firstStep) {
     throw new ParsingError(source, 0, source.length, "Can't parse input");
   }
 
-  if (!isPatternCharToken(firstStep.token, '/')) {
+  if (!isPatternCharToken(firstStep, '/')) {
     throw new ParsingError(source, 0, 0, 'Regexp should start with "/" symbol, like this: /.../gm');
   }
 
   const firstContentStep = firstStep.next();
   if (!firstContentStep) {
-    throw new ParsingError(source, firstStep.token.start, source.length, "Can't parse input");
+    throw new ParsingError(source, firstStep.start, source.length, "Can't parse input");
   }
 
   const { expressions, lastStep } = fillExpressions(firstContentStep, parserState, parseTokenInRegexp);
-  if (!isPatternCharToken(lastStep.token, '/')) {
+  if (!isPatternCharToken(lastStep, '/')) {
     throw new ParsingError(source, source.length, source.length, 'Regexp is not closed with "/" symbol');
   }
 
   const nextStep = lastStep.next();
-  const regexpNode: RegexpNode = {
-    kind: SyntaxKind.Regexp,
-    start: 0,
-    end: lastStep.token.end,
-    body: sealExpressions(expressions, firstStep.token, lastStep.token),
-    flags: nextStep ? parseFlags(nextStep, parserState) : '',
-  };
+  const regexpNode = createRegexpNode(expressions, nextStep ? parseFlags(nextStep, parserState) : '');
 
   for (const [tag, node] of parserState.groupSpecifierDemands) {
     const found = parserState.foundGroupSpecifiers.get(tag);
@@ -121,21 +102,20 @@ export const parseRegexp = (source: string) => {
   return regexpNode;
 };
 
+export const parseRegexpNode = (source: string): AnyRegexpNode => {
+  return parseRegexp(`/${source}/`).body;
+};
+
 const parseFlags = (step: Step, state: ParserState): string => {
   let result = '';
   let currentStep = step;
   while (currentStep) {
-    if (!isPatternCharToken(step.token)) {
-      throw new ParsingError(
-        state.source,
-        currentStep.token.start,
-        currentStep.token.end,
-        CommonErrorMessages.UnexpectedToken,
-      );
+    if (!isPatternCharToken(step)) {
+      throw new ParsingError(state.source, currentStep.start, currentStep.end, CommonErrorMessages.UnexpectedToken);
     }
 
     // TODO add flags validation
-    result += currentStep.token.value;
+    result += currentStep.value;
 
     const nextStep = currentStep.next();
     if (!nextStep) {
@@ -147,95 +127,116 @@ const parseFlags = (step: Step, state: ParserState): string => {
   return result;
 };
 
-const parseQuantifierRange: PartialParser = (step, expressions, state) => {
-  const { token } = step;
+const parseQuantifierRange: TokenParser = (token, expressions, state) => {
   const prevNode = expressions.at(-1);
   if (!prevNode) {
     throw new ParsingError(state.source, token.start, token.end, 'The preceding token is not quantifiable');
   }
 
   const trySequence = (step: Step, seq: Parameters<typeof matchTokenSequence<number>>[1]) => {
-    const result = matchTokenSequence<number>(step, seq);
+    const range = matchTokenSequence<number>(step, seq);
+    const lazy = matchTokenSequence(range.lastStep, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]);
 
-    if (result.match) {
-      const from = result.values.at(0);
-      const to = result.values.at(1);
+    if (range.match) {
+      const from = range.values.at(0);
+      const to = range.values.at(1);
       if (from === void 0) {
-        throw new ParsingError(state.source, result.start, result.end, `Can't parse numeric values from range.`);
+        throw new ParsingError(state.source, range.start, range.end, `Can't parse numeric values from range.`);
       }
+      expressions.pop();
 
-      const quantifierNode = createQuantifierNode(result, {
+      const quantifierNode = factory.createQuantifierNode(range, {
+        greedy: !lazy.match,
         type: 'range',
         from,
         to,
       });
 
-      const repetitionNode = createRepetitionNode(prevNode, quantifierNode);
-      expressions.pop();
+      const repetitionNode = factory.createRepetitionNode(prevNode, quantifierNode);
       expressions.push(repetitionNode);
     }
 
     return {
-      match: result.match,
-      lastStep: result.lastStep,
+      match: range.match,
+      value: lazy.match ? lazy.lastStep : range.lastStep,
     };
   };
 
-  const exactNumberResult = trySequence(step, [
-    [TokenKind.SyntaxChar, { value: '{' }],
-    numberMatcher,
-    [TokenKind.SyntaxChar, { value: '}' }],
-  ]);
-  if (exactNumberResult.match) {
-    return exactNumberResult.lastStep;
+  {
+    const exactNumberResult = trySequence(token, [
+      [TokenKind.SyntaxChar, { value: '{' }],
+      numberMatcher,
+      [TokenKind.SyntaxChar, { value: '}' }],
+    ]);
+    if (exactNumberResult.match) {
+      return {
+        done: true,
+        value: exactNumberResult.value,
+        result: expressions,
+      };
+    }
   }
 
-  const fromNumberResult = trySequence(step, [
-    [TokenKind.SyntaxChar, { value: '{' }],
-    numberMatcher,
-    [TokenKind.PatternChar, { value: ',' }, step => ({ match: true, step, value: Number.POSITIVE_INFINITY })],
-    [TokenKind.SyntaxChar, { value: '}' }],
-  ]);
-  if (fromNumberResult.match) {
-    return fromNumberResult.lastStep;
+  {
+    const fromNumberResult = trySequence(token, [
+      [TokenKind.SyntaxChar, { value: '{' }],
+      numberMatcher,
+      [TokenKind.PatternChar, { value: ',' }, step => ({ match: true, step, value: Number.POSITIVE_INFINITY })],
+      [TokenKind.SyntaxChar, { value: '}' }],
+    ]);
+    if (fromNumberResult.match) {
+      return {
+        done: true,
+        value: fromNumberResult.value,
+        result: expressions,
+      };
+    }
   }
 
-  const fromToNumberResult = trySequence(step, [
-    [TokenKind.SyntaxChar, { value: '{' }],
-    numberMatcher,
-    [TokenKind.PatternChar, { value: ',' }],
-    numberMatcher,
-    [TokenKind.SyntaxChar, { value: '}' }],
-  ]);
-  if (fromToNumberResult.match) {
-    return fromToNumberResult.lastStep;
+  {
+    const fromToNumberResult = trySequence(token, [
+      [TokenKind.SyntaxChar, { value: '{' }],
+      numberMatcher,
+      [TokenKind.PatternChar, { value: ',' }],
+      numberMatcher,
+      [TokenKind.SyntaxChar, { value: '}' }],
+    ]);
+    if (fromToNumberResult.match) {
+      return {
+        done: true,
+        value: fromToNumberResult.value,
+        result: expressions,
+      };
+    }
   }
 
-  expressions.push(createCharNode(token.value, token, 'simple'));
-  return step;
+  return {
+    done: true,
+    value: token,
+    result: expressions.concat(factory.createCharNode(token.value, token, 'simple')),
+  };
 };
 
 // eslint-disable-next-line complexity
-const parseTokenInRegexp: TokenParser = (step, expressions, state, recursiveFn = parseTokenInRegexp) => {
-  const { token } = step;
+const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn = parseTokenInRegexp) => {
   switch (token.kind) {
     case TokenKind.CharClassEscape:
       return {
-        shouldBreak: false,
-        lastStep: parseCharClassEscape(step, expressions, state),
+        ...parseCharClassEscape(token, expressions, state),
+        done: false,
       };
 
     case TokenKind.ControlEscape:
       return {
-        shouldBreak: false,
-        lastStep: parseControlEscapeHandler(step, expressions, state),
+        ...parseControlEscapeHandler(token, expressions, state),
+        done: false,
       };
 
     case TokenKind.CharEscape:
       switch (token.value) {
         case 'k': {
           // Implementation \k<...> - subpattern match
-          const subpattern = matchTokenSequence(step, [
+          const subpattern = matchTokenSequence(token, [
             [TokenKind.CharEscape, { value: 'k' }],
             [TokenKind.PatternChar, { value: '<' }],
             wordMatcher,
@@ -254,65 +255,66 @@ const parseTokenInRegexp: TokenParser = (step, expressions, state, recursiveFn =
               groupName: groupName,
             };
             state.groupSpecifierDemands.add([groupName, node]);
-            expressions.push(node);
             return {
-              shouldBreak: false,
-              lastStep: subpattern.lastStep,
+              done: false,
+              value: subpattern.lastStep,
+              result: expressions.concat(node),
             };
           }
 
-          expressions.push(createCharNode(token.value, token, 'escaped'));
           return {
-            shouldBreak: false,
-            lastStep: step,
+            done: false,
+            value: token,
+            result: expressions.concat(factory.createCharNode(token.value, token, 'escaped')),
           };
         }
         default:
           return {
-            shouldBreak: false,
-            lastStep: parseCharEscape(step, expressions, state),
+            ...parseCharEscape(token, expressions, state),
+            done: false,
           };
       }
 
     case TokenKind.DecimalEscape: {
       // Implementation \ddd - octal char number
-      const octal = matchTokenSequence(step, [octalMatcher]);
+      const octal = matchTokenSequence(token, [octalMatcher]);
       if (octal.match) {
         const value = octal.values.at(0);
         if (!value) {
           throw new ParsingError(state.source, octal.start, octal.end, "Can't parse octal value");
         }
 
-        expressions.push(createCharNode(String.fromCodePoint(parseInt(value, 8)), octal, 'octal'));
         return {
-          shouldBreak: false,
-          lastStep: octal.lastStep,
+          done: false,
+          value: octal.lastStep,
+          result: expressions.concat(factory.createCharNode(String.fromCodePoint(parseInt(value, 8)), octal, 'octal')),
         };
       }
 
       // Implementation \0 - null char
       if (token.value === '0') {
-        expressions.push(createSimpleNode<NullCharNode>(SyntaxKind.NullChar, token));
         return {
-          shouldBreak: false,
-          lastStep: step,
+          done: false,
+          value: token,
+          result: expressions.concat(factory.createSimpleNode<NullCharNode>(SyntaxKind.NullChar, token)),
         };
       }
 
       // Implementation (...)\1 - back reference
       const prevNode = expressions.at(-1);
       if (token.value === '1' && prevNode && prevNode.kind === SyntaxKind.Group) {
-        expressions.splice(-1, 1, createBackReferenceNode({ start: prevNode.start, end: token.end }, prevNode));
+        expressions.splice(-1, 1, factory.createBackReferenceNode({ start: prevNode.start, end: token.end }, prevNode));
         return {
-          shouldBreak: false,
-          lastStep: step,
+          done: false,
+          value: token,
+          result: expressions,
         };
       }
 
-      expressions.push(createCharNode(token.value, token, 'escaped'));
       return {
-        shouldBreak: false,
-        lastStep: step,
+        done: false,
+        value: token,
+        result: expressions.concat(factory.createCharNode(token.value, token, 'escaped')),
       };
     }
 
@@ -321,88 +323,90 @@ const parseTokenInRegexp: TokenParser = (step, expressions, state, recursiveFn =
         // End of regexp body
         case '/':
           return {
-            shouldBreak: true,
-            lastStep: step,
+            done: true,
+            value: token,
+            result: expressions,
           };
 
         default:
-          expressions.push(createCharNode(token.value, token, 'simple'));
           return {
-            shouldBreak: false,
-            lastStep: step,
+            done: false,
+            value: token,
+            result: expressions.concat(factory.createCharNode(token.value, token, 'simple')),
           };
       }
     }
 
     case TokenKind.Decimal: {
-      expressions.push(createCharNode(token.value, token, 'simple'));
       return {
-        shouldBreak: false,
-        lastStep: step,
+        done: false,
+        value: token,
+        result: expressions.concat(factory.createCharNode(token.value, token, 'simple')),
       };
     }
 
     case TokenKind.SyntaxChar: {
       switch (token.value) {
-        // Implementation [\b] - backspace
         case '[': {
-          const backspace = matchTokenSequence(step, [
+          // Implementation [\b] - backspace
+          const backspace = matchTokenSequence(token, [
             [TokenKind.SyntaxChar, { value: '[' }],
             [TokenKind.CharEscape, { value: 'b' }],
             [TokenKind.SyntaxChar, { value: ']' }],
           ]);
           if (backspace.match) {
-            expressions.push(createSimpleNode<BackspaceNode>(SyntaxKind.Backspace, backspace));
             return {
-              shouldBreak: false,
-              lastStep: backspace.lastStep,
+              done: false,
+              value: backspace.lastStep,
+              result: expressions.concat(factory.createSimpleNode<BackspaceNode>(SyntaxKind.Backspace, backspace)),
             };
           }
           return {
-            shouldBreak: false,
-            lastStep: parseCharClass(step, expressions, state),
+            ...parseCharClass(token, expressions, state),
+            done: false,
           };
         }
 
         // Implementation Y{1} ; Y{1,} ; Y{1,2} - range quantifier
         case '{': {
           return {
-            shouldBreak: false,
-            lastStep: parseQuantifierRange(step, expressions, state),
+            ...parseQuantifierRange(token, expressions, state),
+            done: false,
           };
         }
 
         // Implementation (...) - capturing group
         case '(': {
           return {
-            shouldBreak: false,
-            lastStep: parseCapturingGroup(step, expressions, state),
+            ...parseCapturingGroup(token, expressions, state),
+            done: false,
           };
         }
 
         // Implementation ^... - line start
         case '^': {
-          expressions.push(createSimpleNode<LineStartNode>(SyntaxKind.LineStart, token));
           return {
-            shouldBreak: false,
-            lastStep: step,
+            done: false,
+            value: token,
+            result: expressions.concat(factory.createSimpleNode<LineStartNode>(SyntaxKind.LineStart, token)),
           };
         }
 
         // Implementation ...$ - line end
         case '$':
-          expressions.push(createSimpleNode<LineEndNode>(SyntaxKind.LineEnd, token));
           return {
-            shouldBreak: false,
-            lastStep: step,
+            done: false,
+            value: token,
+            result: expressions.concat(factory.createSimpleNode<LineEndNode>(SyntaxKind.LineEnd, token)),
           };
 
         // Implementation . - any character
         case '.':
-          expressions.push(createSimpleNode<AnyCharNode>(SyntaxKind.AnyChar, token));
+          expressions.push(factory.createSimpleNode<AnyCharNode>(SyntaxKind.AnyChar, token));
           return {
-            shouldBreak: false,
-            lastStep: step,
+            done: false,
+            value: token,
+            result: expressions.concat(factory.createSimpleNode<AnyCharNode>(SyntaxKind.AnyChar, token)),
           };
 
         // Implementation .* ; .+ ; .? - quantifiers
@@ -414,103 +418,99 @@ const parseTokenInRegexp: TokenParser = (step, expressions, state, recursiveFn =
             throw new ParsingError(state.source, token.start, token.end, 'The preceding token is not quantifiable');
           }
 
-          const lazy = matchTokenSequence(step, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]);
-          const quantifierNode = createQuantifierNode(token, {
+          const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]);
+          const quantifierNode = factory.createQuantifierNode(token, {
             type: token.value === '?' ? 'zeroOrOne' : token.value === '+' ? 'zeroOrMany' : 'oneOrMany',
             greedy: !lazy.match,
           });
+          // TODO rework
           expressions.pop();
-          expressions.push(createRepetitionNode(prevNode, quantifierNode));
           return {
-            shouldBreak: false,
-            lastStep: lazy.match ? lazy.lastStep : step,
+            done: false,
+            value: lazy.match ? lazy.lastStep : token,
+            result: expressions.concat(factory.createRepetitionNode(prevNode, quantifierNode)),
           };
         }
 
         // Implementation .|. - disjunction
         case '|': {
           const leftNodes = expressions.splice(0, expressions.length);
-          const nextStep = step.next();
+          const nextStep = token.next();
 
           if (!nextStep) {
-            expressions.push(createDisjunctionNode(leftNodes, [], token));
             return {
-              shouldBreak: true,
-              lastStep: step,
+              done: true,
+              value: token,
+              result: expressions.concat(factory.createDisjunctionNode(leftNodes, [], token)),
             };
           }
 
           const { expressions: rightNodes, lastStep } = fillExpressions(nextStep, state, recursiveFn);
-          expressions.push(createDisjunctionNode(leftNodes, rightNodes, token));
           return {
-            shouldBreak: true,
-            lastStep,
+            done: true,
+            value: lastStep,
+            result: expressions.concat(factory.createDisjunctionNode(leftNodes, rightNodes, token)),
           };
         }
 
         case ')':
-          throw new ParsingError(state.source, step.token.start, step.token.end, 'Unmatched parenthesis');
+          throw new ParsingError(state.source, token.start, token.end, 'Unmatched parenthesis');
 
         default:
-          throw new ParsingError(state.source, step.token.start, step.token.end, CommonErrorMessages.UnexpectedToken);
+          throw new ParsingError(state.source, token.start, token.end, CommonErrorMessages.UnexpectedToken);
       }
     }
   }
 };
 
 // eslint-disable-next-line complexity
-const parseCapturingGroup: PartialParser = (firstStep, parentExpressions, state) => {
+const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, state) => {
   const { source } = state;
 
-  if (!isParenthesesOpenToken(firstStep.token)) {
+  if (!isParenthesesOpenToken(firstStep)) {
     throw new ParsingError(
       source,
-      firstStep.token.start,
-      firstStep.token.end,
+      firstStep.start,
+      firstStep.end,
       'Trying to parse expression as group, but got invalid input',
     );
   }
-  const parseTokenInGroup: TokenParser = (step, expressions, state) => {
-    const { token } = step;
-
+  const parseTokenInGroup: TokenParser = (token, expressions, state) => {
     if (state.tokenizer.isLastToken(token) && !isParenthesesCloseToken(token)) {
-      throw new ParsingError(state.source, firstStep.token.start, token.end, 'Group is not closed');
+      throw new ParsingError(state.source, firstStep.start, token.end, 'Group is not closed');
     }
 
     switch (token.kind) {
       case TokenKind.SyntaxChar: {
         switch (token.value) {
-          case '(': {
-            const lastStep = parseCapturingGroup(step, expressions, state);
-            if (!lastStep) {
-              throw new ParsingError(state.source, firstStep.token.start, firstStep.token.end, CommonErrorMessages.EOL);
-            }
+          case '(':
             return {
-              shouldBreak: false,
-              lastStep,
+              ...parseCapturingGroup(token, expressions, state),
+              done: false,
             };
-          }
+
           // Skipping closing bracket
           case ')':
             return {
-              shouldBreak: true,
-              lastStep: step,
+              done: true,
+              value: token,
+              result: expressions,
             };
 
           default:
-            if (state.tokenizer.isLastToken(token)) {
-              throw new ParsingError(state.source, firstStep.token.start, token.end, 'Group is not closed');
-            }
-            return parseTokenInRegexp(step, expressions, state, parseTokenInGroup);
+            break;
         }
+        break;
       }
 
       default:
-        if (state.tokenizer.isLastToken(token)) {
-          throw new ParsingError(state.source, firstStep.token.start, token.end, 'Incomplete group structure');
-        }
-        return parseTokenInRegexp(step, expressions, state, parseTokenInGroup);
+        break;
     }
+
+    if (state.tokenizer.isLastToken(token)) {
+      throw new ParsingError(state.source, firstStep.start, token.end, 'Incomplete group structure');
+    }
+    return parseTokenInRegexp(token, expressions, state, parseTokenInGroup);
   };
 
   let startStep: Step | null = firstStep.next();
@@ -603,7 +603,7 @@ const parseCapturingGroup: PartialParser = (firstStep, parentExpressions, state)
       }
 
       startStep = groupName.lastStep.next();
-      specifier = createGroupNameNode(name, { start: groupName.start + 2, end: groupName.end });
+      specifier = factory.createGroupNameNode(name, { start: groupName.start + 2, end: groupName.end });
     }
   }
 
@@ -612,81 +612,84 @@ const parseCapturingGroup: PartialParser = (firstStep, parentExpressions, state)
   }
 
   const { expressions, lastStep } = fillExpressions(startStep, state, parseTokenInGroup);
-  const node = createGroupNode(type, specifier, expressions, {
-    start: firstStep.token.start,
-    end: lastStep.token.end,
+  const node = factory.createGroupNode(type, specifier, expressions, {
+    start: firstStep.start,
+    end: lastStep.end,
   });
 
   if (specifier) {
     state.foundGroupSpecifiers.set(specifier.name, node);
   }
 
-  parentExpressions.push(node);
-  return lastStep;
+  return {
+    done: true,
+    value: lastStep,
+    result: parentExpressions.concat(node),
+  };
 };
 
-const parseCharClass: PartialParser = (firstStep, parentExpressions, state) => {
-  if (!isBracketsOpenToken(firstStep.token)) {
+const parseCharClass: TokenParser = (firstStep, parentExpressions, state) => {
+  if (!isBracketsOpenToken(firstStep)) {
     throw new ParsingError(
       state.source,
-      firstStep.token.start,
-      firstStep.token.end,
+      firstStep.start,
+      firstStep.end,
       'Trying to parse expression as character class, but got invalid input',
     );
   }
 
   // eslint-disable-next-line complexity
-  const parseTokenInCharClass: TokenParser = (step, expressions, state) => {
+  const parseTokenInCharClass: TokenParser = (token, expressions, state) => {
     const { source } = state;
-    const { token } = step;
 
     if (isBracketsCloseToken(token)) {
       return {
-        shouldBreak: true,
-        lastStep: step,
+        done: true,
+        result: expressions,
+        value: token,
       };
     } else if (state.tokenizer.isLastToken(token)) {
-      throw new ParsingError(source, firstStep.token.start, token.end, 'Character class missing closing bracket');
+      throw new ParsingError(source, firstStep.start, token.end, 'Character class missing closing bracket');
     }
 
     switch (token.kind) {
       case TokenKind.SyntaxChar:
-        expressions.push(createCharNode(token.value, token, 'simple'));
         return {
-          shouldBreak: false,
-          lastStep: step,
+          done: false,
+          result: expressions.concat(factory.createCharNode(token.value, token, 'simple')),
+          value: token,
         };
 
       case TokenKind.CharEscape:
         return {
-          shouldBreak: false,
-          lastStep: parseCharEscape(step, expressions, state),
+          ...parseCharEscape(token, expressions, state),
+          done: false,
         };
 
       case TokenKind.CharClassEscape:
         return {
-          shouldBreak: false,
-          lastStep: parseCharClassEscape(step, expressions, state),
+          ...parseCharClassEscape(token, expressions, state),
+          done: false,
         };
 
       case TokenKind.ControlEscape:
         return {
-          shouldBreak: false,
-          lastStep: parseControlEscapeHandler(step, expressions, state),
+          ...parseControlEscapeHandler(token, expressions, state),
+          done: false,
         };
 
       case TokenKind.DecimalEscape:
-        expressions.push(createCharNode(token.value, token, 'escaped'));
         return {
-          shouldBreak: false,
-          lastStep: step,
+          done: false,
+          value: token,
+          result: expressions.concat(factory.createCharNode(token.value, token, 'escaped')),
         };
 
       case TokenKind.Decimal:
-        expressions.push(createCharNode(token.value, token, 'simple'));
         return {
-          shouldBreak: false,
-          lastStep: step,
+          done: false,
+          value: token,
+          result: expressions.concat(factory.createCharNode(token.value, token, 'simple')),
         };
 
       case TokenKind.PatternChar:
@@ -695,35 +698,34 @@ const parseCharClass: PartialParser = (firstStep, parentExpressions, state) => {
           case '-': {
             const fromNode = expressions.pop();
             if (!fromNode) {
-              expressions.push(createCharNode(token.value, token, 'simple'));
               return {
-                shouldBreak: false,
-                lastStep: step,
+                done: false,
+                value: token,
+                result: expressions.concat(factory.createCharNode(token.value, token, 'simple')),
               };
             }
 
-            const nextStep = step.next();
+            const nextStep = token.next();
             if (!nextStep) {
               throw new ParsingError(source, token.start, token.end, CommonErrorMessages.EOL);
             }
 
-            const nextExpressions: AnyRegexpNode[] = [];
-            const { shouldBreak, lastStep } = parseTokenInCharClass(nextStep, nextExpressions, state);
+            const { done, value, result: nextExpressions } = parseTokenInCharClass(nextStep, [], state);
 
-            if (shouldBreak) {
-              expressions.push(fromNode, createCharNode(token.value, token, 'simple'));
+            if (done) {
               return {
-                shouldBreak: false,
-                lastStep: step,
+                done: false,
+                value: token,
+                result: expressions.concat(fromNode, factory.createCharNode(token.value, token, 'simple')),
               };
             }
 
             const toNode = nextExpressions.shift();
             if (!toNode) {
-              expressions.push(fromNode, createCharNode(token.value, token, 'simple'));
               return {
-                shouldBreak: false,
-                lastStep: step,
+                done: false,
+                value: token,
+                result: expressions.concat(factory.createCharNode(token.value, token, 'simple')),
               };
             }
 
@@ -746,19 +748,18 @@ const parseCharClass: PartialParser = (firstStep, parentExpressions, state) => {
               );
             }
 
-            expressions.push(createCharRangeNode(fromNode, toNode));
-            expressions.push(...nextExpressions);
             return {
-              shouldBreak: false,
-              lastStep,
+              done: false,
+              value,
+              result: expressions.concat([factory.createCharRangeNode(fromNode, toNode), ...nextExpressions]),
             };
           }
 
           default:
-            expressions.push(createCharNode(token.value, token, 'simple'));
             return {
-              shouldBreak: false,
-              lastStep: step,
+              done: false,
+              value: token,
+              result: expressions.concat(factory.createCharNode(token.value, token, 'simple')),
             };
         }
     }
@@ -778,127 +779,181 @@ const parseCharClass: PartialParser = (firstStep, parentExpressions, state) => {
   const { expressions, lastStep } = fillExpressions(startingStep, state, parseTokenInCharClass);
 
   // Implementation [...] - char class
-  const charClassNode = createCharClassNode(negative.match, expressions, {
-    start: firstStep.token.start,
-    end: lastStep?.token.end,
+  const charClassNode = factory.createCharClassNode(negative.match, expressions, {
+    start: firstStep.start,
+    end: lastStep.end,
   });
 
-  parentExpressions.push(charClassNode);
-  return lastStep;
+  return {
+    done: true,
+    value: lastStep,
+    result: parentExpressions.concat(charClassNode),
+  };
 };
 
-const parseCharEscape: PartialParser<InferHandlerResult<typeof charEscapeHandler>> = (step, expressions, state) => {
-  const { token } = step;
+const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHandler>>> = (
+  token,
+  expressions,
+  state,
+) => {
   switch (token.value) {
     // Implementation \xYY - hex symbol code
     case 'x': {
-      const hex = matchTokenSequence(step, [[TokenKind.CharEscape, { value: 'x' }], hexMatcher]);
+      const hex = matchTokenSequence(token, [[TokenKind.CharEscape, { value: 'x' }], hexMatcher]);
       if (hex.match) {
         const value = hex.values.at(0);
         if (!value) {
           throw new ParsingError(state.source, token.start, token.end, `Can't parse value as hex code`);
         }
-        expressions.push(createCharNode(String.fromCharCode(parseInt(value, 16)), hex, 'hex'));
-        return hex.lastStep;
+        return {
+          done: true,
+          value: hex.lastStep,
+          result: expressions.concat(factory.createCharNode(String.fromCharCode(parseInt(value, 16)), hex, 'hex')),
+        };
       }
-      expressions.push(createCharNode(token.value, token, 'escaped'));
-      return step;
+      break;
     }
 
     // Implementation \uYYYY - unicode symbol code
     case 'u': {
-      const hex = matchTokenSequence(step, [[TokenKind.CharEscape, { value: 'u' }], hexMatcher, hexMatcher]);
-      if (hex.match) {
-        const value = hex.values.join('');
+      const unicode = matchTokenSequence(token, [[TokenKind.CharEscape, { value: 'u' }], hexMatcher, hexMatcher]);
+      if (unicode.match) {
+        const value = unicode.values.join('');
         if (!value) {
           throw new ParsingError(state.source, token.start, token.end, `Can't parse value as unicode number`);
         }
-        expressions.push(createCharNode(String.fromCodePoint(parseInt(value, 16)), hex, 'unicode'));
-        return hex.lastStep;
+        return {
+          done: true,
+          value: unicode.lastStep,
+          result: expressions.concat(
+            factory.createCharNode(String.fromCharCode(parseInt(value, 16)), unicode, 'unicode'),
+          ),
+        };
       }
-      expressions.push(createCharNode(token.value, token, 'escaped'));
-      return step;
+      break;
     }
 
     // Implementation \cA - control char
     case 'c': {
-      const nextStep = step.next();
-      if (!nextStep) {
-        expressions.push(createCharNode(token.value, token, 'escaped'));
-        return step;
+      const nextStep = token.next();
+      if (nextStep) {
+        if (!/[A-Za-z]/.test(nextStep.value)) {
+          throw new ParsingError(state.source, token.start, nextStep.end, 'Invalid control character');
+        }
+        const node = factory.createControlCharNode(nextStep.value.toUpperCase(), {
+          start: token.start,
+          end: nextStep.end,
+        });
+        expressions.push(node);
+        return {
+          done: true,
+          value: token,
+          result: expressions.concat(node),
+        };
       }
-
-      if (!/[A-Za-z]/.test(nextStep.token.value)) {
-        throw new ParsingError(state.source, token.start, nextStep.token.end, 'Invalid control character');
-      }
-
-      const node = createControlCharNode(nextStep.token.value.toUpperCase(), {
-        start: token.start,
-        end: nextStep.token.end,
-      });
-      expressions.push(node);
-      return nextStep;
+      break;
     }
 
     default:
-      expressions.push(createCharNode(token.value, token, 'escaped'));
-      return step;
+      break;
   }
+
+  return {
+    done: true,
+    value: token,
+    result: expressions.concat(factory.createCharNode(token.value, token, 'escaped')),
+  };
 };
 
-const parseCharClassEscape: PartialParser<InferHandlerResult<typeof charClassEscapeHandler>> = (step, expressions) => {
-  const { token } = step;
-  switch (token.value) {
-    case 'd':
-      // Implementation \d - any digit
-      expressions.push(createSimpleNode<AnyDigitNode>(SyntaxKind.AnyDigit, token));
-      return step;
-    case 'D':
-      // Implementation \D - any non digit
-      expressions.push(createSimpleNode<NonDigitNode>(SyntaxKind.NonDigit, token));
-      return step;
-    case 's':
-      // Implementation \s - any whitespace
-      expressions.push(createSimpleNode<AnyWhitespaceNode>(SyntaxKind.AnyWhitespace, token));
-      return step;
-    case 'S':
-      // Implementation \S - any non whitespace
-      expressions.push(createSimpleNode<NonWhitespaceNode>(SyntaxKind.NonWhitespace, token));
-      return step;
-    case 'w':
-      // Implementation \w - any word [a-zA-Z0-9_]
-      expressions.push(createSimpleNode<AnyWordNode>(SyntaxKind.AnyWord, token));
-      return step;
-    case 'W':
-      // Implementation \w - any non word [^a-zA-Z0-9_]
-      expressions.push(createSimpleNode<NonWordNode>(SyntaxKind.NonWord, token));
-      return step;
-  }
-};
-const parseControlEscapeHandler: PartialParser<InferHandlerResult<typeof controlEscapeHandler>> = (
-  step,
+const parseCharClassEscape: TokenParser<Step<InferHandlerResult<typeof charClassEscapeHandler>>> = (
+  token,
   expressions,
 ) => {
-  const { token } = step;
+  switch (token.value) {
+    // Implementation \d - any digit
+    case 'd':
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<AnyDigitNode>(SyntaxKind.AnyDigit, token)),
+      };
+    // Implementation \D - any non digit
+    case 'D':
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<NonDigitNode>(SyntaxKind.NonDigit, token)),
+      };
+    // Implementation \s - any whitespace
+    case 's':
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<AnyWhitespaceNode>(SyntaxKind.AnyWhitespace, token)),
+      };
+    // Implementation \S - non whitespace
+    case 'S':
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<NonWhitespaceNode>(SyntaxKind.NonWhitespace, token)),
+      };
+    // Implementation \w - any word [a-zA-Z0-9_]
+    case 'w':
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<AnyWordNode>(SyntaxKind.AnyWord, token)),
+      };
+    // Implementation \w - any non word [^a-zA-Z0-9_]
+    case 'W':
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<NonWordNode>(SyntaxKind.NonWord, token)),
+      };
+  }
+};
+const parseControlEscapeHandler: TokenParser<Step<InferHandlerResult<typeof controlEscapeHandler>>> = (
+  token,
+  expressions,
+) => {
   switch (token.value) {
     // Implementation \n - new line
     case 'n':
-      expressions.push(createSimpleNode<NewLineNode>(SyntaxKind.NewLine, token));
-      return step;
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<NewLineNode>(SyntaxKind.NewLine, token)),
+      };
     // Implementation \r - carriage return
     case 'r':
-      expressions.push(createSimpleNode<CarriageReturnNode>(SyntaxKind.CarriageReturn, token));
-      return step;
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<CarriageReturnNode>(SyntaxKind.CarriageReturn, token)),
+      };
     // Implementation \t - tab
     case 't':
-      expressions.push(createSimpleNode<TabNode>(SyntaxKind.Tab, token));
-      return step;
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<TabNode>(SyntaxKind.Tab, token)),
+      };
     // Implementation \v - vertical whitespace
     case 'v':
-      expressions.push(createSimpleNode<VerticalWhitespaceNode>(SyntaxKind.VerticalWhitespace, token));
-      return step;
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(
+          factory.createSimpleNode<VerticalWhitespaceNode>(SyntaxKind.VerticalWhitespace, token),
+        ),
+      };
     case 'f':
-      expressions.push(createSimpleNode<FormFeedCharNode>(SyntaxKind.FormFeedChar, token));
-      return step;
+      return {
+        done: true,
+        value: token,
+        result: expressions.concat(factory.createSimpleNode<FormFeedCharNode>(SyntaxKind.FormFeedChar, token)),
+      };
   }
 };
