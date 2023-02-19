@@ -15,7 +15,7 @@ $ npm i ecma-262-regexp-parser --save
 ## API Reference
 
 ### `parseRegexp(source: string): RegexpNode`
-Returns AST of full regexp expression (ex. `/Hello!/gm`).
+Returns AST of full regexp expression (e.g. `/Hello!/gm`).
 Throws, if got any syntax error.
 
 ```typescript
@@ -24,7 +24,7 @@ const regexpAST = parseRegexp('/[A-z]*/gm');
 ```
 
 ### `parseRegexpNode(source: string): AnyRegexpNode`
-Returns AST of any regexp expression (ex. `(Hello|Hi)!`).
+Returns AST of any regexp expression (e.g. `(Hello|Hi)!`).
 Throws, if got any syntax error.
 
 ```typescript

@@ -37,7 +37,7 @@ program
 
 program
   .command('part')
-  .description('Explains part of regexp, ex. "[A-z]"')
+  .description('Explains part of regexp, e.g. "[A-z]"')
   .argument('<regexp>', 'Partial regexp expression, wrapped into quotes')
   .option('-d, --debug', 'Shows full error stacktrace', false)
   .option('--no-color', 'Disabled color for output', false)
