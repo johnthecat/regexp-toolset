@@ -15,27 +15,48 @@ import {
 } from './common/console.js';
 import { Graph } from './common/graph.js';
 
+type Colors = [Formatter, ...Formatter[]] | Formatter;
+
 type ExplainerContext = {
   enableColors: boolean;
   source: string;
   capturingGroups: number;
-  rootColors: Map<number, Map<AnyRegexpNode, Formatter>>;
-  colors: Map<AnyRegexpNode, Formatter>;
+  assignedColors: Map<AnyRegexpNode, Formatter>;
   nodesGraph: Graph<AnyRegexpNode>;
+  colorMap: Record<
+    | 'dim'
+    | 'header'
+    | 'secondaryHeader'
+    | 'secondary'
+    | 'border'
+    | 'group'
+    | 'groupName'
+    | 'charClass'
+    | 'expression'
+    | 'whitespace'
+    | 'char',
+    Colors
+  >;
 };
 
-type Colors = Formatter[];
-type Id<T> = (x: T) => T;
-
-const pipe = <T>(...fns: Id<T>[]): Id<T> => {
-  return x => {
-    let result = x;
-    for (const fn of fns) {
-      result = fn(result);
-    }
-    return result;
-  };
+type GenericTitle = {
+  header: string;
+  description?: string;
+  color?: keyof ExplainerContext['colorMap'];
 };
+
+const renderingPrimitives = {
+  blockStart: '╭',
+  blockSpanStart: '┌',
+  simpleBlockEnd: '╰',
+  simpleBlockSpanEnd: '┕',
+  largeBlockEnd: '╰ ·',
+  largeBlockSpanEnd: '┕ ·',
+  singleBlockNode: '·',
+  blockVerticalConnector: '│',
+  singleVerticalConnector: '╎',
+  horizontalSeparator: '╌'.repeat(15),
+} as const;
 
 const id = <T>(x: T): T => x;
 
@@ -50,68 +71,114 @@ const flagDescriptions = {
   y: `Matches are sticky, looking only at exact position in the text.`,
 };
 
-const borderColor = create256ColorsTextFormatter(247);
-
-const defaultExpressionColor = create256ColorsFormatter(32, 255);
-const whitespaceColor = pipe(create256ColorsBgFormatter(255), dim);
-const defaultCharColor = create256ColorsFormatter(255, 0);
-const groupColors: Colors = [
-  create256ColorsBgFormatter(148),
-  create256ColorsBgFormatter(113),
-  create256ColorsFormatter(30, 255),
-  create256ColorsFormatter(31, 255),
-];
-const charClassColors = create256ColorsFormatter(223, 0);
-const groupNameColors = create256ColorsFormatter(127, 255);
-
-const genericNodeTitle = {
-  [SyntaxKind.GroupName]: { header: 'Group name', color: defaultExpressionColor },
-  [SyntaxKind.FormFeedChar]: { header: 'Form Feed Char', color: defaultExpressionColor },
-  [SyntaxKind.NullChar]: { header: 'Null', color: defaultExpressionColor },
-  [SyntaxKind.AnyWhitespace]: { header: 'Any Whitespace', color: defaultExpressionColor },
-  [SyntaxKind.NonWhitespace]: { header: 'Non Whitespace', color: defaultExpressionColor },
-  [SyntaxKind.ControlChar]: { header: 'ASCII Control', color: defaultExpressionColor },
-  [SyntaxKind.AnyChar]: { header: 'Any', color: defaultExpressionColor },
-  [SyntaxKind.LineStart]: { header: 'Line Start', color: defaultExpressionColor },
-  [SyntaxKind.LineEnd]: { header: 'Line End', color: defaultExpressionColor },
-  [SyntaxKind.AnyWord]: { header: 'Any Word', description: 'matches [A-z0-9_]', color: defaultExpressionColor },
-  [SyntaxKind.NonWord]: { header: 'Non Word', description: 'matches [^A-z0-9_]', color: defaultExpressionColor },
-  [SyntaxKind.AnyDigit]: { header: 'Any Digit', description: 'matches [0-9]', color: defaultExpressionColor },
-  [SyntaxKind.NonDigit]: { header: 'Non Digit', description: 'matches [^0-9]', color: defaultExpressionColor },
-  [SyntaxKind.Backspace]: { header: 'Backspace', color: defaultExpressionColor },
-  // TODO implement as repetition
-  [SyntaxKind.BackReference]: { header: 'BackReference' },
-  [SyntaxKind.NewLine]: { header: 'New Line', color: defaultExpressionColor },
-  [SyntaxKind.VerticalWhitespace]: { header: 'Vertical Whitespace', color: defaultExpressionColor },
-  [SyntaxKind.ZeroLength]: { header: 'Zero Length' },
-  [SyntaxKind.CarriageReturn]: { header: 'Carriage Return', color: defaultExpressionColor },
-  [SyntaxKind.Tab]: { header: 'Tab', color: defaultExpressionColor },
-  [SyntaxKind.Quantifier]: { header: 'Quantifier', color: defaultExpressionColor },
+const emptyColorMap: ExplainerContext['colorMap'] = {
+  dim: id,
+  secondary: id,
+  border: id,
+  expression: id,
+  group: id,
+  charClass: id,
+  groupName: id,
+  whitespace: id,
+  char: id,
+  secondaryHeader: id,
+  header: id,
 };
 
-const renderAfterBlock = (content: string, index = 0, of = 1): string => {
+const colorMapFor256Colors: ExplainerContext['colorMap'] = {
+  dim: dim,
+  secondary: italic,
+  header: x => bold(` ❱ ${x} `),
+  secondaryHeader: bold,
+  border: create256ColorsTextFormatter(247),
+  charClass: create256ColorsFormatter(223, 0),
+  groupName: create256ColorsFormatter(127, 255),
+  expression: create256ColorsFormatter(32, 255),
+  whitespace: create256ColorsFormatter(255, 8),
+  char: create256ColorsFormatter(255, 0),
+  group: [
+    create256ColorsBgFormatter(148),
+    create256ColorsBgFormatter(113),
+    create256ColorsFormatter(30, 255),
+    create256ColorsFormatter(31, 255),
+  ],
+};
+
+const genericNodeTitle = {
+  [SyntaxKind.GroupName]: { header: 'Group name', color: 'expression' },
+  [SyntaxKind.FormFeedChar]: { header: 'Form Feed Char', color: 'expression' },
+  [SyntaxKind.NullChar]: { header: 'Null', color: 'expression' },
+  [SyntaxKind.AnyWhitespace]: { header: 'Any Whitespace', color: 'expression' },
+  [SyntaxKind.NonWhitespace]: { header: 'Non Whitespace', color: 'expression' },
+  [SyntaxKind.ControlChar]: { header: 'ASCII Control', color: 'expression' },
+  [SyntaxKind.AnyChar]: { header: 'Any', color: 'expression' },
+  [SyntaxKind.LineStart]: { header: 'Line Start', color: 'expression' },
+  [SyntaxKind.LineEnd]: { header: 'Line End', color: 'expression' },
+  [SyntaxKind.AnyWord]: { header: 'Any Word', description: 'matches [A-z0-9_]', color: 'expression' },
+  [SyntaxKind.NonWord]: { header: 'Non Word', description: 'matches [^A-z0-9_]', color: 'expression' },
+  [SyntaxKind.AnyDigit]: { header: 'Any Digit', description: 'matches [0-9]', color: 'expression' },
+  [SyntaxKind.NonDigit]: { header: 'Non Digit', description: 'matches [^0-9]', color: 'expression' },
+  [SyntaxKind.Backspace]: { header: 'Backspace', color: 'expression' },
+  // TODO implement as repetition
+  [SyntaxKind.BackReference]: { header: 'BackReference' },
+  [SyntaxKind.NewLine]: { header: 'New Line', color: 'expression' },
+  [SyntaxKind.VerticalWhitespace]: { header: 'Vertical Whitespace', color: 'expression' },
+  [SyntaxKind.ZeroLength]: { header: 'Zero Length' },
+  [SyntaxKind.CarriageReturn]: { header: 'Carriage Return', color: 'expression' },
+  [SyntaxKind.Tab]: { header: 'Tab', color: 'expression' },
+  [SyntaxKind.Quantifier]: { header: 'Quantifier', color: 'expression' },
+} satisfies Record<number, GenericTitle>;
+
+const paint = (content: string, color: Colors, index = 0) => {
+  let formatter: Formatter;
+  if (Array.isArray(color)) {
+    const pickedColor = color[Math.min(color.length - 1, index)];
+    if (!pickedColor) {
+      throw new Error('Colors has gaps in array');
+    }
+    formatter = pickedColor;
+  } else {
+    formatter = color;
+  }
+
+  return formatter(content);
+};
+
+const renderBlock = (ctx: ExplainerContext, content: string, index = 0, of = 1): string => {
+  const borderColor: Formatter = x => paint(x, ctx.colorMap.border);
   const isFirst = index === 0;
   const isLast = index === of - 1;
 
   if (content.includes('\n')) {
-    const parts = content.split('\n').map((x, i) => `${borderColor(i === 0 ? (isFirst ? '╭' : '┌') : '│')} ${x}`);
-    parts.push(borderColor(isLast ? '╰ ·' : '┕ ·'));
+    const parts = content
+      .split('\n')
+      .map(
+        (x, i) =>
+          `${borderColor(
+            i === 0
+              ? isFirst
+                ? renderingPrimitives.blockStart
+                : renderingPrimitives.blockSpanStart
+              : renderingPrimitives.blockVerticalConnector,
+          )} ${x}`,
+      );
+    parts.push(borderColor(isLast ? renderingPrimitives.largeBlockEnd : renderingPrimitives.largeBlockSpanEnd));
     return parts.join('\n');
   }
 
   if (isFirst && isLast) {
-    return `${borderColor('·')} ${content}`;
+    return `${borderColor(renderingPrimitives.singleBlockNode)} ${content}`;
   }
 
   if (isFirst) {
-    return `${borderColor('╭')} ${content}`;
+    return `${borderColor(renderingPrimitives.blockStart)} ${content}`;
   }
 
   if (isLast) {
-    return `${borderColor('╰')} ${content}`;
+    return `${borderColor(renderingPrimitives.simpleBlockEnd)} ${content}`;
   }
 
-  return `${borderColor('╎')} ${content}`;
+  return `${borderColor(renderingPrimitives.singleVerticalConnector)} ${content}`;
 };
 
 const printNode = (source: string, node: AnyRegexpNode): string => {
@@ -122,17 +189,11 @@ const printNode = (source: string, node: AnyRegexpNode): string => {
   }
 };
 
-const header = (x: string, color: Formatter = id) => {
-  return color(x) === x ? bold(x) : color(bold(` ❱ ${x} `));
-};
-
-const secondary = italic;
-
 const assignColor = (
   node: AnyRegexpNode,
   parentNode: AnyRegexpNode,
   ctx: ExplainerContext,
-  colors: Colors | Formatter = defaultExpressionColor,
+  colors: Colors,
 ): Formatter => {
   if (!ctx.enableColors) {
     return id;
@@ -149,28 +210,28 @@ const assignColor = (
   } else {
     color = colors;
   }
-  ctx.colors.set(node, color);
+  ctx.assignedColors.set(node, color);
   return color;
 };
 
-const createExpalinerContext = (source: string, entryNode: AnyRegexpNode, enableColors: boolean): ExplainerContext => ({
+const createExplainerContext = (source: string, entryNode: AnyRegexpNode, enableColors: boolean): ExplainerContext => ({
   source: source.replace(/\s/gm, whitespaceReplacer),
   nodesGraph: new Graph(entryNode),
-  rootColors: new Map(),
-  colors: new Map(),
+  assignedColors: new Map(),
   capturingGroups: 0,
   enableColors,
+  colorMap: enableColors ? colorMapFor256Colors : emptyColorMap,
 });
 
 const paintSource = (node: AnyRegexpNode, ctx: ExplainerContext): string => {
   const renderQueue: AnyRegexpNode[] = [];
   let coloredRegexp = ctx.source;
 
-  if (ctx.source.length <= 400 && ctx.colors.size <= 150) {
+  if (ctx.source.length <= 400 && ctx.assignedColors.size <= 150) {
     ctx.nodesGraph.bfs(node, currentNode => renderQueue.push(currentNode));
     renderQueue.reverse();
     for (const currentNode of renderQueue) {
-      const color = ctx.colors.get(currentNode);
+      const color = ctx.assignedColors.get(currentNode);
       if (!color) {
         continue;
       }
@@ -183,23 +244,27 @@ const paintSource = (node: AnyRegexpNode, ctx: ExplainerContext): string => {
 
 export const explainRegexp = (source: string, config: { enableColors: boolean }): string => {
   const regexp = parseRegexp(source);
-  const ctx = createExpalinerContext(source, regexp, config.enableColors);
+  const ctx = createExplainerContext(source, regexp, config.enableColors);
   const result = explainNode(regexp, regexp, ctx);
-  return addIndent([paintSource(regexp, ctx), borderColor('┄'.repeat(15)), result].join('\n'));
+  return addIndent(
+    [paintSource(regexp, ctx), paint(renderingPrimitives.horizontalSeparator, ctx.colorMap.border), result].join('\n'),
+  );
 };
 
 export const explainRegexpPart = (source: string, config: { enableColors: boolean }): string => {
   const regexp = parseRegexpNode(source);
-  const ctx = createExpalinerContext(source, regexp, config.enableColors);
+  const ctx = createExplainerContext(source, regexp, config.enableColors);
   const result = explainNode(regexp, regexp, ctx);
-  return addIndent([paintSource(regexp, ctx), borderColor('┄'.repeat(15)), result].join('\n'));
+  return addIndent(
+    [paintSource(regexp, ctx), paint(renderingPrimitives.horizontalSeparator, ctx.colorMap.border), result].join('\n'),
+  );
 };
 
 // eslint-disable-next-line complexity
 export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx: ExplainerContext): string => {
-  const { source } = ctx;
+  const { source, colorMap } = ctx;
   const rawPrinted = printNode(source, node);
-  const printed = dim(rawPrinted.length > 70 ? rawPrinted.slice(0, 67) + '...' : rawPrinted);
+  const printed = paint(rawPrinted.length > 70 ? rawPrinted.slice(0, 67) + '...' : rawPrinted, colorMap.dim);
   const result: string[] = [];
 
   switch (node.kind) {
@@ -209,19 +274,20 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
 
       if (node.flags) {
         mainBlock.unshift(
-          header('Flags'),
+          paint('Flags', colorMap.secondaryHeader),
           addIndent(
             node.flags
               .split('')
               .map(
                 x =>
-                  `${bold(x)} - ${secondary(
+                  `${paint(x, colorMap.secondaryHeader)} - ${paint(
                     x in flagDescriptions ? flagDescriptions[x as keyof typeof flagDescriptions] : 'Unknown.',
+                    colorMap.secondary,
                   )}`,
               )
               .join('\n'),
           ),
-          borderColor('┄'.repeat(15)),
+          paint('┄'.repeat(15), colorMap.border),
         );
       }
 
@@ -230,10 +296,13 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
     }
 
     case SyntaxKind.Disjunction: {
-      const color = assignColor(node, parentNode, ctx);
+      const color = assignColor(node, parentNode, ctx, colorMap.expression);
 
       if (parentNode.kind !== SyntaxKind.Disjunction) {
-        result.push(header('Disjunction', color), `${secondary('maybe')} ${dim(printNode(source, node.left))}`);
+        result.push(
+          color(paint('Disjunction', colorMap.header)),
+          `${paint('maybe', colorMap.secondary)} ${paint(printNode(source, node.left), colorMap.dim)}`,
+        );
       }
       let left = explainNode(node.left, node, ctx);
       let right = explainNode(node.right, node, ctx);
@@ -242,29 +311,33 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
         node.left.kind !== SyntaxKind.Alternative &&
         node.left.kind !== SyntaxKind.CharClass
       ) {
-        left = renderAfterBlock(left);
+        left = renderBlock(ctx, left);
       }
       if (
         node.right.kind !== SyntaxKind.Disjunction &&
         node.right.kind !== SyntaxKind.Alternative &&
         node.right.kind !== SyntaxKind.CharClass
       ) {
-        right = renderAfterBlock(right);
+        right = renderBlock(ctx, right);
       }
-      result.push(left, `${secondary('or')} ${dim(printNode(source, node.right))}`, right);
+      result.push(
+        left,
+        `${paint('or', colorMap.secondary)} ${paint(printNode(source, node.right), colorMap.dim)}`,
+        right,
+      );
       break;
     }
 
     case SyntaxKind.Alternative: {
       for (const [index, expression] of node.expressions.entries()) {
         const printed = explainNode(expression, parentNode, ctx);
-        result.push(renderAfterBlock(printed, index, node.expressions.length));
+        result.push(renderBlock(ctx, printed, index, node.expressions.length));
       }
       break;
     }
 
     case SyntaxKind.Group: {
-      const groupColor = assignColor(node, parentNode, ctx, groupColors);
+      const groupColor = assignColor(node, parentNode, ctx, colorMap.group);
       let headerText: string = '';
       switch (node.type) {
         case 'capturing':
@@ -297,9 +370,9 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
         node.body.kind !== SyntaxKind.Alternative &&
         node.body.kind !== SyntaxKind.CharClass
       ) {
-        child = renderAfterBlock(child);
+        child = renderBlock(ctx, child);
       }
-      result.push(`${header(headerText, groupColor)} ${printed}`, child);
+      result.push(`${groupColor(paint(headerText, colorMap.header))} ${printed}`, child);
       break;
     }
 
@@ -332,24 +405,29 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
       }
 
       const childNode = explainNode(node.expression, parentNode, ctx);
-      assignColor(node.quantifier, parentNode, ctx);
+      assignColor(node.quantifier, parentNode, ctx, colorMap.expression);
 
       const partials = childNode.split('\n');
-      const transformedResult = [`${partials.shift()!} « ${secondary(bold(repetition))}`, ...partials].join('\n');
+      const transformedResult = [
+        `${partials.shift() ?? ''} « ${paint(paint(repetition, colorMap.secondaryHeader), colorMap.secondary)}`,
+        ...partials,
+      ].join('\n');
 
       result.push(transformedResult);
       break;
     }
 
     case SyntaxKind.CharClass: {
-      const color = assignColor(node, parentNode, ctx, charClassColors);
-      const postfix = node.expressions.length > 1 ? italic(dim('or ')) : '';
+      const color = assignColor(node, parentNode, ctx, colorMap.charClass);
+      const postfix = node.expressions.length > 1 ? paint('or ', colorMap.dim) : '';
 
-      result.push(`${header((node.negative ? 'Negative ' : '') + 'Character Class', color)} ${printed}`);
+      result.push(
+        `${color(paint((node.negative ? 'Negative ' : '') + 'Character Class', colorMap.header))} ${printed}`,
+      );
 
       for (const [index, expression] of node.expressions.entries()) {
         const printed = `${postfix}${explainNode(expression, node, ctx)}`;
-        result.push(renderAfterBlock(printed, index, node.expressions.length));
+        result.push(renderBlock(ctx, printed, index, node.expressions.length));
       }
       break;
     }
@@ -360,17 +438,20 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
       let color: Formatter;
 
       if (parentNode.kind === SyntaxKind.CharClass) {
-        color = dim;
+        color = x => paint(x, colorMap.dim);
       } else if (node.type === 'unicode' || node.type === 'hex' || node.type === 'octal') {
-        color = assignColor(node, parentNode, ctx, defaultExpressionColor);
+        color = assignColor(node, parentNode, ctx, colorMap.expression);
       } else {
-        color = assignColor(node, parentNode, ctx, isWhitespace ? whitespaceColor : defaultCharColor);
+        color = assignColor(node, parentNode, ctx, isWhitespace ? colorMap.whitespace : colorMap.char);
       }
-      const title = `${secondary('Literally')} ${resetEnd(bold(isWhitespace ? whitespaceReplacer : node.value))}`;
+      const char = isWhitespace
+        ? paint(whitespaceReplacer, colorMap.whitespace)
+        : paint(node.value, colorMap.secondaryHeader);
+      const title = `Literally ${resetEnd(char)}`;
       result.push(
         `${title}${
           node.value !== rawPrinted && node.type !== 'simple'
-            ? ` ${secondary(`(raw ${node.type}`)} ${color(rawPrinted)}${secondary(')')}`
+            ? ` ${paint(`(raw ${node.type}`, colorMap.secondary)} ${color(rawPrinted)}${paint(')', colorMap.secondary)}`
             : ''
         }`,
       );
@@ -378,17 +459,36 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
     }
 
     case SyntaxKind.Subpattern: {
-      const color = assignColor(node, parentNode, ctx, groupNameColors);
-      result.push(`${header(`Group reference: '${node.groupName}'`, color)} ${printed}`);
+      const color = assignColor(node, parentNode, ctx, colorMap.groupName);
+      result.push(`${color(paint(`Group reference: '${node.groupName}'`, colorMap.header))} ${printed}`);
       break;
     }
 
     case SyntaxKind.CharRange: {
+      const fromCode = node.from.value.charCodeAt(0);
+      const toCode = node.to.value.charCodeAt(0);
+      const charsCount = toCode - fromCode + 1;
       result.push(
-        `${bold(`${printNode(source, node.from)}-${printNode(source, node.to)}`)} ${secondary('range')} ${dim(
-          `(from index ${node.from.value.charCodeAt(0)} to index ${node.to.value.charCodeAt(0)})`,
-        )}`,
+        `${paint(`${printNode(source, node.from)}-${printNode(source, node.to)}`, colorMap.secondaryHeader)} ${paint(
+          'character range',
+          colorMap.secondary,
+        )} ${paint(`(from index ${fromCode} to index ${toCode})`, colorMap.dim)}`,
       );
+
+      if (charsCount < 30) {
+        result.push(
+          addIndent(
+            paint(
+              Array.from({ length: charsCount })
+                .map((_, i) => String.fromCharCode(fromCode + i))
+                .join(', '),
+              colorMap.dim,
+            ),
+            1,
+            paint(renderingPrimitives.simpleBlockEnd, colorMap.border),
+          ),
+        );
+      }
       break;
     }
 
@@ -400,11 +500,11 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
           parentNode.kind === SyntaxKind.CharClass
             ? String
             : 'color' in title
-            ? assignColor(node, parentNode, ctx, title.color)
+            ? assignColor(node, parentNode, ctx, colorMap[title.color])
             : String;
         result.push(
-          `${header(title.header, color)}${
-            'description' in title ? ` ${secondary(title.description)}` : ''
+          `${color(paint(title.header, colorMap.header))}${
+            'description' in title ? ` ${paint(title.description, colorMap.secondary)}` : ''
           } ${printed}`,
         );
       } else {

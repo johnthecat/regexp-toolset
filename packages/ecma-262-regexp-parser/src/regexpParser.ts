@@ -34,7 +34,7 @@ import type {
 import { SyntaxKind } from './regexpNodes.js';
 import * as factory from './regexpNodeFactory.js';
 import { createRegexpNode } from './regexpNodeFactory.js';
-import type { ParserState, TokenParser } from './regexpParseTypes.js';
+import type { ParserContext, TokenParser } from './regexpParseTypes.js';
 import {
   fillExpressions,
   hexMatcher,
@@ -50,18 +50,21 @@ import type { InferHandlerResult } from './abstract/tokenizer.js';
 // Unicode property (\p{Russian})
 // Non Unicode property (\P{Russian})
 
-const CommonErrorMessages = {
+const commonErrorMessages = {
   EOL: 'Unexpected end of line',
   UnexpectedToken: 'Unexpected token',
 };
 
 export const parseRegexp = (source: string) => {
   const tokenizer = regexpTokenizer(source);
-  const parserState: ParserState = {
+  const parserCtx: ParserContext = {
     source,
     tokenizer,
     foundGroupSpecifiers: new Map(),
     groupSpecifierDemands: new Set(),
+    reportError: (position, message) => {
+      return new ParsingError(source, position.start, position.end, message);
+    },
   };
 
   const firstStep = tokenizer.getFirstStep();
@@ -78,16 +81,16 @@ export const parseRegexp = (source: string) => {
     throw new ParsingError(source, firstStep.start, source.length, "Can't parse input");
   }
 
-  const { expressions, lastStep } = fillExpressions(firstContentStep, parserState, parseTokenInRegexp);
+  const { expressions, lastStep } = fillExpressions(firstContentStep, parserCtx, parseTokenInRegexp);
   if (!isPatternCharToken(lastStep, '/')) {
     throw new ParsingError(source, source.length, source.length, 'Regexp is not closed with "/" symbol');
   }
 
   const nextStep = lastStep.next();
-  const regexpNode = createRegexpNode(expressions, nextStep ? parseFlags(nextStep, parserState) : '');
+  const regexpNode = createRegexpNode(expressions, nextStep ? parseFlags(nextStep, parserCtx) : '');
 
-  for (const [tag, node] of parserState.groupSpecifierDemands) {
-    const found = parserState.foundGroupSpecifiers.get(tag);
+  for (const [tag, node] of parserCtx.groupSpecifierDemands) {
+    const found = parserCtx.foundGroupSpecifiers.get(tag);
     if (!found) {
       throw new ParsingError(
         source,
@@ -105,11 +108,14 @@ export const parseRegexp = (source: string) => {
 
 export const parseRegexpNode = (source: string): AnyRegexpNode => {
   const tokenizer = regexpTokenizer(source);
-  const parserState: ParserState = {
+  const parserCtx: ParserContext = {
     source,
     tokenizer,
     foundGroupSpecifiers: new Map(),
     groupSpecifierDemands: new Set(),
+    reportError: (position, message) => {
+      return new ParsingError(source, position.start, position.end, message);
+    },
   };
 
   const firstStep = tokenizer.getFirstStep();
@@ -117,10 +123,10 @@ export const parseRegexpNode = (source: string): AnyRegexpNode => {
     throw new ParsingError(source, 0, source.length, "Can't parse input");
   }
 
-  const { expressions, lastStep } = fillExpressions(firstStep, parserState, parseTokenInRegexp);
+  const { expressions, lastStep } = fillExpressions(firstStep, parserCtx, parseTokenInRegexp);
 
-  for (const [tag, node] of parserState.groupSpecifierDemands) {
-    const found = parserState.foundGroupSpecifiers.get(tag);
+  for (const [tag, node] of parserCtx.groupSpecifierDemands) {
+    const found = parserCtx.foundGroupSpecifiers.get(tag);
     if (!found) {
       throw new ParsingError(
         source,
@@ -136,12 +142,12 @@ export const parseRegexpNode = (source: string): AnyRegexpNode => {
   return sealExpressions(expressions, firstStep, lastStep);
 };
 
-const parseFlags = (step: Step, state: ParserState): string => {
+const parseFlags = (step: Step, ctx: ParserContext): string => {
   let result = '';
   let currentStep = step;
   while (currentStep) {
     if (!isPatternCharToken(step)) {
-      throw new ParsingError(state.source, currentStep.start, currentStep.end, CommonErrorMessages.UnexpectedToken);
+      throw ctx.reportError(currentStep, commonErrorMessages.UnexpectedToken);
     }
 
     // TODO add flags validation
@@ -157,10 +163,10 @@ const parseFlags = (step: Step, state: ParserState): string => {
   return result;
 };
 
-const parseQuantifierRange: TokenParser = (token, expressions, state) => {
+const parseQuantifierRange: TokenParser = (token, expressions, ctx) => {
   const prevNode = expressions.at(-1);
   if (!prevNode) {
-    throw new ParsingError(state.source, token.start, token.end, 'The preceding token is not quantifiable');
+    throw ctx.reportError(token, 'The preceding token is not quantifiable');
   }
 
   const trySequence = (step: Step, seq: Parameters<typeof matchTokenSequence<number>>[1]) => {
@@ -171,7 +177,7 @@ const parseQuantifierRange: TokenParser = (token, expressions, state) => {
       const from = range.values.at(0);
       const to = range.values.at(1);
       if (from === void 0) {
-        throw new ParsingError(state.source, range.start, range.end, `Can't parse numeric values from range.`);
+        throw ctx.reportError(range, "Can't parse numeric values from range.");
       }
       expressions.pop();
 
@@ -248,17 +254,17 @@ const parseQuantifierRange: TokenParser = (token, expressions, state) => {
 };
 
 // eslint-disable-next-line complexity
-const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn = parseTokenInRegexp) => {
+const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = parseTokenInRegexp) => {
   switch (token.kind) {
     case TokenKind.CharClassEscape:
       return {
-        ...parseCharClassEscape(token, expressions, state),
+        ...parseCharClassEscape(token, expressions, ctx),
         done: false,
       };
 
     case TokenKind.ControlEscape:
       return {
-        ...parseControlEscapeHandler(token, expressions, state),
+        ...parseControlEscapeHandler(token, expressions, ctx),
         done: false,
       };
 
@@ -275,7 +281,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
           if (subpattern.match) {
             const groupName = subpattern.values.at(0);
             if (!groupName) {
-              throw new ParsingError(state.source, subpattern.start, subpattern.end, `Can't parse subpattern name`);
+              throw ctx.reportError(subpattern, `Can't parse subpattern name`);
             }
             const node: SubpatternNode = {
               kind: SyntaxKind.Subpattern,
@@ -284,7 +290,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
               ref: null,
               groupName: groupName,
             };
-            state.groupSpecifierDemands.add([groupName, node]);
+            ctx.groupSpecifierDemands.add([groupName, node]);
             return {
               done: false,
               value: subpattern.lastStep,
@@ -300,7 +306,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
         }
         default:
           return {
-            ...parseCharEscape(token, expressions, state),
+            ...parseCharEscape(token, expressions, ctx),
             done: false,
           };
       }
@@ -311,7 +317,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
       if (octal.match) {
         const value = octal.values.at(0);
         if (!value) {
-          throw new ParsingError(state.source, octal.start, octal.end, "Can't parse octal value");
+          throw ctx.reportError(octal, "Can't parse octal value");
         }
 
         return {
@@ -392,7 +398,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
             };
           }
           return {
-            ...parseCharClass(token, expressions, state),
+            ...parseCharClass(token, expressions, ctx),
             done: false,
           };
         }
@@ -400,7 +406,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
         // Implementation Y{1} ; Y{1,} ; Y{1,2} - range quantifier
         case '{': {
           return {
-            ...parseQuantifierRange(token, expressions, state),
+            ...parseQuantifierRange(token, expressions, ctx),
             done: false,
           };
         }
@@ -408,7 +414,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
         // Implementation (...) - capturing group
         case '(': {
           return {
-            ...parseCapturingGroup(token, expressions, state),
+            ...parseCapturingGroup(token, expressions, ctx),
             done: false,
           };
         }
@@ -432,7 +438,6 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
 
         // Implementation . - any character
         case '.':
-          expressions.push(factory.createSimpleNode<AnyCharNode>(SyntaxKind.AnyChar, token));
           return {
             done: false,
             value: token,
@@ -445,7 +450,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
         case '?': {
           const prevNode = expressions.at(-1);
           if (!prevNode) {
-            throw new ParsingError(state.source, token.start, token.end, 'The preceding token is not quantifiable');
+            throw ctx.reportError(token, 'The preceding token is not quantifiable');
           }
 
           const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]);
@@ -475,7 +480,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
             };
           }
 
-          const { expressions: rightNodes, lastStep } = fillExpressions(nextStep, state, recursiveFn);
+          const { expressions: rightNodes, lastStep } = fillExpressions(nextStep, ctx, recursiveFn);
           return {
             done: true,
             value: lastStep,
@@ -484,30 +489,23 @@ const parseTokenInRegexp: TokenParser = (token, expressions, state, recursiveFn 
         }
 
         case ')':
-          throw new ParsingError(state.source, token.start, token.end, 'Unmatched parenthesis');
+          throw ctx.reportError(token, 'Unmatched parenthesis');
 
         default:
-          throw new ParsingError(state.source, token.start, token.end, CommonErrorMessages.UnexpectedToken);
+          throw ctx.reportError(token, commonErrorMessages.UnexpectedToken);
       }
     }
   }
 };
 
 // eslint-disable-next-line complexity
-const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, state) => {
-  const { source } = state;
-
+const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => {
   if (!isParenthesesOpenToken(firstStep)) {
-    throw new ParsingError(
-      source,
-      firstStep.start,
-      firstStep.end,
-      'Trying to parse expression as group, but got invalid input',
-    );
+    throw ctx.reportError(firstStep, 'Trying to parse expression as group, but got invalid input');
   }
-  const parseTokenInGroup: TokenParser = (token, expressions, state) => {
-    if (state.tokenizer.isLastToken(token) && !isParenthesesCloseToken(token)) {
-      throw new ParsingError(state.source, firstStep.start, token.end, 'Group is not closed');
+  const parseTokenInGroup: TokenParser = (token, expressions, ctx) => {
+    if (ctx.tokenizer.isLastToken(token) && !isParenthesesCloseToken(token)) {
+      throw ctx.reportError({ start: firstStep.start, end: token.end }, 'Group is not closed');
     }
 
     switch (token.kind) {
@@ -515,7 +513,7 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, state) =
         switch (token.value) {
           case '(':
             return {
-              ...parseCapturingGroup(token, expressions, state),
+              ...parseCapturingGroup(token, expressions, ctx),
               done: false,
             };
 
@@ -537,10 +535,10 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, state) =
         break;
     }
 
-    if (state.tokenizer.isLastToken(token)) {
-      throw new ParsingError(state.source, firstStep.start, token.end, 'Incomplete group structure');
+    if (ctx.tokenizer.isLastToken(token)) {
+      throw ctx.reportError({ start: firstStep.start, end: token.end }, 'Incomplete group structure');
     }
-    return parseTokenInRegexp(token, expressions, state, parseTokenInGroup);
+    return parseTokenInRegexp(token, expressions, ctx, parseTokenInGroup);
   };
 
   let startStep: Step | null = firstStep.next();
@@ -626,10 +624,10 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, state) =
     if (groupName.match) {
       const name = groupName.values.at(0);
       if (!name) {
-        throw new ParsingError(source, groupName.start, groupName.end, `Can't parse group name`);
+        throw ctx.reportError(groupName, "Can't parse group name");
       }
-      if (state.foundGroupSpecifiers.has(name)) {
-        throw new ParsingError(source, groupName.start, groupName.end, `This group name is already defined`);
+      if (ctx.foundGroupSpecifiers.has(name)) {
+        throw ctx.reportError(groupName, 'This group name is already defined');
       }
 
       startStep = groupName.lastStep.next();
@@ -638,17 +636,17 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, state) =
   }
 
   if (!startStep) {
-    throw new ParsingError(source, source.length - 1, source.length, CommonErrorMessages.EOL);
+    throw ctx.reportError(firstStep, commonErrorMessages.EOL);
   }
 
-  const { expressions, lastStep } = fillExpressions(startStep, state, parseTokenInGroup);
+  const { expressions, lastStep } = fillExpressions(startStep, ctx, parseTokenInGroup);
   const node = factory.createGroupNode(type, specifier, expressions, {
     start: firstStep.start,
     end: lastStep.end,
   });
 
   if (specifier) {
-    state.foundGroupSpecifiers.set(specifier.name, node);
+    ctx.foundGroupSpecifiers.set(specifier.name, node);
   }
 
   return {
@@ -658,28 +656,21 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, state) =
   };
 };
 
-const parseCharClass: TokenParser = (firstStep, parentExpressions, state) => {
+const parseCharClass: TokenParser = (firstStep, parentExpressions, ctx) => {
   if (!isBracketsOpenToken(firstStep)) {
-    throw new ParsingError(
-      state.source,
-      firstStep.start,
-      firstStep.end,
-      'Trying to parse expression as character class, but got invalid input',
-    );
+    throw ctx.reportError(firstStep, 'Trying to parse expression as character class, but got invalid input');
   }
 
   // eslint-disable-next-line complexity
-  const parseTokenInCharClass: TokenParser = (token, expressions, state) => {
-    const { source } = state;
-
+  const parseTokenInCharClass: TokenParser = (token, expressions, ctx) => {
     if (isBracketsCloseToken(token)) {
       return {
         done: true,
         result: expressions,
         value: token,
       };
-    } else if (state.tokenizer.isLastToken(token)) {
-      throw new ParsingError(source, firstStep.start, token.end, 'Character class missing closing bracket');
+    } else if (ctx.tokenizer.isLastToken(token)) {
+      throw ctx.reportError({ start: firstStep.start, end: token.end }, 'Character class missing closing bracket');
     }
 
     switch (token.kind) {
@@ -692,19 +683,19 @@ const parseCharClass: TokenParser = (firstStep, parentExpressions, state) => {
 
       case TokenKind.CharEscape:
         return {
-          ...parseCharEscape(token, expressions, state),
+          ...parseCharEscape(token, expressions, ctx),
           done: false,
         };
 
       case TokenKind.CharClassEscape:
         return {
-          ...parseCharClassEscape(token, expressions, state),
+          ...parseCharClassEscape(token, expressions, ctx),
           done: false,
         };
 
       case TokenKind.ControlEscape:
         return {
-          ...parseControlEscapeHandler(token, expressions, state),
+          ...parseControlEscapeHandler(token, expressions, ctx),
           done: false,
         };
 
@@ -737,10 +728,10 @@ const parseCharClass: TokenParser = (firstStep, parentExpressions, state) => {
 
             const nextStep = token.next();
             if (!nextStep) {
-              throw new ParsingError(source, token.start, token.end, CommonErrorMessages.EOL);
+              throw ctx.reportError(token, commonErrorMessages.EOL);
             }
 
-            const { done, value, result: nextExpressions } = parseTokenInCharClass(nextStep, [], state);
+            const { done, value, result: nextExpressions } = parseTokenInCharClass(nextStep, [], ctx);
 
             if (done) {
               return {
@@ -759,21 +750,23 @@ const parseCharClass: TokenParser = (firstStep, parentExpressions, state) => {
               };
             }
 
+            // TODO relax checks
             if (fromNode.kind !== SyntaxKind.Char) {
-              throw new ParsingError(source, fromNode.start, fromNode.end, CommonErrorMessages.UnexpectedToken);
+              throw ctx.reportError(fromNode, commonErrorMessages.UnexpectedToken);
             }
 
             if (toNode.kind !== SyntaxKind.Char) {
-              throw new ParsingError(source, toNode.start, toNode.end, CommonErrorMessages.UnexpectedToken);
+              throw ctx.reportError(toNode, commonErrorMessages.UnexpectedToken);
             }
 
             const fromCharCode = fromNode.value.charCodeAt(0);
             const toCharCode = toNode.value.charCodeAt(0);
             if (fromCharCode > toCharCode) {
-              throw new ParsingError(
-                source,
-                fromNode.start,
-                toNode.end,
+              throw ctx.reportError(
+                {
+                  start: fromNode.start,
+                  end: toNode.end,
+                },
                 `Character range is out of order: from '${fromNode.value}' (index ${fromCharCode}) to '${toNode.value}' (index ${toCharCode})`,
               );
             }
@@ -803,10 +796,10 @@ const parseCharClass: TokenParser = (firstStep, parentExpressions, state) => {
 
   const startingStep = negative.match ? negative.lastStep.next() : firstStep.next();
   if (!startingStep) {
-    throw new ParsingError(state.source, state.source.length - 1, state.source.length, CommonErrorMessages.EOL);
+    throw ctx.reportError(firstStep, commonErrorMessages.EOL);
   }
 
-  const { expressions, lastStep } = fillExpressions(startingStep, state, parseTokenInCharClass);
+  const { expressions, lastStep } = fillExpressions(startingStep, ctx, parseTokenInCharClass);
 
   // Implementation [...] - char class
   const charClassNode = factory.createCharClassNode(negative.match, expressions, {
@@ -821,11 +814,7 @@ const parseCharClass: TokenParser = (firstStep, parentExpressions, state) => {
   };
 };
 
-const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHandler>>> = (
-  token,
-  expressions,
-  state,
-) => {
+const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHandler>>> = (token, expressions, ctx) => {
   switch (token.value) {
     // Implementation \xYY - hex symbol code
     case 'x': {
@@ -833,7 +822,7 @@ const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHand
       if (hex.match) {
         const value = hex.values.at(0);
         if (!value) {
-          throw new ParsingError(state.source, token.start, token.end, `Can't parse value as hex code`);
+          throw ctx.reportError(token, `Can't parse value as hex code`);
         }
         return {
           done: true,
@@ -850,7 +839,7 @@ const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHand
       if (unicode.match) {
         const value = unicode.values.join('');
         if (!value) {
-          throw new ParsingError(state.source, token.start, token.end, `Can't parse value as unicode number`);
+          throw ctx.reportError(token, `Can't parse value as unicode number`);
         }
         return {
           done: true,
@@ -868,7 +857,7 @@ const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHand
       const nextStep = token.next();
       if (nextStep) {
         if (!/[A-Za-z]/.test(nextStep.value)) {
-          throw new ParsingError(state.source, token.start, nextStep.end, 'Invalid control character');
+          throw ctx.reportError(token, 'Invalid control character');
         }
         const node = factory.createControlCharNode(nextStep.value.toUpperCase(), {
           start: token.start,

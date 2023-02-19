@@ -62,40 +62,41 @@ export type InferTokenizer<T extends (input: string) => Tokenizer> = T extends (
 
 export type InferHandlerResult<T extends Handler<any>> = T extends Handler<infer U> ? Exclude<U, null> : never;
 
-export const createStepIterable = (step: TokenizerStep): TokenizerIterable<TokenizerStep> => {
+export const createStepIterator = <T extends TokenizerStep>(step: T | null): TokenizerIterator<T> => {
+  let currentNode: T | null = step;
   return {
-    [Symbol.iterator]() {
-      let currentNode: typeof step | null = step;
-      return {
-        next: () => {
-          if (!currentNode) {
-            return { done: true, value: null };
-          }
+    next: () => {
+      if (!currentNode) {
+        return { done: true, value: null };
+      }
 
-          const nodeToReturn = currentNode;
-          currentNode = currentNode.next();
-          return { done: false, value: nodeToReturn };
-        },
-      };
+      const nodeToReturn = currentNode;
+      currentNode = currentNode.next();
+      return { done: false, value: nodeToReturn };
     },
+  };
+};
+
+export const createStepIterable = <T extends TokenizerStep>(step: T | null): TokenizerIterable<T> => {
+  return {
+    [Symbol.iterator]: () => createStepIterator(step),
   };
 };
 
 export const createTokenizer = <T extends Handler<AnyToken>>(
   handler: T,
 ): ((input: string) => Tokenizer<InferHandlerResult<T>>) => {
-  type InnerStep = TokenizerStep;
-
   return input => {
     const stream = createStringStream(input);
     const chars = stream.chars();
     const list = new LazyLinkedList<AnyToken>(() => (chars.isDone() ? null : handler(chars)));
     const api: Tokenizer = {
+      ...createStepIterable(list.getHead()),
       isFirstToken: token => token.start === 0,
       isLastToken: token => token.end === stream.size(),
       getFirstStep: () => list.getHead(),
       match(step, matcher) {
-        let currentStep: InnerStep = step;
+        let currentStep = step;
         while (currentStep) {
           const result = matcher(currentStep);
           if (result.done) {
@@ -110,8 +111,8 @@ export const createTokenizer = <T extends Handler<AnyToken>>(
         }
         return currentStep;
       },
-      reducer: <Result>(step: InnerStep, fn: TokenReducerFn<InnerStep, Result>, initial: Result) => {
-        let currentReturn: TokenReducerResult<InnerStep, Result> = {
+      reducer: <Result>(step: TokenizerStep, fn: TokenReducerFn<TokenizerStep, Result>, initial: Result) => {
+        let currentReturn: TokenReducerResult<TokenizerStep, Result> = {
           done: true,
           value: step,
           result: initial,
@@ -133,20 +134,6 @@ export const createTokenizer = <T extends Handler<AnyToken>>(
           }
         }
         return currentReturn;
-      },
-      [Symbol.iterator]() {
-        let currentNode: InnerStep | null = list.getHead();
-        return {
-          next: () => {
-            if (!currentNode) {
-              return { done: true, value: null };
-            }
-
-            const nodeToReturn = currentNode;
-            currentNode = currentNode.next();
-            return { done: false, value: nodeToReturn };
-          },
-        };
       },
     };
     return api as Tokenizer<InferHandlerResult<T>>;

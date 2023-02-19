@@ -1,14 +1,14 @@
 import type { AnyRegexpToken, Step, TokenKind } from './regexpTokenizer.js';
 import { isPatternCharToken, isDecimalToken, isDecimalEscapeToken } from './regexpTokenizer.js';
 import type { AnyRegexpNode, NodePosition, ZeroLengthNode } from './regexpNodes.js';
-import type { ParserState, TokenParser } from './regexpParseTypes.js';
+import type { ParserContext, TokenParser } from './regexpParseTypes.js';
 import { isBoolean } from './common/typeCheckers.js';
 import { SyntaxKind } from './regexpNodes.js';
 import { createAlternativeNode, createSimpleNode } from './regexpNodeFactory.js';
 
 export const fillExpressions = (
   step: Step,
-  state: ParserState,
+  state: ParserContext,
   tokenParser: TokenParser,
 ): { expressions: AnyRegexpNode[]; lastStep: Step } => {
   const reducerResult = state.tokenizer.reducer<AnyRegexpNode[]>(
