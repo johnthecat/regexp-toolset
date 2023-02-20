@@ -1,6 +1,6 @@
 {
   "name": "explain-regexp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Sergey Zhuravlev",
     "email": "zhuravlev1337@gmail.com"
@@ -20,7 +20,7 @@
   ],
   "dependencies": {
     "commander": "^10.0.0",
-    "ecma-262-regexp-parser": "^0.1.1"
+    "ecma-262-regexp-parser": "^0.1.2"
   },
   "engines": {
     "node": ">=16"
