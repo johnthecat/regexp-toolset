@@ -1,4 +1,10 @@
-import type { charEscapeHandler, controlEscapeHandler, Step, charClassEscapeHandler } from './regexpTokenizer.js';
+import type {
+  charEscapeHandler,
+  controlEscapeHandler,
+  Step,
+  charClassEscapeHandler,
+  RegexpTokenizer,
+} from './regexpTokenizer.js';
 import {
   isBracketsCloseToken,
   isBracketsOpenToken,
@@ -23,6 +29,7 @@ import type {
   LineEndNode,
   LineStartNode,
   NewLineNode,
+  NodePosition,
   NonDigitNode,
   NonWhitespaceNode,
   NonWordNode,
@@ -55,102 +62,92 @@ const commonErrorMessages = {
   UnexpectedToken: 'Unexpected token',
 };
 
-export const parseRegexp = (source: string) => {
-  const tokenizer = regexpTokenizer(source);
-  const parserCtx: ParserContext = {
-    source,
-    tokenizer,
-    foundGroupSpecifiers: new Map(),
-    groupSpecifierDemands: new Set(),
-    reportError: (position, message) => {
-      return new ParsingError(source, position.start, position.end, message);
-    },
-  };
+function assertNullable<T>(x: T, error: Error): asserts x is NonNullable<T> {
+  if (x === null || x === void 0) {
+    throw error;
+  }
+}
 
-  const firstStep = tokenizer.getFirstStep();
-  if (!firstStep) {
-    throw new ParsingError(source, 0, source.length, "Can't parse input");
+const createParserContext = (source: string, tokenizer: RegexpTokenizer): ParserContext => ({
+  source,
+  tokenizer,
+  foundGroupSpecifiers: new Map(),
+  groupSpecifierDemands: new Set(),
+  reportError: (position, message) => {
+    let normalizedPosition: NodePosition;
+    if (typeof position === 'number') {
+      normalizedPosition = { start: position, end: position };
+    } else {
+      normalizedPosition = {
+        start: position.start ?? 0,
+        end: position.end ?? source.length,
+      };
+    }
+    return new ParsingError(source, normalizedPosition.start, normalizedPosition.end, message);
+  },
+});
+
+const connectSubpatternsWithGroups = (ctx: ParserContext): void => {
+  for (const [tag, node] of ctx.groupSpecifierDemands) {
+    const found = ctx.foundGroupSpecifiers.get(tag);
+    assertNullable(found, ctx.reportError(node, `This token references a non-existent or invalid subpattern`));
+    node.ref = found;
+  }
+};
+
+export const parseRegexp = (source: string | RegExp) => {
+  const rawSource = source instanceof RegExp ? `/${source.source}/${source.flags}` : source;
+  const tokenizer = regexpTokenizer(rawSource);
+  const ctx = createParserContext(rawSource, tokenizer);
+
+  const firstToken = tokenizer.getFirstStep();
+  assertNullable(firstToken, ctx.reportError({ start: 0, end: rawSource.length }, "Can't parse input"));
+
+  if (!isPatternCharToken(firstToken, '/')) {
+    throw ctx.reportError(0, 'Regexp should start with "/" symbol, like this: /.../gm');
   }
 
-  if (!isPatternCharToken(firstStep, '/')) {
-    throw new ParsingError(source, 0, 0, 'Regexp should start with "/" symbol, like this: /.../gm');
-  }
+  const firstContentToken = firstToken.next();
+  assertNullable(firstContentToken, ctx.reportError({ start: firstToken.start }, "Can't parse input"));
 
-  const firstContentStep = firstStep.next();
-  if (!firstContentStep) {
-    throw new ParsingError(source, firstStep.start, source.length, "Can't parse input");
-  }
-
-  const { expressions, lastStep } = fillExpressions(firstContentStep, parserCtx, parseTokenInRegexp);
+  const { expressions, lastStep } = fillExpressions(firstContentToken, ctx, parseTokenInRegexp);
   if (!isPatternCharToken(lastStep, '/')) {
-    throw new ParsingError(source, source.length, source.length, 'Regexp is not closed with "/" symbol');
+    throw ctx.reportError(rawSource.length, 'Regexp is not closed with "/" symbol');
   }
 
   const nextStep = lastStep.next();
-  const regexpNode = createRegexpNode(expressions, nextStep ? parseFlags(nextStep, parserCtx) : '');
-
-  for (const [tag, node] of parserCtx.groupSpecifierDemands) {
-    const found = parserCtx.foundGroupSpecifiers.get(tag);
-    if (!found) {
-      throw new ParsingError(
-        source,
-        node.start,
-        node.end,
-        `This token references a non-existent or invalid subpattern`,
-      );
-    }
-
-    node.ref = found;
-  }
+  const regexpNode = createRegexpNode(expressions, nextStep ? parseFlags(nextStep, ctx) : '');
+  connectSubpatternsWithGroups(ctx);
 
   return regexpNode;
 };
 
 export const parseRegexpNode = (source: string): AnyRegexpNode => {
   const tokenizer = regexpTokenizer(source);
-  const parserCtx: ParserContext = {
-    source,
-    tokenizer,
-    foundGroupSpecifiers: new Map(),
-    groupSpecifierDemands: new Set(),
-    reportError: (position, message) => {
-      return new ParsingError(source, position.start, position.end, message);
-    },
-  };
+  const ctx = createParserContext(source, tokenizer);
 
   const firstStep = tokenizer.getFirstStep();
-  if (!firstStep) {
-    throw new ParsingError(source, 0, source.length, "Can't parse input");
-  }
+  assertNullable(firstStep, ctx.reportError({ start: 0, end: source.length }, "Can't parse input"));
 
-  const { expressions, lastStep } = fillExpressions(firstStep, parserCtx, parseTokenInRegexp);
-
-  for (const [tag, node] of parserCtx.groupSpecifierDemands) {
-    const found = parserCtx.foundGroupSpecifiers.get(tag);
-    if (!found) {
-      throw new ParsingError(
-        source,
-        node.start,
-        node.end,
-        `This token references a non-existent or invalid subpattern`,
-      );
-    }
-
-    node.ref = found;
-  }
+  const { expressions, lastStep } = fillExpressions(firstStep, ctx, parseTokenInRegexp);
+  connectSubpatternsWithGroups(ctx);
 
   return sealExpressions(expressions, firstStep, lastStep);
 };
 
 const parseFlags = (step: Step, ctx: ParserContext): string => {
+  const supportedFlags = ['g', 'i', 'm', 's', 'u', 'y'];
+
   let result = '';
   let currentStep = step;
   while (currentStep) {
-    if (!isPatternCharToken(step)) {
+    if (!isPatternCharToken(currentStep) || !/[a-z]/.test(currentStep.value)) {
       throw ctx.reportError(currentStep, commonErrorMessages.UnexpectedToken);
     }
 
-    // TODO add flags validation
+    if (!supportedFlags.includes(currentStep.value)) {
+      throw ctx.reportError(currentStep, `Unknown flag "${currentStep.value}"`);
+    }
     result += currentStep.value;
 
     const nextStep = currentStep.next();
@@ -165,9 +162,7 @@ const parseFlags = (step: Step, ctx: ParserContext): string => {
 
 const parseQuantifierRange: TokenParser = (token, expressions, ctx) => {
   const prevNode = expressions.at(-1);
-  if (!prevNode) {
-    throw ctx.reportError(token, 'The preceding token is not quantifiable');
-  }
+  assertNullable(prevNode, ctx.reportError(token, 'The preceding token is not quantifiable'));
 
   const trySequence = (step: Step, seq: Parameters<typeof matchTokenSequence<number>>[1]) => {
     const range = matchTokenSequence<number>(step, seq);
@@ -176,9 +171,7 @@ const parseQuantifierRange: TokenParser = (token, expressions, ctx) => {
     if (range.match) {
       const from = range.values.at(0);
       const to = range.values.at(1);
-      if (from === void 0) {
-        throw ctx.reportError(range, "Can't parse numeric values from range.");
-      }
+      assertNullable(from, ctx.reportError(range, "Can't parse numeric values from range."));
       expressions.pop();
 
       const quantifierNode = factory.createQuantifierNode(range, {
@@ -449,9 +442,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = 
         case '+':
         case '?': {
           const prevNode = expressions.at(-1);
-          if (!prevNode) {
-            throw ctx.reportError(token, 'The preceding token is not quantifiable');
-          }
+          assertNullable(prevNode, ctx.reportError(token, 'The preceding token is not quantifiable'));
 
           const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]);
           const quantifierNode = factory.createQuantifierNode(lazy.match ? lazy : token, {
@@ -623,11 +614,10 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => 
     ]);
     if (groupName.match) {
       const name = groupName.values.at(0);
-      if (!name) {
-        throw ctx.reportError(groupName, "Can't parse group name");
-      }
+
+      assertNullable(name, ctx.reportError(groupName, "Can't parse group name"));
       if (ctx.foundGroupSpecifiers.has(name)) {
-        throw ctx.reportError(groupName, 'This group name is already defined');
+        throw ctx.reportError(groupName, `Group name '${name}' is already defined`);
       }
 
       startStep = groupName.lastStep.next();
@@ -635,9 +625,7 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => 
     }
   }
 
-  if (!startStep) {
-    throw ctx.reportError(firstStep, commonErrorMessages.EOL);
-  }
+  assertNullable(startStep, ctx.reportError(firstStep, commonErrorMessages.EOL));
 
   const { expressions, lastStep } = fillExpressions(startStep, ctx, parseTokenInGroup);
   const node = factory.createGroupNode(type, specifier, expressions, {
@@ -727,9 +715,7 @@ const parseCharClass: TokenParser = (firstStep, parentExpressions, ctx) => {
             }
 
             const nextStep = token.next();
-            if (!nextStep) {
-              throw ctx.reportError(token, commonErrorMessages.EOL);
-            }
+            assertNullable(nextStep, ctx.reportError(token, commonErrorMessages.EOL));
 
             const { done, value, result: nextExpressions } = parseTokenInCharClass(nextStep, [], ctx);
 
@@ -795,10 +781,7 @@ const parseCharClass: TokenParser = (firstStep, parentExpressions, ctx) => {
   ]);
 
   const startingStep = negative.match ? negative.lastStep.next() : firstStep.next();
-  if (!startingStep) {
-    throw ctx.reportError(firstStep, commonErrorMessages.EOL);
-  }
-
+  assertNullable(startingStep, ctx.reportError(firstStep, commonErrorMessages.EOL));
   const { expressions, lastStep } = fillExpressions(startingStep, ctx, parseTokenInCharClass);
 
   // Implementation [...] - char class
@@ -821,9 +804,7 @@ const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHand
       const hex = matchTokenSequence(token, [[TokenKind.CharEscape, { value: 'x' }], hexMatcher]);
       if (hex.match) {
         const value = hex.values.at(0);
-        if (!value) {
-          throw ctx.reportError(token, `Can't parse value as hex code`);
-        }
+        assertNullable(value, ctx.reportError(token, `Can't parse value as hex code`));
         return {
           done: true,
           value: hex.lastStep,
@@ -838,9 +819,7 @@ const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHand
       const unicode = matchTokenSequence(token, [[TokenKind.CharEscape, { value: 'u' }], hexMatcher, hexMatcher]);
       if (unicode.match) {
         const value = unicode.values.join('');
-        if (!value) {
-          throw ctx.reportError(token, `Can't parse value as unicode number`);
-        }
+        assertNullable(value, ctx.reportError(token, `Can't parse value as unicode number`));
         return {
           done: true,
           value: unicode.lastStep,

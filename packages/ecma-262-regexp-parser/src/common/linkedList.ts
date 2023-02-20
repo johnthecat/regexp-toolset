@@ -1,10 +1,12 @@
-export type LintedListNode<LocalValue extends object, NextValues extends object = LocalValue> = LocalValue extends any
+export type LintedListNode<LocalValue extends object, NextValues extends object = LocalValue> = (LocalValue extends any
   ? LocalValue & {
-      index: number;
-      next(): LintedListNode<NextValues, NextValues> | null;
       __linkedListValue?: LocalValue | undefined;
     }
-  : never;
+  : never) & {
+  index: number;
+  next(): LintedListNode<NextValues, NextValues> | null;
+  __linkedListValue?: LocalValue | undefined;
+};
 
 export class LazyLinkedList<Value extends object> {
   private length = 0;
@@ -29,12 +31,11 @@ export class LazyLinkedList<Value extends object> {
       return null;
     }
 
-    // @ts-expect-error
-    const node: LintedListNode<Value> = {
+    const node = {
       ...value,
       index: this.length,
       next: () => this.next(node),
-    };
+    } as LintedListNode<Value>;
 
     if (this.rootNode === null) {
       this.rootNode = node;

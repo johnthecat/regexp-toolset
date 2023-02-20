@@ -63,16 +63,16 @@ export type InferTokenizer<T extends (input: string) => Tokenizer> = T extends (
 export type InferHandlerResult<T extends Handler<any>> = T extends Handler<infer U> ? Exclude<U, null> : never;
 
 export const createStepIterator = <T extends TokenizerStep>(step: T | null): TokenizerIterator<T> => {
-  let currentNode: T | null = step;
+  let currentNode: TokenizerStep | null = step;
   return {
-    next: () => {
+    next() {
       if (!currentNode) {
         return { done: true, value: null };
       }
 
       const nodeToReturn = currentNode;
       currentNode = currentNode.next();
-      return { done: false, value: nodeToReturn };
+      return { done: false, value: nodeToReturn as T };
     },
   };
 };

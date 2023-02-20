@@ -21,8 +21,8 @@ type ExplainerContext = {
   enableColors: boolean;
   source: string;
   capturingGroups: number;
-  assignedColors: Map<AnyRegexpNode, Formatter>;
   nodesGraph: Graph<AnyRegexpNode>;
+  assignedColors: Map<AnyRegexpNode, Formatter>;
   colorMap: Record<
     | 'dim'
     | 'header'
@@ -467,7 +467,8 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
     case SyntaxKind.CharRange: {
       const fromCode = node.from.value.charCodeAt(0);
       const toCode = node.to.value.charCodeAt(0);
-      const charsCount = toCode - fromCode + 1;
+      const charCount = toCode - fromCode + 1;
+      const maxCharCount = 15;
       result.push(
         `${paint(`${printNode(source, node.from)}-${printNode(source, node.to)}`, colorMap.secondaryHeader)} ${paint(
           'character range',
@@ -475,20 +476,18 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
         )} ${paint(`(from index ${fromCode} to index ${toCode})`, colorMap.dim)}`,
       );
 
-      if (charsCount < 30) {
-        result.push(
-          addIndent(
-            paint(
-              Array.from({ length: charsCount })
-                .map((_, i) => String.fromCharCode(fromCode + i))
-                .join(', '),
-              colorMap.dim,
-            ),
-            1,
-            paint(renderingPrimitives.simpleBlockEnd, colorMap.border),
+      result.push(
+        addIndent(
+          paint(
+            Array.from({ length: Math.min(charCount, maxCharCount) })
+              .map((_, i) => String.fromCharCode(fromCode + i))
+              .join(', ') + (charCount > maxCharCount ? '...' : ''),
+            colorMap.dim,
           ),
-        );
-      }
+          1,
+          paint(renderingPrimitives.simpleBlockEnd, colorMap.border),
+        ),
+      );
       break;
     }
 

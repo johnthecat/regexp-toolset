@@ -15,5 +15,5 @@ export type ParserContext = {
   tokenizer: RegexpTokenizer;
   foundGroupSpecifiers: Map<string, GroupNode>;
   groupSpecifierDemands: Set<[tag: string, node: SubpatternNode]>;
-  reportError: (position: NodePosition, message: string) => ParsingError;
+  reportError: (position: Partial<NodePosition> | number, message: string) => ParsingError;
 };
