@@ -1,11 +1,13 @@
 {
   "name": "explain-regexp",
   "version": "0.1.3",
+  "license": "MIT",
+  "homepage": "https://github.com/johnthecat/regexp-toolset/tree/main/packages/explain-regexp",
+  "repository": "johnthecat/regexp-toolset",
   "author": {
     "name": "Sergey Zhuravlev",
     "email": "zhuravlev1337@gmail.com"
   },
-  "repository": "johnthecat/regexp-toolset",
   "type": "module",
   "bin": "./bin/index.js",
   "scripts": {
