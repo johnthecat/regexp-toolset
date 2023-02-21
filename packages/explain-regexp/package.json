@@ -1,6 +1,6 @@
 {
   "name": "explain-regexp",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "license": "MIT",
   "homepage": "https://github.com/johnthecat/regexp-toolset/tree/main/packages/explain-regexp",
   "repository": "johnthecat/regexp-toolset",
@@ -28,7 +28,7 @@
   ],
   "dependencies": {
     "commander": "^10.0.0",
-    "ecma-262-regexp-parser": "^0.1.3"
+    "ecma-262-regexp-parser": "^0.1.4"
   },
   "engines": {
     "node": ">=16"

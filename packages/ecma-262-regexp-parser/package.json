@@ -1,6 +1,6 @@
 {
   "name": "ecma-262-regexp-parser",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "license": "MIT",
   "repository": "johnthecat/regexp-toolset",
   "homepage": "https://github.com/johnthecat/regexp-toolset/tree/main/packages/ecma-262-regexp-parser",
