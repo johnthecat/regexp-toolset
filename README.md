@@ -3,6 +3,7 @@
 Collection of different tools for working with regexp expression, written in `typescript`. 
 
 [![CI checks](https://github.com/johnthecat/regexp-toolset/actions/workflows/ci-checks.yaml/badge.svg)](https://github.com/johnthecat/regexp-toolset/actions/workflows/ci-checks.yaml)
+[![License](https://img.shields.io/github/license/johnthecat/regexp-toolset)](https://github.com/johnthecat/regexp-toolset/blob/main/LICENSE)
 
 ## List of packages
 - [Regexp parser](./packages/ecma-262-regexp-parser) - outputs AST, can be used for analyze or as compiler frontend;

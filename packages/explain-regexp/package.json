@@ -2,6 +2,7 @@
   "name": "explain-regexp",
   "version": "0.1.4",
   "license": "MIT",
+  "description": "CLI util for fast analyze of RegExp",
   "homepage": "https://github.com/johnthecat/regexp-toolset/tree/main/packages/explain-regexp",
   "repository": "johnthecat/regexp-toolset",
   "author": {

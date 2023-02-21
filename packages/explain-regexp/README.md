@@ -3,6 +3,9 @@
 CLI util for generating comprehensive report about regexp.
 Powered by [ECMA-262 Regexp parser](../ecma-262-regexp-parser)
 
+[![npm](https://badgen.net/npm/v/explain-regexp?color=blue&icon=npm)](https://www.npmjs.com/package/explain-regexp)
+![size](https://badgen.net/packagephobia/install/explain-regexp)
+
 ![Example in terminal](./static/example.gif)
 
 Requires `Node >= 16`

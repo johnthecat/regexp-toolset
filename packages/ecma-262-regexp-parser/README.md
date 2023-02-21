@@ -3,6 +3,9 @@
 Regexp Parser, implemented according to [EMCA-262 Specification](https://tc39.es/ecma262/#sec-patterns).
 Implemented all syntax constructions from es2022.
 
+[![npm](https://badgen.net/npm/v/ecma-262-regexp-parser?color=blue)](https://www.npmjs.com/package/ecma-262-regexp-parser)
+![size](https://badgen.net/packagephobia/install/ecma-262-regexp-parser)
+
 ## Requirements
 - `Typescript >= 4.9`
 - `Node.js >= 16`
@@ -14,13 +17,13 @@ $ npm i ecma-262-regexp-parser --save
 
 ## API Reference
 
-### `parseRegexp(source: string): RegexpNode`
+### `parseRegexp(source: string | RegExp): RegexpNode`
 Returns AST of full regexp expression (e.g. `/Hello!/gm`).
 Throws, if got any syntax error.
 
 ```typescript
 import { parseRegexp } from 'ecma-262-regexp-parser';
-const regexpAST = parseRegexp('/[A-z]*/gm');
+const regexpAST = parseRegexp(/[A-z]*/gm);
 ```
 
 ### `parseRegexpNode(source: string): AnyRegexpNode`
