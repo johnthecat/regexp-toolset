@@ -8,6 +8,12 @@
     "name": "Sergey Zhuravlev",
     "email": "zhuravlev1337@gmail.com"
   },
+  "keywords": [
+    "regexp",
+    "explain",
+    "cli",
+    "util"
+  ],
   "type": "module",
   "bin": "./bin/index.js",
   "scripts": {

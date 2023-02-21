@@ -8,6 +8,11 @@
     "name": "Sergey Zhuravlev",
     "email": "zhuravlev1337@gmail.com"
   },
+  "keywords": [
+    "regexp",
+    "parser",
+    "ast"
+  ],
   "type": "module",
   "types": "./dist/index.d.ts",
   "exports": {
