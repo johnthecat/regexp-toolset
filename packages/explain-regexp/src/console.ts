@@ -34,31 +34,6 @@ export const inverse = createFormatter('\x1b[7m', '\x1b[27m');
 export const reset = createFormatter('\x1b[0m', '\x1b[0m');
 export const resetEnd = createFormatter('', '\x1b[0m');
 
-export const createUnderline = (start: number, end: number): string => {
-  return ' '.repeat(start + 1) + '═'.repeat(1 + end - start);
-};
-
-export const createCodeFrame = (source: string, start: number, end: number, message: string) => {
-  const commonPadding = ' ';
-  const lineStart = '> ';
-  const styledSource = source.slice(0, start) + bold(source.slice(start, end + 1)) + source.slice(end + 1);
-
-  return (
-    commonPadding +
-    lineStart +
-    styledSource +
-    '\n' +
-    commonPadding +
-    createUnderline(start + 1, end + 1) +
-    '\n' +
-    commonPadding +
-    message.padStart(
-      commonPadding.length + Math.min(start + message.length, source.length + Math.round(message.length / 2)),
-      ' ',
-    )
-  );
-};
-
 const ansiEscapeCode = '[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-PRZcf-nqry=><]';
 const zeroWidthCharacterExceptNewline =
   '\u0000-\u0008\u000B-\u0019\u001b\u009b\u00ad\u200b\u2028\u2029\ufeff\ufe00-\ufe0f';

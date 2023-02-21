@@ -12,8 +12,8 @@ import {
   italic,
   pluralCount,
   resetEnd,
-} from './common/console.js';
-import { Graph } from './common/graph.js';
+} from './console.js';
+import { Graph } from './graph.js';
 
 type Colors = [Formatter, ...Formatter[]] | Formatter;
 
@@ -56,11 +56,12 @@ const renderingPrimitives = {
   blockVerticalConnector: '│',
   singleVerticalConnector: '╎',
   horizontalSeparator: '╌'.repeat(15),
+  referenceArrow: '«',
+  ellipsis: '...',
+  whitespace: '•',
 } as const;
 
 const id = <T>(x: T): T => x;
-
-const whitespaceReplacer = '•';
 
 const flagDescriptions = {
   g: `Performs a global match, finding all matches rather than just the first.`,
@@ -107,7 +108,7 @@ const colorMapFor256Colors: ExplainerContext['colorMap'] = {
 const genericNodeTitle = {
   [SyntaxKind.GroupName]: { header: 'Group name', color: 'expression' },
   [SyntaxKind.FormFeedChar]: { header: 'Form Feed Char', color: 'expression' },
-  [SyntaxKind.NullChar]: { header: 'Null', color: 'expression' },
+  [SyntaxKind.NullChar]: { header: 'Null Character', color: 'expression' },
   [SyntaxKind.AnyWhitespace]: { header: 'Any Whitespace', color: 'expression' },
   [SyntaxKind.NonWhitespace]: { header: 'Non Whitespace', color: 'expression' },
   [SyntaxKind.ControlChar]: { header: 'ASCII Control', color: 'expression' },
@@ -119,8 +120,6 @@ const genericNodeTitle = {
   [SyntaxKind.AnyDigit]: { header: 'Any Digit', description: 'matches [0-9]', color: 'expression' },
   [SyntaxKind.NonDigit]: { header: 'Non Digit', description: 'matches [^0-9]', color: 'expression' },
   [SyntaxKind.Backspace]: { header: 'Backspace', color: 'expression' },
-  // TODO implement as repetition
-  [SyntaxKind.BackReference]: { header: 'BackReference' },
   [SyntaxKind.NewLine]: { header: 'New Line', color: 'expression' },
   [SyntaxKind.VerticalWhitespace]: { header: 'Vertical Whitespace', color: 'expression' },
   [SyntaxKind.ZeroLength]: { header: 'Zero Length' },
@@ -182,8 +181,12 @@ const renderBlock = (ctx: ExplainerContext, content: string, index = 0, of = 1):
 };
 
 const printNode = (source: string, node: AnyRegexpNode): string => {
-  if (node.end - node.start > 70) {
-    return source.slice(node.start, node.start + 67) + '...';
+  const maxLength = 70;
+  if (node.end - node.start > maxLength) {
+    return (
+      source.slice(node.start, node.start + maxLength - renderingPrimitives.ellipsis.length) +
+      renderingPrimitives.ellipsis
+    );
   } else {
     return source.slice(node.start, node.end + 1);
   }
@@ -215,7 +218,7 @@ const assignColor = (
 };
 
 const createExplainerContext = (source: string, entryNode: AnyRegexpNode, enableColors: boolean): ExplainerContext => ({
-  source: source.replace(/\s/gm, whitespaceReplacer),
+  source: source.replace(/\s/gm, renderingPrimitives.whitespace),
   nodesGraph: new Graph(entryNode),
   assignedColors: new Map(),
   capturingGroups: 0,
@@ -264,7 +267,7 @@ export const explainRegexpPart = (source: string, config: { enableColors: boolea
 export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx: ExplainerContext): string => {
   const { source, colorMap } = ctx;
   const rawPrinted = printNode(source, node);
-  const printed = paint(rawPrinted.length > 70 ? rawPrinted.slice(0, 67) + '...' : rawPrinted, colorMap.dim);
+  const printed = paint(rawPrinted, colorMap.dim);
   const result: string[] = [];
 
   switch (node.kind) {
@@ -409,7 +412,27 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
 
       const partials = childNode.split('\n');
       const transformedResult = [
-        `${partials.shift() ?? ''} « ${paint(paint(repetition, colorMap.secondaryHeader), colorMap.secondary)}`,
+        `${partials.shift() ?? ''} ${renderingPrimitives.referenceArrow} ${paint(
+          paint(repetition, colorMap.secondaryHeader),
+          colorMap.secondary,
+        )}`,
+        ...partials,
+      ].join('\n');
+
+      result.push(transformedResult);
+      break;
+    }
+
+    case SyntaxKind.BackReference: {
+      assignColor(node, parentNode, ctx, colorMap.expression);
+      const childNode = explainNode(node.group, node, ctx);
+
+      const partials = childNode.split('\n');
+      const transformedResult = [
+        `${partials.shift() ?? ''} ${renderingPrimitives.referenceArrow} ${paint(
+          paint('back reference', colorMap.secondaryHeader),
+          colorMap.secondary,
+        )}`,
         ...partials,
       ].join('\n');
 
@@ -445,7 +468,7 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
         color = assignColor(node, parentNode, ctx, isWhitespace ? colorMap.whitespace : colorMap.char);
       }
       const char = isWhitespace
-        ? paint(whitespaceReplacer, colorMap.whitespace)
+        ? paint(renderingPrimitives.whitespace, colorMap.whitespace)
         : paint(node.value, colorMap.secondaryHeader);
       const title = `Literally ${resetEnd(char)}`;
       result.push(
@@ -481,7 +504,7 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
           paint(
             Array.from({ length: Math.min(charCount, maxCharCount) })
               .map((_, i) => String.fromCharCode(fromCode + i))
-              .join(', ') + (charCount > maxCharCount ? '...' : ''),
+              .join(', ') + (charCount > maxCharCount ? renderingPrimitives.ellipsis : ''),
             colorMap.dim,
           ),
           1,

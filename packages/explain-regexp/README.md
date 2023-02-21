@@ -1,6 +1,7 @@
 # Regexp explainer
 
-> CLI util for generating comprehensive report about regexp.
+CLI util for generating comprehensive report about regexp.
+Powered by [ECMA-262 Regexp parser](../ecma-262-regexp-parser)
 
 ![Example in terminal](./static/example.gif)
 

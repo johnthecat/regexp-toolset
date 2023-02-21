@@ -14,7 +14,7 @@ const config = defineConfig({
   },
   plugins: [
     dts({
-      insertTypesEntry: true,
+      noEmitOnError: true,
     }),
     {
       ...externals(),

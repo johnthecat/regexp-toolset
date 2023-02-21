@@ -12,7 +12,7 @@
     "prepublishOnly": "npm run build",
     "watch": "vite build --mode development --watch",
     "build": "vite build",
-    "lint": "eslint src/*/**.ts"
+    "lint": "eslint src/**.ts"
   },
   "files": [
     "bin",

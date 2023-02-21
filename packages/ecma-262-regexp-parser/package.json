@@ -2,6 +2,7 @@
   "name": "ecma-262-regexp-parser",
   "version": "0.1.2",
   "type": "module",
+  "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -12,12 +13,11 @@
   "files": [
     "dist"
   ],
-  "types": "./dist/index.d.ts",
   "scripts": {
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "watch": "vite build --mode development --watch",
     "build": "vite build --mode production",
-    "lint": "eslint src/*/**.ts"
+    "lint": "eslint src/**.ts"
   }
 }
