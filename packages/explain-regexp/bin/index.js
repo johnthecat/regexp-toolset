@@ -24,7 +24,7 @@ program
   .option('--color', 'Forces color output', isColorSupportedByEnv)
   .action((regexp, { debug, color: enableColors }) => {
     try {
-      stdout.write(terminalCleanupPrefix + explainRegexp(regexp, { enableColors }) + '\n');
+      stdout.write( explainRegexp(regexp, { enableColors }) + '\n');
     } catch (e) {
       if (debug) {
         console.error(e);

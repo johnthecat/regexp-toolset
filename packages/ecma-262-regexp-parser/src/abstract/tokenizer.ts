@@ -26,6 +26,13 @@ export type TokenReducerResult<Step extends TokenizerStep, Result> = IteratorRes
 
 export type TokenReducerFn<T extends TokenizerStep, R> = (step: T, result: R) => TokenReducerResult<T, R>;
 
+export type TokenMatchReducerResult<Step extends TokenizerStep, Result> = IteratorResult<Step, Step> & {
+  result: Result;
+  match: boolean;
+};
+
+export type TokenMatchReducerFn<T extends TokenizerStep, R> = (step: T, result: R) => TokenMatchReducerResult<T, R>;
+
 export type TokenizerIterator<T extends TokenizerStep> = Iterator<T, null>;
 
 export type TokenizerIterable<T extends TokenizerStep> = {
@@ -37,11 +44,16 @@ export type TokenizerApi<T extends AnyToken> = TokenizerIterable<TokenizerStep<T
   isLastToken(token: T): boolean;
   getFirstStep(): TokenizerStep<T> | null;
   match(step: TokenizerStep<T>, fn: TokenMatcherFn<TokenizerStep<T>>): TokenizerStep<T>;
-  reducer<R>(
+  reduce<R>(
     step: TokenizerStep<T>,
     fn: TokenReducerFn<TokenizerStep<T>, R>,
     initial: R,
   ): TokenReducerResult<TokenizerStep<T>, R>;
+  matchReduce<R>(
+    step: TokenizerStep<T>,
+    fn: TokenMatchReducerFn<TokenizerStep<T>, R>,
+    initial: R,
+  ): TokenMatchReducerResult<TokenizerStep<T>, R>;
 };
 
 export type Tokenizer<T extends AnyToken = AnyToken> = TokenizerApi<T>;
@@ -63,16 +75,16 @@ export type InferTokenizer<T extends (input: string) => Tokenizer> = T extends (
 export type InferHandlerResult<T extends Handler<any>> = T extends Handler<infer U> ? Exclude<U, null> : never;
 
 export const createStepIterator = <T extends TokenizerStep>(step: T | null): TokenizerIterator<T> => {
-  let currentNode: TokenizerStep | null = step;
+  let currentToken: TokenizerStep | null = step;
   return {
     next() {
-      if (!currentNode) {
+      if (!currentToken) {
         return { done: true, value: null };
       }
 
-      const nodeToReturn = currentNode;
-      currentNode = currentNode.next();
-      return { done: false, value: nodeToReturn as T };
+      const tokenToReturn = currentToken;
+      currentToken = currentToken.next();
+      return { done: false, value: tokenToReturn as T };
     },
   };
 };
@@ -111,7 +123,7 @@ export const createTokenizer = <T extends Handler<AnyToken>>(
         }
         return currentStep;
       },
-      reducer: <Result>(step: TokenizerStep, fn: TokenReducerFn<TokenizerStep, Result>, initial: Result) => {
+      reduce: <Result>(step: TokenizerStep, fn: TokenReducerFn<TokenizerStep, Result>, initial: Result) => {
         let currentReturn: TokenReducerResult<TokenizerStep, Result> = {
           done: true,
           value: step,
@@ -134,6 +146,29 @@ export const createTokenizer = <T extends Handler<AnyToken>>(
           }
         }
         return currentReturn;
+      },
+      matchReduce: <Result>(token: TokenizerStep, fn: TokenMatchReducerFn<TokenizerStep, Result>, initial: Result) => {
+        let currentToken = token;
+        let currentResult = initial;
+        while (currentToken) {
+          const result = fn(currentToken, currentResult);
+          if (result.match) {
+            return result;
+          }
+          if (result.done) {
+            break;
+          }
+
+          const nextToken = result.value.next();
+          if (!nextToken) {
+            break;
+          }
+
+          currentToken = nextToken;
+          currentResult = result.result;
+        }
+
+        throw new Error(`Unmatched token: ${token.value} at ${token.start}:${token.end}`);
       },
     };
     return api as Tokenizer<InferHandlerResult<T>>;

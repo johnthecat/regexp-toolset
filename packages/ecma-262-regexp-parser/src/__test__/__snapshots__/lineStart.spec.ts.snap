@@ -1,0 +1,96 @@
+// Vitest Snapshot v1
+
+exports[`Line Start > should correctly parse line start in the end of regexp 1`] = `
+{
+  "body": {
+    "end": 2,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "end": 2,
+        "kind": 1,
+        "start": 2,
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 3,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Line Start > should correctly parse line start in the middle of regexp 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "end": 2,
+        "kind": 1,
+        "start": 2,
+      },
+      {
+        "charCode": 97,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "a",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Line Start > should correctly parse line start in the start of regexp 1`] = `
+{
+  "body": {
+    "end": 2,
+    "expressions": [
+      {
+        "end": 1,
+        "kind": 1,
+        "start": 1,
+      },
+      {
+        "charCode": 97,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "a",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 3,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

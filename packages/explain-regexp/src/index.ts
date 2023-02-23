@@ -126,6 +126,8 @@ const genericNodeTitle = {
   [SyntaxKind.CarriageReturn]: { header: 'Carriage Return', color: 'expression' },
   [SyntaxKind.Tab]: { header: 'Tab', color: 'expression' },
   [SyntaxKind.Quantifier]: { header: 'Quantifier', color: 'expression' },
+  [SyntaxKind.WordBoundary]: { header: 'Word Boundary', color: 'expression' },
+  [SyntaxKind.NonWordBoundary]: { header: 'Non Word Boundary', color: 'expression' },
 } satisfies Record<number, GenericTitle>;
 
 const paint = (content: string, color: Colors, index = 0) => {

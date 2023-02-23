@@ -1,0 +1,259 @@
+// Vitest Snapshot v1
+
+exports[`CharRange > should correctly parse range as chars outside char class 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "charCode": 45,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "-",
+      },
+      {
+        "charCode": 122,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "z",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`CharRange > should correctly parse range with empty end as chars 1`] = `
+{
+  "body": {
+    "end": 4,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "charCode": 45,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "-",
+      },
+    ],
+    "kind": 22,
+    "negative": false,
+    "start": 1,
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`CharRange > should correctly parse range with empty start as chars 1`] = `
+{
+  "body": {
+    "end": 4,
+    "expressions": [
+      {
+        "charCode": 45,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "-",
+      },
+      {
+        "charCode": 122,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "z",
+      },
+    ],
+    "kind": 22,
+    "negative": false,
+    "start": 1,
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`CharRange > should correctly parse range with hex 1`] = `
+{
+  "body": {
+    "end": 11,
+    "expressions": [
+      {
+        "end": 10,
+        "from": {
+          "charCode": 97,
+          "end": 5,
+          "kind": 6,
+          "start": 2,
+          "type": "hex",
+          "value": "a",
+        },
+        "kind": 4,
+        "start": 2,
+        "to": {
+          "charCode": 122,
+          "end": 10,
+          "kind": 6,
+          "start": 7,
+          "type": "hex",
+          "value": "z",
+        },
+      },
+    ],
+    "kind": 22,
+    "negative": false,
+    "start": 1,
+  },
+  "end": 12,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`CharRange > should correctly parse range with octal 1`] = `
+{
+  "body": {
+    "end": 11,
+    "expressions": [
+      {
+        "end": 10,
+        "from": {
+          "charCode": 97,
+          "end": 5,
+          "kind": 6,
+          "start": 2,
+          "type": "octal",
+          "value": "a",
+        },
+        "kind": 4,
+        "start": 2,
+        "to": {
+          "charCode": 122,
+          "end": 10,
+          "kind": 6,
+          "start": 7,
+          "type": "octal",
+          "value": "z",
+        },
+      },
+    ],
+    "kind": 22,
+    "negative": false,
+    "start": 1,
+  },
+  "end": 12,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`CharRange > should correctly parse range with unicode 1`] = `
+{
+  "body": {
+    "end": 15,
+    "expressions": [
+      {
+        "end": 14,
+        "from": {
+          "charCode": 97,
+          "end": 7,
+          "kind": 6,
+          "start": 2,
+          "type": "unicode",
+          "value": "a",
+        },
+        "kind": 4,
+        "start": 2,
+        "to": {
+          "charCode": 122,
+          "end": 14,
+          "kind": 6,
+          "start": 9,
+          "type": "unicode",
+          "value": "z",
+        },
+      },
+    ],
+    "kind": 22,
+    "negative": false,
+    "start": 1,
+  },
+  "end": 16,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`CharRange > should correctly parse simple char range 1`] = `
+{
+  "body": {
+    "end": 5,
+    "expressions": [
+      {
+        "end": 4,
+        "from": {
+          "charCode": 97,
+          "end": 2,
+          "kind": 6,
+          "start": 2,
+          "type": "simple",
+          "value": "a",
+        },
+        "kind": 4,
+        "start": 2,
+        "to": {
+          "charCode": 122,
+          "end": 4,
+          "kind": 6,
+          "start": 4,
+          "type": "simple",
+          "value": "z",
+        },
+      },
+    ],
+    "kind": 22,
+    "negative": false,
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

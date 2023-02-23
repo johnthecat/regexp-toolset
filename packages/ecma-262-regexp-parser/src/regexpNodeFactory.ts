@@ -17,6 +17,8 @@ import type {
   QuantifierNode,
   RepetitionNode,
   RegexpNode,
+  ControlEscapeCharNode,
+  ControlEscapeCharType,
 } from './regexpNodes.js';
 import { SyntaxKind } from './regexpNodes.js';
 // FIXME circular dep
@@ -134,6 +136,9 @@ export const createCharClassNode = (negative: boolean, expressions: AnyRegexpNod
 
 export const createGroupNameNode = (name: string, position: NodePosition) =>
   createNode<GroupNameNode>(SyntaxKind.GroupName, position, { name });
+
+export const createControlEscapeNode = (type: ControlEscapeCharType, position: NodePosition) =>
+  createNode<ControlEscapeCharNode>(SyntaxKind.ControlEscapeChar, position, { type });
 
 export const createGroupNode = (
   type: GroupNode['type'],

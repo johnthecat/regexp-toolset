@@ -9,6 +9,7 @@ export enum SyntaxKind {
   Alternative,
   Char,
   ControlChar,
+  ControlEscapeChar,
   NullChar,
   Backspace,
   Subpattern,
@@ -19,11 +20,8 @@ export enum SyntaxKind {
   NonWhitespace,
   AnyWord,
   NonWord,
-  NewLine,
-  CarriageReturn,
-  Tab,
-  VerticalWhitespace,
-  FormFeedChar,
+  WordBoundary,
+  NonWordBoundary,
   ZeroLength,
   CharClass,
   Group,
@@ -31,6 +29,14 @@ export enum SyntaxKind {
   BackReference,
   Quantifier,
   Repetition,
+}
+
+export enum ControlEscapeCharType {
+  NewLine,
+  CarriageReturn,
+  Tab,
+  VerticalWhitespace,
+  FormFeedChar,
 }
 
 export type Node<
@@ -57,7 +63,6 @@ export type CharNode = Node<
   { value: string; charCode: number; type: 'simple' | 'hex' | 'unicode' | 'escaped' | 'octal' }
 >;
 export type ControlCharNode = Node<SyntaxKind.ControlChar, { value: string }>;
-export type FormFeedCharNode = Node<SyntaxKind.FormFeedChar>;
 export type NullCharNode = Node<SyntaxKind.NullChar>;
 export type BackspaceNode = Node<SyntaxKind.Backspace>;
 export type SubpatternNode = Node<SyntaxKind.Subpattern, { groupName: string; ref: GroupNode | null }>;
@@ -68,10 +73,9 @@ export type AnyWhitespaceNode = Node<SyntaxKind.AnyWhitespace>;
 export type NonWhitespaceNode = Node<SyntaxKind.NonWhitespace>;
 export type AnyWordNode = Node<SyntaxKind.AnyWord>;
 export type NonWordNode = Node<SyntaxKind.NonWord>;
-export type NewLineNode = Node<SyntaxKind.NewLine>;
-export type CarriageReturnNode = Node<SyntaxKind.CarriageReturn>;
-export type TabNode = Node<SyntaxKind.Tab>;
-export type VerticalWhitespaceNode = Node<SyntaxKind.VerticalWhitespace>;
+export type WordBoundaryNode = Node<SyntaxKind.WordBoundary>;
+export type NonWordBoundaryNode = Node<SyntaxKind.NonWordBoundary>;
+export type ControlEscapeCharNode = Node<SyntaxKind.ControlEscapeChar, { type: ControlEscapeCharType }>;
 export type ZeroLengthNode = Node<SyntaxKind.ZeroLength>;
 export type CharClassNode = Node<SyntaxKind.CharClass, { negative: boolean; expressions: AnyRegexpNode[] }>;
 export type GroupNameNode = Node<SyntaxKind.GroupName, { name: string }>;
@@ -113,7 +117,6 @@ export type AnyRegexpNode =
   | CharRangeNode
   | AnyCharNode
   | CharNode
-  | FormFeedCharNode
   | ControlCharNode
   | NullCharNode
   | BackspaceNode
@@ -123,13 +126,12 @@ export type AnyRegexpNode =
   | GroupNode
   | BackReferenceNode
   | ZeroLengthNode
-  | NewLineNode
-  | CarriageReturnNode
-  | VerticalWhitespaceNode
-  | TabNode
+  | ControlEscapeCharNode
   | AnyWhitespaceNode
   | NonWhitespaceNode
   | AnyDigitNode
   | NonDigitNode
   | AnyWordNode
-  | NonWordNode;
+  | NonWordNode
+  | WordBoundaryNode
+  | NonWordBoundaryNode;

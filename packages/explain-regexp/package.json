@@ -19,8 +19,8 @@
   "bin": "./bin/index.js",
   "scripts": {
     "prepublishOnly": "npm run build",
-    "watch": "vite build --mode development --watch",
     "build": "vite build",
+    "build:watch": "vite build --mode development --watch",
     "lint": "eslint src/**.ts"
   },
   "files": [

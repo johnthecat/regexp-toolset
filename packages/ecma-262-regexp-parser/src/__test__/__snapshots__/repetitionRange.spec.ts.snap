@@ -1,0 +1,382 @@
+// Vitest Snapshot v1
+
+exports[`Repetition range > Exact > should parse repetition count 1`] = `
+{
+  "body": {
+    "end": 4,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": 6,
+      "start": 1,
+      "type": "simple",
+      "value": "a",
+    },
+    "kind": 27,
+    "quantifier": {
+      "end": 4,
+      "from": 2,
+      "greedy": true,
+      "kind": 26,
+      "start": 2,
+      "to": undefined,
+      "type": "range",
+    },
+    "start": 1,
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition range > Exact > should parse unclosed range as chars 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "charCode": 123,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "{",
+      },
+      {
+        "charCode": 50,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "2",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition range > Exact > should parse unclosed range as chars 2`] = `
+{
+  "body": {
+    "end": 3,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "charCode": 50,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "2",
+      },
+      {
+        "charCode": 125,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "}",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition range > From exact to exact > should parse repetition count 1`] = `
+{
+  "body": {
+    "end": 6,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": 6,
+      "start": 1,
+      "type": "simple",
+      "value": "a",
+    },
+    "kind": 27,
+    "quantifier": {
+      "end": 6,
+      "from": 2,
+      "greedy": true,
+      "kind": 26,
+      "start": 2,
+      "to": 4,
+      "type": "range",
+    },
+    "start": 1,
+  },
+  "end": 7,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition range > From exact to exact > should parse unclosed range as chars 1`] = `
+{
+  "body": {
+    "end": 5,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "charCode": 123,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "{",
+      },
+      {
+        "charCode": 50,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "2",
+      },
+      {
+        "charCode": 44,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": ",",
+      },
+      {
+        "charCode": 52,
+        "end": 5,
+        "kind": 6,
+        "start": 5,
+        "type": "simple",
+        "value": "4",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition range > From exact to exact > should parse unclosed range as chars 2`] = `
+{
+  "body": {
+    "end": 5,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "charCode": 50,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "2",
+      },
+      {
+        "charCode": 44,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": ",",
+      },
+      {
+        "charCode": 52,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": "4",
+      },
+      {
+        "charCode": 125,
+        "end": 5,
+        "kind": 6,
+        "start": 5,
+        "type": "simple",
+        "value": "}",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition range > From exact to unlimited > should parse repetition count 1`] = `
+{
+  "body": {
+    "end": 5,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": 6,
+      "start": 1,
+      "type": "simple",
+      "value": "a",
+    },
+    "kind": 27,
+    "quantifier": {
+      "end": 5,
+      "from": 2,
+      "greedy": true,
+      "kind": 26,
+      "start": 2,
+      "to": Infinity,
+      "type": "range",
+    },
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition range > From exact to unlimited > should parse unclosed range as chars 1`] = `
+{
+  "body": {
+    "end": 4,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "charCode": 123,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "{",
+      },
+      {
+        "charCode": 50,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "2",
+      },
+      {
+        "charCode": 44,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": ",",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition range > From exact to unlimited > should parse unclosed range as chars 2`] = `
+{
+  "body": {
+    "end": 4,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "charCode": 50,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "2",
+      },
+      {
+        "charCode": 44,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": ",",
+      },
+      {
+        "charCode": 125,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": "}",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

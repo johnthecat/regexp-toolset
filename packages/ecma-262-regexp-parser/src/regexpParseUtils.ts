@@ -1,17 +1,18 @@
 import type { AnyRegexpToken, Step, TokenKind } from './regexpTokenizer.js';
 import { isPatternCharToken, isDecimalToken, isDecimalEscapeToken } from './regexpTokenizer.js';
 import type { AnyRegexpNode, NodePosition, ZeroLengthNode } from './regexpNodes.js';
-import type { ParserContext, TokenParser } from './regexpParseTypes.js';
+import type { ParserContext, TokenParser, TokenParserResult } from './regexpParseTypes.js';
 import { isBoolean } from './common/typeCheckers.js';
 import { SyntaxKind } from './regexpNodes.js';
 import { createAlternativeNode, createSimpleNode } from './regexpNodeFactory.js';
+import type { TokenMatchReducerFn } from './abstract/tokenizer.js';
 
 export const fillExpressions = (
   step: Step,
   state: ParserContext,
   tokenParser: TokenParser,
 ): { expressions: AnyRegexpNode[]; lastStep: Step } => {
-  const reducerResult = state.tokenizer.reducer<AnyRegexpNode[]>(
+  const reducerResult = state.tokenizer.reduce<AnyRegexpNode[]>(
     step,
     (currentStep, expressions) => tokenParser(currentStep, expressions, state),
     [],
@@ -181,8 +182,13 @@ export const octalMatcher: CustomMatcher<string> = firstStep => {
 
   for (const step of [firstStep, secondStep, thirdStep]) {
     if ((step === firstStep && isDecimalEscapeToken(step)) || isDecimalToken(step)) {
+      const num = parseInt(step.value);
+      if (num > 7 || num < 0) {
+        return false;
+      }
+
       value = value + step.value;
-      if (parseInt(value) > 256) {
+      if (parseInt(value) > 377) {
         return false;
       }
     }
@@ -237,3 +243,43 @@ export const sealExpressions = (
 
   return createAlternativeNode(expressions);
 };
+
+export const matchFirst = (
+  token: Step,
+  expressions: AnyRegexpNode[],
+  matchers: TokenMatchReducerFn<Step, AnyRegexpNode[]>[],
+  defaultReturn?: TokenParserResult,
+): TokenParserResult => {
+  let lastExpressions = expressions;
+  for (const matcher of matchers) {
+    const result = matcher(token, lastExpressions);
+    if (result.match) {
+      return result;
+    }
+    lastExpressions = result.result;
+  }
+
+  if (defaultReturn) {
+    return defaultReturn;
+  }
+  throw new Error(`Unhandled token: ${token.value} at ${token.start}:${token.end}`);
+};
+
+export const matchedToken = (token: Step, expressions: AnyRegexpNode[]): TokenParserResult => ({
+  done: true,
+  match: true,
+  value: token,
+  result: expressions,
+});
+
+export const unmatchedToken = (token: Step, expressions: AnyRegexpNode[]): TokenParserResult => ({
+  done: true,
+  match: false,
+  value: token,
+  result: expressions,
+});
+
+export const forwardParser = (result: TokenParserResult): TokenParserResult => ({
+  ...result,
+  done: false,
+});

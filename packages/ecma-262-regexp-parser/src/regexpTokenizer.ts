@@ -30,21 +30,21 @@ export type PatternCharToken = Token<TokenKind.PatternChar>;
 export type DecimalEscapeToken = Token<TokenKind.DecimalEscape, `${number}`>;
 export type DecimalToken = Token<TokenKind.Decimal, `${number}`>;
 
-export const syntaxCharHandler = createHandler<SyntaxCharToken>(TokenKind.SyntaxChar, /[$^\\.*+?()\[\]{}|]/);
-export const controlEscapeHandler = createHandler<ControlEscapeToken>(TokenKind.ControlEscape, /\\(fnrtv)/);
+export const syntaxCharHandler = createHandler<SyntaxCharToken>(TokenKind.SyntaxChar, /([\\.*+?)(\]\[}{|$^])/);
+export const controlEscapeHandler = createHandler<ControlEscapeToken>(TokenKind.ControlEscape, /\\([fnrtv])/);
 export const charClassEscapeHandler = createHandler<CharClassEscape>(TokenKind.CharClassEscape, /\\([dDsSwW])/);
 export const charEscapeHandler = createHandler<CharEscapeToken>(TokenKind.CharEscape, /\\(.)/);
-export const patternCharHandler = createHandler<PatternCharToken>(TokenKind.PatternChar, /[^$^\\.*+?()\[\]{}|]/);
 export const decimalEscapeHandler = createHandler<DecimalEscapeToken>(TokenKind.DecimalEscape, /\\([0-9])/);
 export const decimalHandler = createHandler<DecimalToken>(TokenKind.Decimal, /\d/);
+export const patternCharHandler = createHandler<PatternCharToken>(TokenKind.PatternChar, /(.)/);
 
 export const regexpTokenizer = createTokenizer(
   waterfall([
     controlEscapeHandler,
     charClassEscapeHandler,
     decimalEscapeHandler,
-    charEscapeHandler,
     decimalHandler,
+    charEscapeHandler,
     syntaxCharHandler,
     patternCharHandler,
   ]),
