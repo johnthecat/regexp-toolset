@@ -1,0 +1,15 @@
+// Vitest Snapshot v1
+
+exports[`Null Character > should parse null character 1`] = `
+{
+  "body": {
+    "end": 2,
+    "kind": 9,
+    "start": 1,
+  },
+  "end": 3,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

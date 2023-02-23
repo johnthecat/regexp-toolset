@@ -1,0 +1,71 @@
+// Vitest Snapshot v1
+
+exports[`Subpattern Match > should refer to group with same name 1`] = `
+{
+  "body": {
+    "end": 25,
+    "expressions": [
+      {
+        "body": {
+          "charCode": 97,
+          "end": 12,
+          "kind": 6,
+          "start": 12,
+          "type": "simple",
+          "value": "a",
+        },
+        "end": 13,
+        "kind": 23,
+        "specifier": {
+          "end": 11,
+          "kind": 24,
+          "name": "my_name",
+          "start": 3,
+        },
+        "start": 1,
+        "type": "capturing",
+      },
+      {
+        "charCode": 32,
+        "end": 14,
+        "kind": 6,
+        "start": 14,
+        "type": "simple",
+        "value": " ",
+      },
+      {
+        "end": 25,
+        "groupName": "my_name",
+        "kind": 11,
+        "ref": {
+          "body": {
+            "charCode": 97,
+            "end": 12,
+            "kind": 6,
+            "start": 12,
+            "type": "simple",
+            "value": "a",
+          },
+          "end": 13,
+          "kind": 23,
+          "specifier": {
+            "end": 11,
+            "kind": 24,
+            "name": "my_name",
+            "start": 3,
+          },
+          "start": 1,
+          "type": "capturing",
+        },
+        "start": 15,
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 26,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

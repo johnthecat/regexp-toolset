@@ -309,6 +309,7 @@ const parseNullChar: TokenParser = (token, expressions) => {
 const parseBackReferenceChar: TokenParser = (token, expressions) => {
   const prevNode = expressions.at(-1);
   if (token.value === '1' && prevNode && prevNode.kind === SyntaxKind.Group) {
+    expressions.pop();
     return {
       done: true,
       match: true,
