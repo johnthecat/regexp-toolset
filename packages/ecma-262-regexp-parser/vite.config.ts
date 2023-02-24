@@ -12,13 +12,12 @@ const config = defineConfig({
     },
   },
   plugins: [
+    { ...externals(), enforce: 'pre' },
     dts({
       noEmitOnError: true,
+      copyDtsFiles: true,
+      include: ['./src/**'],
     }),
-    {
-      ...externals(),
-      enforce: 'pre',
-    },
   ],
 });
 

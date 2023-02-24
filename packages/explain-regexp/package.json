@@ -21,7 +21,7 @@
     "prepublishOnly": "npm run build",
     "build": "vite build",
     "build:watch": "vite build --mode development --watch",
-    "lint": "eslint src/**.ts"
+    "lint": "eslint src/**"
   },
   "files": [
     "bin",

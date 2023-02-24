@@ -2,7 +2,7 @@ import * as factory from './regexpNodeFactory.js';
 
 export { factory };
 export { parseRegexp, parseRegexpNode } from './regexpParser.js';
-export { SyntaxKind, ControlEscapeCharType } from './regexpNodes.js';
+export { SyntaxKind, ControlEscapeCharType, QuantifierType } from './regexpNodes.js';
 export type {
   AnyRegexpNode,
   RegexpNode,
@@ -12,7 +12,7 @@ export type {
   CharRangeNode,
   AlternativeNode,
   CharNode,
-  ControlCharNode,
+  ASCIIControlCharNode,
   NullCharNode,
   BackspaceNode,
   SubpatternNode,

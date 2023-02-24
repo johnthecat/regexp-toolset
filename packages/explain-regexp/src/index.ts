@@ -1,7 +1,12 @@
 import type { AnyRegexpNode } from 'ecma-262-regexp-parser';
-import { parseRegexp, parseRegexpNode, SyntaxKind } from 'ecma-262-regexp-parser';
 import {
-  type Formatter,
+  ControlEscapeCharType,
+  parseRegexp,
+  parseRegexpNode,
+  QuantifierType,
+  SyntaxKind,
+} from 'ecma-262-regexp-parser';
+import {
   addIndent,
   bold,
   colorStringPart,
@@ -9,6 +14,7 @@ import {
   create256ColorsFormatter,
   create256ColorsTextFormatter,
   dim,
+  type Formatter,
   italic,
   pluralCount,
   resetEnd,
@@ -105,13 +111,20 @@ const colorMapFor256Colors: ExplainerContext['colorMap'] = {
   ],
 };
 
+const controlEscapeCharTitle = {
+  [ControlEscapeCharType.FormFeedChar]: 'Form Feed Char',
+  [ControlEscapeCharType.NewLine]: 'New Line',
+  [ControlEscapeCharType.VerticalWhitespace]: 'Vertical Whitespace',
+  [ControlEscapeCharType.CarriageReturn]: 'Carriage Return',
+  [ControlEscapeCharType.Tab]: 'Tab',
+};
+
 const genericNodeTitle = {
   [SyntaxKind.GroupName]: { header: 'Group name', color: 'expression' },
-  [SyntaxKind.FormFeedChar]: { header: 'Form Feed Char', color: 'expression' },
   [SyntaxKind.NullChar]: { header: 'Null Character', color: 'expression' },
   [SyntaxKind.AnyWhitespace]: { header: 'Any Whitespace', color: 'expression' },
   [SyntaxKind.NonWhitespace]: { header: 'Non Whitespace', color: 'expression' },
-  [SyntaxKind.ControlChar]: { header: 'ASCII Control', color: 'expression' },
+  [SyntaxKind.ASCIIControlChar]: { header: 'ASCII Control', color: 'expression' },
   [SyntaxKind.AnyChar]: { header: 'Any', color: 'expression' },
   [SyntaxKind.LineStart]: { header: 'Line Start', color: 'expression' },
   [SyntaxKind.LineEnd]: { header: 'Line End', color: 'expression' },
@@ -120,11 +133,7 @@ const genericNodeTitle = {
   [SyntaxKind.AnyDigit]: { header: 'Any Digit', description: 'matches [0-9]', color: 'expression' },
   [SyntaxKind.NonDigit]: { header: 'Non Digit', description: 'matches [^0-9]', color: 'expression' },
   [SyntaxKind.Backspace]: { header: 'Backspace', color: 'expression' },
-  [SyntaxKind.NewLine]: { header: 'New Line', color: 'expression' },
-  [SyntaxKind.VerticalWhitespace]: { header: 'Vertical Whitespace', color: 'expression' },
   [SyntaxKind.ZeroLength]: { header: 'Zero Length' },
-  [SyntaxKind.CarriageReturn]: { header: 'Carriage Return', color: 'expression' },
-  [SyntaxKind.Tab]: { header: 'Tab', color: 'expression' },
   [SyntaxKind.Quantifier]: { header: 'Quantifier', color: 'expression' },
   [SyntaxKind.WordBoundary]: { header: 'Word Boundary', color: 'expression' },
   [SyntaxKind.NonWordBoundary]: { header: 'Non Word Boundary', color: 'expression' },
@@ -385,16 +394,16 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
       let repetition: string = '';
 
       switch (node.quantifier.type) {
-        case 'oneOrMany':
+        case QuantifierType.SingleOrMany:
           repetition = 'between one and unlimited times';
           break;
-        case 'zeroOrOne':
+        case QuantifierType.NoneOrSingle:
           repetition = 'between zero and one times';
           break;
-        case 'zeroOrMany':
+        case QuantifierType.NoneOrMany:
           repetition = 'between zero and unlimited times';
           break;
-        case 'range':
+        case QuantifierType.Range:
           if (typeof node.quantifier.to === 'undefined') {
             repetition = `${node.quantifier.from} time${node.quantifier.from === 1 ? '' : 's'}`;
           } else {
@@ -480,6 +489,12 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
             : ''
         }`,
       );
+      break;
+    }
+
+    case SyntaxKind.ControlEscapeChar: {
+      const color = assignColor(node, parentNode, ctx, colorMap.expression);
+      result.push(`${color(paint(controlEscapeCharTitle[node.type], colorMap.header))} ${printed}`);
       break;
     }
 

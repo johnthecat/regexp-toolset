@@ -6,7 +6,7 @@ import type {
   CharClassNode,
   CharNode,
   CharRangeNode,
-  ControlCharNode,
+  ASCIIControlCharNode,
   DisjunctionNode,
   GroupNameNode,
   GroupNode,
@@ -65,8 +65,8 @@ export const createCharNode = (value: string, position: NodePosition, type: Char
     charCode: value.charCodeAt(0),
   });
 
-export const createControlCharNode = (value: string, position: NodePosition) =>
-  createNode<ControlCharNode>(SyntaxKind.ControlChar, position, {
+export const createASCIIControlCharNode = (value: string, position: NodePosition) =>
+  createNode<ASCIIControlCharNode>(SyntaxKind.ASCIIControlChar, position, {
     value,
   });
 

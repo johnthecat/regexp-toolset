@@ -8,7 +8,7 @@ export enum SyntaxKind {
   CharRange,
   Alternative,
   Char,
-  ControlChar,
+  ASCIIControlChar,
   ControlEscapeChar,
   NullChar,
   Backspace,
@@ -29,6 +29,13 @@ export enum SyntaxKind {
   BackReference,
   Quantifier,
   Repetition,
+}
+
+export enum QuantifierType {
+  NoneOrSingle,
+  NoneOrMany,
+  SingleOrMany,
+  Range,
 }
 
 export enum ControlEscapeCharType {
@@ -62,7 +69,7 @@ export type CharNode = Node<
   SyntaxKind.Char,
   { value: string; charCode: number; type: 'simple' | 'hex' | 'unicode' | 'escaped' | 'octal' }
 >;
-export type ControlCharNode = Node<SyntaxKind.ControlChar, { value: string }>;
+export type ASCIIControlCharNode = Node<SyntaxKind.ASCIIControlChar, { value: string }>;
 export type NullCharNode = Node<SyntaxKind.NullChar>;
 export type BackspaceNode = Node<SyntaxKind.Backspace>;
 export type SubpatternNode = Node<SyntaxKind.Subpattern, { groupName: string; ref: GroupNode | null }>;
@@ -99,7 +106,10 @@ type QuantifierNodeRangeValue = { from: number; to?: number | void };
 
 export type QuantifierNode = Node<
   SyntaxKind.Quantifier,
-  ({ type: 'zeroOrOne' | 'zeroOrMany' | 'oneOrMany' } | ({ type: 'range' } & QuantifierNodeRangeValue)) & {
+  (
+    | { type: QuantifierType.NoneOrMany | QuantifierType.NoneOrSingle | QuantifierType.SingleOrMany }
+    | ({ type: QuantifierType.Range } & QuantifierNodeRangeValue)
+  ) & {
     greedy: boolean;
   }
 >;
@@ -117,7 +127,7 @@ export type AnyRegexpNode =
   | CharRangeNode
   | AnyCharNode
   | CharNode
-  | ControlCharNode
+  | ASCIIControlCharNode
   | NullCharNode
   | BackspaceNode
   | SubpatternNode

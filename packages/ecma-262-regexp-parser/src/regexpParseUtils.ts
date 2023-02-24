@@ -244,10 +244,10 @@ export const sealExpressions = (
   return createAlternativeNode(expressions);
 };
 
-export const matchFirst = (
-  token: Step,
+export const matchFirst = <T extends Step>(
+  token: T,
   expressions: AnyRegexpNode[],
-  matchers: TokenMatchReducerFn<Step, AnyRegexpNode[]>[],
+  matchers: TokenMatchReducerFn<T, AnyRegexpNode[], Step>[],
   defaultReturn?: TokenParserResult,
 ): TokenParserResult => {
   let lastExpressions = expressions;

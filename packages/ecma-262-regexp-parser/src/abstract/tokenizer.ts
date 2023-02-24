@@ -8,7 +8,7 @@ export type Token<K, V extends string = string> = {
   end: number;
 };
 
-export type AnyToken<T extends string = any, V extends string = any> = Token<T, V>;
+export type AnyToken<K = any, V extends string = string> = Token<K, V>;
 
 export type TokenizerStep<
   CurrentToken extends AnyToken = AnyToken,
@@ -31,7 +31,10 @@ export type TokenMatchReducerResult<Step extends TokenizerStep, Result> = Iterat
   match: boolean;
 };
 
-export type TokenMatchReducerFn<T extends TokenizerStep, R> = (step: T, result: R) => TokenMatchReducerResult<T, R>;
+export type TokenMatchReducerFn<T extends TokenizerStep, R, U extends TokenizerStep = T> = (
+  step: T,
+  result: R,
+) => TokenMatchReducerResult<U, R>;
 
 export type TokenizerIterator<T extends TokenizerStep> = Iterator<T, null>;
 

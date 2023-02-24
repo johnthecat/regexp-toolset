@@ -15,10 +15,12 @@
     "ast"
   ],
   "type": "module",
+  "main": "./dist/index.cjs",
   "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     }
@@ -32,7 +34,7 @@
     "test:watch": "vitest watch",
     "build": "vite build --mode production",
     "build:watch": "vite build --mode development --watch",
-    "lint": "eslint src/**.ts"
+    "lint": "eslint src/**"
   },
   "engines": {
     "node": ">=16"

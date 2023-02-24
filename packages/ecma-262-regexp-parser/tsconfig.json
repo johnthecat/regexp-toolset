@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "allowJs": true
+    "allowJs": true,
+    "moduleResolution": "NodeNext"
   },
   "extends": "../../tsconfig.json",
   "include": ["**/*.ts"]
