@@ -317,9 +317,20 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
       const color = assignColor(node, parentNode, ctx, colorMap.expression);
 
       if (parentNode.kind !== SyntaxKind.Disjunction) {
+        let deepestLeftNode: AnyRegexpNode = node.left;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          if (deepestLeftNode.kind === SyntaxKind.Disjunction) {
+            deepestLeftNode = deepestLeftNode.left;
+            continue;
+          }
+
+          break;
+        }
+
         result.push(
           color(paint('Disjunction', colorMap.header)),
-          `${paint('maybe', colorMap.secondary)} ${paint(printNode(source, node.left), colorMap.dim)}`,
+          `${paint('maybe', colorMap.secondary)} ${paint(printNode(source, deepestLeftNode), colorMap.dim)}`,
         );
       }
       let left = explainNode(node.left, node, ctx);

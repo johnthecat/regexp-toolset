@@ -12,7 +12,8 @@ const isColorSupportedByEnv =
   (isatty(1) && process.env.TERM !== 'dumb') ||
   'CI' in process.env;
 
-const terminalCleanupPrefix = '\u001Bc\n';
+const terminalPrefix = '\u001Bc\n';
+const terminalPostfix = '\n'.repeat(2);
 
 program
   .name('ECMA-262 RegExp explainer - shows struct, decode symbols, explains flags and relationships inside expression.')
@@ -24,7 +25,7 @@ program
   .option('--color', 'Forces color output', isColorSupportedByEnv)
   .action((regexp, { debug, color: enableColors }) => {
     try {
-      stdout.write( explainRegexp(regexp, { enableColors }) + '\n');
+      stdout.write(terminalPrefix + explainRegexp(regexp, { enableColors }) + terminalPostfix);
     } catch (e) {
       if (debug) {
         console.error(e);
@@ -44,7 +45,7 @@ program
   .option('--color', 'Forces color output', isColorSupportedByEnv)
   .action((regexp, { debug, color: enableColors }) => {
     try {
-      stdout.write(terminalCleanupPrefix + explainRegexpPart(regexp, { enableColors }) + '\n');
+      stdout.write(terminalPrefix + explainRegexpPart(regexp, { enableColors }) + terminalPostfix);
     } catch (e) {
       if (debug) {
         console.error(e);
