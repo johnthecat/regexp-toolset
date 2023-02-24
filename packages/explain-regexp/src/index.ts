@@ -15,6 +15,7 @@ import {
   create256ColorsTextFormatter,
   dim,
   type Formatter,
+  inverse,
   italic,
   pluralCount,
   resetEnd,
@@ -31,6 +32,7 @@ type ExplainerContext = {
   assignedColors: Map<AnyRegexpNode, Formatter>;
   colorMap: Record<
     | 'dim'
+    | 'inverse'
     | 'header'
     | 'secondaryHeader'
     | 'secondary'
@@ -80,6 +82,7 @@ const flagDescriptions = {
 
 const emptyColorMap: ExplainerContext['colorMap'] = {
   dim: id,
+  inverse: id,
   secondary: id,
   border: id,
   expression: id,
@@ -94,6 +97,7 @@ const emptyColorMap: ExplainerContext['colorMap'] = {
 
 const colorMapFor256Colors: ExplainerContext['colorMap'] = {
   dim: dim,
+  inverse: inverse,
   secondary: italic,
   header: x => bold(` ❱ ${x} `),
   secondaryHeader: bold,

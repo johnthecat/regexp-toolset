@@ -4,26 +4,32 @@ export type LintedListNode<LocalValue extends object, NextValues extends object 
     }
   : never) & {
   index: number;
-  next(): LintedListNode<NextValues, NextValues> | null;
+  prev(): LintedListNode<NextValues> | null;
+  next(): LintedListNode<NextValues> | null;
   __linkedListValue?: LocalValue | undefined;
 };
 
-export class LazyLinkedList<Value extends object> {
+export class LazyDoublyLinkedList<Value extends object> {
   private length = 0;
   private rootNode: LintedListNode<Value> | null = null;
   private lastNode: LintedListNode<Value> | null = null;
 
-  private cache: WeakMap<LintedListNode<Value>, LintedListNode<Value> | null> = new WeakMap();
+  private forwardCache: WeakMap<LintedListNode<Value>, LintedListNode<Value> | null> = new WeakMap();
+  private backwardCache: WeakMap<LintedListNode<Value>, LintedListNode<Value> | null> = new WeakMap();
 
   constructor(private valueFactory: () => Value | null) {}
 
   private next(prevNode: LintedListNode<Value>) {
-    let nextNode = this.cache.get(prevNode) ?? null;
+    let nextNode = this.forwardCache.get(prevNode) ?? null;
     if (!nextNode) {
       nextNode = this.createNode(this.valueFactory());
-      this.cache.set(prevNode, nextNode);
+      this.forwardCache.set(prevNode, nextNode);
     }
     return nextNode;
+  }
+
+  private prev(node: LintedListNode<Value>) {
+    return this.backwardCache.get(node) ?? null;
   }
 
   private createNode(value: Value | null): LintedListNode<Value> | null {
@@ -35,7 +41,12 @@ export class LazyLinkedList<Value extends object> {
       ...value,
       index: this.length,
       next: () => this.next(node),
+      prev: () => this.prev(node),
     } as LintedListNode<Value>;
+
+    if (this.lastNode) {
+      this.backwardCache.set(node, this.lastNode);
+    }
 
     if (this.rootNode === null) {
       this.rootNode = node;

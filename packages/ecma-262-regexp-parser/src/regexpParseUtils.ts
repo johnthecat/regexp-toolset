@@ -8,13 +8,19 @@ import { createAlternativeNode, createSimpleNode } from './regexpNodeFactory.js'
 import type { TokenMatchReducerFn } from './abstract/tokenizer.js';
 
 export const fillExpressions = (
-  step: Step,
+  token: Step,
   state: ParserContext,
   tokenParser: TokenParser,
 ): { expressions: AnyRegexpNode[]; lastStep: Step } => {
   const reducerResult = state.tokenizer.reduce<AnyRegexpNode[]>(
-    step,
-    (currentStep, expressions) => tokenParser(currentStep, expressions, state),
+    token,
+    (currentToken, expressions) => {
+      const result = tokenParser(currentToken, expressions, state);
+      if (result.done && !result.match) {
+        return unmatchedToken(result.value.prev() ?? result.value, result.result);
+      }
+      return result;
+    },
     [],
   );
 

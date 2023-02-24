@@ -1,6 +1,64 @@
 // Vitest Snapshot v1
 
-exports[`Repetition range > Exact > should parse repetition count 1`] = `
+exports[`Repetition > None or single (?) > should be parsed 1`] = `
+{
+  "body": {
+    "end": 2,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": 6,
+      "start": 1,
+      "type": "simple",
+      "value": "a",
+    },
+    "kind": 27,
+    "quantifier": {
+      "end": 2,
+      "greedy": true,
+      "kind": 26,
+      "start": 2,
+      "type": 0,
+    },
+    "start": 1,
+  },
+  "end": 3,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition > None or single (?) > should correct work with lazy quantifier 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": 6,
+      "start": 1,
+      "type": "simple",
+      "value": "a",
+    },
+    "kind": 27,
+    "quantifier": {
+      "end": 3,
+      "greedy": false,
+      "kind": 26,
+      "start": 2,
+      "type": 0,
+    },
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition > Range > Exact > should parse repetition count 1`] = `
 {
   "body": {
     "end": 4,
@@ -31,7 +89,7 @@ exports[`Repetition range > Exact > should parse repetition count 1`] = `
 }
 `;
 
-exports[`Repetition range > Exact > should parse unclosed range as chars 1`] = `
+exports[`Repetition > Range > Exact > should parse unclosed range as chars 1`] = `
 {
   "body": {
     "end": 3,
@@ -71,7 +129,7 @@ exports[`Repetition range > Exact > should parse unclosed range as chars 1`] = `
 }
 `;
 
-exports[`Repetition range > Exact > should parse unclosed range as chars 2`] = `
+exports[`Repetition > Range > Exact > should parse unclosed range as chars 2`] = `
 {
   "body": {
     "end": 3,
@@ -111,7 +169,7 @@ exports[`Repetition range > Exact > should parse unclosed range as chars 2`] = `
 }
 `;
 
-exports[`Repetition range > From exact to exact > should parse repetition count 1`] = `
+exports[`Repetition > Range > From exact to exact > should parse repetition count 1`] = `
 {
   "body": {
     "end": 6,
@@ -142,7 +200,7 @@ exports[`Repetition range > From exact to exact > should parse repetition count 
 }
 `;
 
-exports[`Repetition range > From exact to exact > should parse unclosed range as chars 1`] = `
+exports[`Repetition > Range > From exact to exact > should parse unclosed range as chars 1`] = `
 {
   "body": {
     "end": 5,
@@ -198,7 +256,7 @@ exports[`Repetition range > From exact to exact > should parse unclosed range as
 }
 `;
 
-exports[`Repetition range > From exact to exact > should parse unclosed range as chars 2`] = `
+exports[`Repetition > Range > From exact to exact > should parse unclosed range as chars 2`] = `
 {
   "body": {
     "end": 5,
@@ -254,7 +312,7 @@ exports[`Repetition range > From exact to exact > should parse unclosed range as
 }
 `;
 
-exports[`Repetition range > From exact to unlimited > should parse repetition count 1`] = `
+exports[`Repetition > Range > From exact to unlimited > should parse repetition count 1`] = `
 {
   "body": {
     "end": 5,
@@ -285,7 +343,7 @@ exports[`Repetition range > From exact to unlimited > should parse repetition co
 }
 `;
 
-exports[`Repetition range > From exact to unlimited > should parse unclosed range as chars 1`] = `
+exports[`Repetition > Range > From exact to unlimited > should parse unclosed range as chars 1`] = `
 {
   "body": {
     "end": 4,
@@ -333,7 +391,7 @@ exports[`Repetition range > From exact to unlimited > should parse unclosed rang
 }
 `;
 
-exports[`Repetition range > From exact to unlimited > should parse unclosed range as chars 2`] = `
+exports[`Repetition > Range > From exact to unlimited > should parse unclosed range as chars 2`] = `
 {
   "body": {
     "end": 4,
@@ -375,6 +433,37 @@ exports[`Repetition range > From exact to unlimited > should parse unclosed rang
     "start": 1,
   },
   "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Repetition > Range > should correct work with lazy quantifier 1`] = `
+{
+  "body": {
+    "end": 5,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": 6,
+      "start": 1,
+      "type": "simple",
+      "value": "a",
+    },
+    "kind": 27,
+    "quantifier": {
+      "end": 5,
+      "from": 2,
+      "greedy": false,
+      "kind": 26,
+      "start": 2,
+      "to": undefined,
+      "type": 3,
+    },
+    "start": 1,
+  },
+  "end": 6,
   "flags": "",
   "kind": 0,
   "start": 0,

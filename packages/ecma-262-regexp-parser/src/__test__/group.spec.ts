@@ -8,7 +8,7 @@ describe('Group', () => {
         "
          ❱ /(ab/
             ════
-         Group is not closed"
+         Incomplete group structure"
       `);
     });
 
@@ -22,7 +22,7 @@ describe('Group', () => {
     });
 
     it('should correctly parse nested groups', () => {
-      expect(parseRegexp('/(a(f|g)b)/')).toMatchSnapshot();
+      expect(parseRegexp('/(a(f)b)/')).toMatchSnapshot();
     });
   });
 

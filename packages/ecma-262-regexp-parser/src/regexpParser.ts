@@ -11,6 +11,7 @@ import {
   isParenthesesCloseToken,
   isParenthesesOpenToken,
   isPatternCharToken,
+  isSyntaxToken,
   regexpTokenizer,
   TokenKind,
 } from './regexpTokenizer.js';
@@ -102,7 +103,7 @@ export const parseRegexp = (source: string | RegExp) => {
   const ctx = createParserContext(rawSource, tokenizer);
 
   const firstToken = tokenizer.getFirstStep();
-  assertNullable(firstToken, ctx.reportError({ start: 0, end: rawSource.length }, "Can't parse input"));
+  assertNullable(firstToken, ctx.reportError({ start: 0, end: rawSource.length - 1 }, "Can't parse input"));
 
   if (!isPatternCharToken(firstToken, '/')) {
     throw ctx.reportError(0, 'Regexp should start with "/" symbol, like this: /.../gm');
@@ -112,12 +113,15 @@ export const parseRegexp = (source: string | RegExp) => {
   assertNullable(firstContentToken, ctx.reportError({ start: firstToken.start }, "Can't parse input"));
 
   const { expressions, lastStep } = fillExpressions(firstContentToken, ctx, parseTokenInRegexp);
-  if (!isPatternCharToken(lastStep, '/')) {
-    throw ctx.reportError(rawSource.length, 'Regexp is not closed with "/" symbol');
+
+  const closingToken = lastStep.next();
+  assertNullable(closingToken, ctx.reportError(rawSource.length - 1, 'Regexp is not closed with "/" symbol'));
+  if (!isPatternCharToken(closingToken, '/')) {
+    throw ctx.reportError(rawSource.length - 1, commonErrorMessages.UnexpectedToken);
   }
 
-  const nextStep = lastStep.next();
-  const regexpNode = createRegexpNode(expressions, nextStep ? parseFlags(nextStep, ctx) : '');
+  const firstFlagToken = closingToken.next();
+  const regexpNode = createRegexpNode(expressions, firstFlagToken ? parseFlags(firstFlagToken, ctx) : '');
   connectSubpatternsWithGroups(ctx);
 
   return regexpNode;
@@ -128,7 +132,7 @@ export const parseRegexpNode = (source: string): AnyRegexpNode => {
   const ctx = createParserContext(source, tokenizer);
 
   const firstStep = tokenizer.getFirstStep();
-  assertNullable(firstStep, ctx.reportError({ start: 0, end: source.length }, "Can't parse input"));
+  assertNullable(firstStep, ctx.reportError({ start: 0, end: source.length - 1 }, "Can't parse input"));
 
   const { expressions, lastStep } = fillExpressions(firstStep, ctx, parseTokenInRegexp);
   connectSubpatternsWithGroups(ctx);
@@ -174,6 +178,31 @@ const isQuantifiable = (node: AnyRegexpNode) =>
   node.kind === SyntaxKind.AnyWhitespace ||
   node.kind === SyntaxKind.NonWhitespace;
 
+// Implementation .* ; .+ ; .? - quantifiers
+const parseQuantifier: TokenParser = (token, expressions, ctx) => {
+  const prevNode = expressions.at(-1);
+  assertNullable(prevNode, ctx.reportError(token, 'There is nothing to quantify'));
+  if (!isQuantifiable(prevNode)) {
+    throw ctx.reportError(token, 'The preceding token is not quantifiable');
+  }
+
+  const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]);
+  const quantifierNode = factory.createQuantifierNode(lazy.match ? lazy : token, {
+    type:
+      token.value === '?'
+        ? QuantifierType.NoneOrSingle
+        : token.value === '+'
+        ? QuantifierType.NoneOrMany
+        : QuantifierType.SingleOrMany,
+    greedy: !lazy.match,
+  });
+  expressions.pop();
+  return matchedToken(
+    lazy.match ? lazy.lastStep : token,
+    expressions.concat(factory.createRepetitionNode(prevNode, quantifierNode)),
+  );
+};
+
 // Implementation Y{1} ; Y{1,} ; Y{1,2} - range quantifier
 const parseQuantifierRange: TokenParser = (token, expressions, ctx) => {
   const prevNode = expressions.at(-1);
@@ -207,12 +236,15 @@ const parseQuantifierRange: TokenParser = (token, expressions, ctx) => {
       throw ctx.reportError(range, 'The quantifier range is out of order');
     }
 
-    const quantifierNode = factory.createQuantifierNode(range, {
-      greedy: !lazy.match,
-      type: QuantifierType.Range,
-      from,
-      to,
-    });
+    const quantifierNode = factory.createQuantifierNode(
+      { start: range.start, end: lazy.match ? lazy.end : range.end },
+      {
+        greedy: !lazy.match,
+        type: QuantifierType.Range,
+        from,
+        to,
+      },
+    );
 
     expressions.pop();
     const repetitionNode = factory.createRepetitionNode(prevNode, quantifierNode);
@@ -339,6 +371,27 @@ const parseBackspace: TokenParser = (token, expressions) => {
   );
 };
 
+// Implementation .|. - disjunction
+const parseDisjunction: TokenParser = (token, expressions, ctx, recursiveFn = parseTokenInRegexp) => {
+  const leftNodes = expressions;
+  const nextToken = token.next();
+
+  if (!nextToken) {
+    return matchedToken(token, [factory.createDisjunctionNode(leftNodes, [], token)]);
+  }
+
+  const { expressions: rightNodes, lastStep } = fillExpressions(nextToken, ctx, (token, expressions, ctx) => {
+    // creating tail recursion for correct nesting of multiple disjunctions
+    if (isSyntaxToken(token, '|')) {
+      return unmatchedToken(token, expressions);
+    }
+
+    return recursiveFn(token, expressions, ctx);
+  });
+
+  return matchedToken(lastStep, [factory.createDisjunctionNode(leftNodes, rightNodes, token)]);
+};
+
 // eslint-disable-next-line complexity
 const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = parseTokenInRegexp) => {
   switch (token.kind) {
@@ -395,7 +448,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = 
       switch (token.value) {
         // End of regexp body
         case '/':
-          return matchedToken(token, expressions);
+          return unmatchedToken(token, expressions);
 
         default:
           return forwardParser(parseSimpleChar(token, expressions, ctx));
@@ -454,48 +507,13 @@ const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = 
             result: expressions.concat(factory.createSimpleNode<AnyCharNode>(SyntaxKind.AnyChar, token)),
           };
 
-        // Implementation .* ; .+ ; .? - quantifiers
         case '*':
         case '+':
-        case '?': {
-          const prevNode = expressions.at(-1);
-          assertNullable(prevNode, ctx.reportError(token, 'The preceding token is not quantifiable'));
+        case '?':
+          return forwardParser(parseQuantifier(token, expressions, ctx));
 
-          const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]);
-          const quantifierNode = factory.createQuantifierNode(lazy.match ? lazy : token, {
-            type:
-              token.value === '?'
-                ? QuantifierType.NoneOrSingle
-                : token.value === '+'
-                ? QuantifierType.NoneOrMany
-                : QuantifierType.SingleOrMany,
-            greedy: !lazy.match,
-          });
-          // TODO rework
-          expressions.pop();
-          return {
-            done: false,
-            match: true,
-            value: lazy.match ? lazy.lastStep : token,
-            result: expressions.concat(factory.createRepetitionNode(prevNode, quantifierNode)),
-          };
-        }
-
-        // Implementation .|. - disjunction
-        case '|': {
-          const leftNodes = expressions.splice(0, expressions.length);
-          const nextStep = token.next();
-
-          if (!nextStep) {
-            return matchedToken(token, expressions.concat(factory.createDisjunctionNode(leftNodes, [], token)));
-          }
-
-          const { expressions: rightNodes, lastStep } = fillExpressions(nextStep, ctx, recursiveFn);
-          return matchedToken(
-            lastStep,
-            expressions.concat(factory.createDisjunctionNode(leftNodes, rightNodes, token)),
-          );
-        }
+        case '|':
+          return forwardParser(parseDisjunction(token, expressions, ctx, recursiveFn));
 
         case '}':
           return forwardParser(parseSimpleChar(token, expressions, ctx));
@@ -576,48 +594,34 @@ const parseASCIIControlChar: TokenParser = (token, expressions, ctx) => {
 
 // Implementation (...) - capturing group
 // eslint-disable-next-line complexity
-const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => {
-  if (!isParenthesesOpenToken(firstStep)) {
-    throw ctx.reportError(firstStep, 'Trying to parse expression as group, but got invalid input');
+const parseCapturingGroup: TokenParser = (firstToken, parentExpressions, ctx) => {
+  if (!isParenthesesOpenToken(firstToken)) {
+    throw ctx.reportError(firstToken, 'Trying to parse expression as group, but got invalid input');
   }
   const parseTokenInGroup: TokenParser = (token, expressions, ctx) => {
-    if (ctx.tokenizer.isLastToken(token) && !isParenthesesCloseToken(token)) {
-      throw ctx.reportError({ start: firstStep.start, end: token.end }, 'Group is not closed');
+    if (isParenthesesOpenToken(token)) {
+      return forwardParser(parseCapturingGroup(token, expressions, ctx));
     }
 
-    switch (token.kind) {
-      case TokenKind.SyntaxChar: {
-        switch (token.value) {
-          case '(':
-            return forwardParser(parseCapturingGroup(token, expressions, ctx));
-
-          // Skipping closing bracket
-          case ')':
-            return matchedToken(token, expressions);
-
-          default:
-            break;
-        }
-        break;
-      }
-
-      default:
-        break;
+    // Closing group
+    if (isParenthesesCloseToken(token)) {
+      return unmatchedToken(token, expressions);
     }
 
     if (ctx.tokenizer.isLastToken(token)) {
-      throw ctx.reportError({ start: firstStep.start, end: token.end }, 'Incomplete group structure');
+      throw ctx.reportError({ start: firstToken.start, end: token.end }, 'Incomplete group structure');
     }
+
     return parseTokenInRegexp(token, expressions, ctx, parseTokenInGroup);
   };
 
-  let startStep: Step | null = firstStep.next();
+  let startStep: Step | null = firstToken.next();
   let specifier: GroupNameNode | null = null;
   let type: GroupNode['type'] = 'capturing';
 
   {
     // Implementation (?=...) - positive lookahead
-    const positiveLookahead = matchTokenSequence(firstStep, [
+    const positiveLookahead = matchTokenSequence(firstToken, [
       [TokenKind.SyntaxChar, { value: '(' }],
       [TokenKind.SyntaxChar, { value: '?' }],
       [TokenKind.PatternChar, { value: '=' }],
@@ -630,7 +634,7 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => 
 
   {
     // Implementation (?!...) - negative lookahead
-    const negativeLookahead = matchTokenSequence(firstStep, [
+    const negativeLookahead = matchTokenSequence(firstToken, [
       [TokenKind.SyntaxChar, { value: '(' }],
       [TokenKind.SyntaxChar, { value: '?' }],
       [TokenKind.PatternChar, { value: '!' }],
@@ -643,7 +647,7 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => 
 
   {
     // Implementation (?<=...) - positive lookbehind
-    const positiveLookbehind = matchTokenSequence(firstStep, [
+    const positiveLookbehind = matchTokenSequence(firstToken, [
       [TokenKind.SyntaxChar, { value: '(' }],
       [TokenKind.SyntaxChar, { value: '?' }],
       [TokenKind.PatternChar, { value: '<' }],
@@ -657,7 +661,7 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => 
 
   {
     // Implementation (?<!...) - negative lookbehind
-    const negativeLookbehind = matchTokenSequence(firstStep, [
+    const negativeLookbehind = matchTokenSequence(firstToken, [
       [TokenKind.SyntaxChar, { value: '(' }],
       [TokenKind.SyntaxChar, { value: '?' }],
       [TokenKind.PatternChar, { value: '<' }],
@@ -671,7 +675,7 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => 
 
   {
     // Implementation (?:...) - non-capturing group
-    const nonCapturingGroup = matchTokenSequence(firstStep, [
+    const nonCapturingGroup = matchTokenSequence(firstToken, [
       [TokenKind.SyntaxChar, { value: '(' }],
       [TokenKind.SyntaxChar, { value: '?' }],
       [TokenKind.PatternChar, { value: ':' }],
@@ -684,7 +688,7 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => 
 
   {
     // Implementation (?<tag_name>...) - named capturing group
-    const groupName = matchTokenSequence<string>(firstStep, [
+    const groupName = matchTokenSequence<string>(firstToken, [
       [TokenKind.SyntaxChar, { value: '(' }],
       [TokenKind.SyntaxChar, { value: '?' }],
       [TokenKind.PatternChar, { value: '<' }],
@@ -704,19 +708,25 @@ const parseCapturingGroup: TokenParser = (firstStep, parentExpressions, ctx) => 
     }
   }
 
-  assertNullable(startStep, ctx.reportError(firstStep, commonErrorMessages.EOL));
+  assertNullable(startStep, ctx.reportError(firstToken, commonErrorMessages.EOL));
 
   const { expressions, lastStep } = fillExpressions(startStep, ctx, parseTokenInGroup);
+  const closingParentheses = lastStep.next();
+  assertNullable(
+    closingParentheses,
+    ctx.reportError({ start: firstToken.start, end: lastStep.end }, 'Incomplete group structure'),
+  );
+
   const node = factory.createGroupNode(type, specifier, expressions, {
-    start: firstStep.start,
-    end: lastStep.end,
+    start: firstToken.start,
+    end: closingParentheses.end,
   });
 
   if (specifier) {
     ctx.foundGroupSpecifiers.set(specifier.name, node);
   }
 
-  return matchedToken(lastStep, parentExpressions.concat(node));
+  return matchedToken(closingParentheses ?? lastStep, parentExpressions.concat(node));
 };
 
 // Implementation A-z - char range
@@ -781,7 +791,7 @@ const parseCharClass: TokenParser = (firstStep, parentExpressions, ctx) => {
   // eslint-disable-next-line complexity
   const parseTokenInCharClass: TokenParser = (token, expressions, ctx) => {
     if (isBracketsCloseToken(token)) {
-      return unmatchedToken(token, expressions);
+      return matchedToken(token, expressions);
     } else if (ctx.tokenizer.isLastToken(token)) {
       throw ctx.reportError({ start: firstStep.start, end: token.end }, 'Character class missing closing bracket');
     }

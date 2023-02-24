@@ -1,5 +1,5 @@
 import { createStringStream, type InputStreamIterator } from './inputStream.js';
-import { LazyLinkedList, type LintedListNode } from '../common/linkedList.js';
+import { LazyDoublyLinkedList, type LintedListNode } from '../common/lazyDoublyLinkedList.js';
 
 export type Token<K, V extends string = string> = {
   kind: K;
@@ -104,7 +104,7 @@ export const createTokenizer = <T extends Handler<AnyToken>>(
   return input => {
     const stream = createStringStream(input);
     const chars = stream.chars();
-    const list = new LazyLinkedList<AnyToken>(() => (chars.isDone() ? null : handler(chars)));
+    const list = new LazyDoublyLinkedList<AnyToken>(() => (chars.isDone() ? null : handler(chars)));
     const api: Tokenizer = {
       ...createStepIterable(list.getHead()),
       isFirstToken: token => token.start === 0,

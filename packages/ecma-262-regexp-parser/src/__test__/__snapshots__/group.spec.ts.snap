@@ -43,7 +43,7 @@ exports[`Group > Common > should correctly parse nested groups 1`] = `
 {
   "body": {
     "body": {
-      "end": 8,
+      "end": 6,
       "expressions": [
         {
           "charCode": 97,
@@ -55,27 +55,14 @@ exports[`Group > Common > should correctly parse nested groups 1`] = `
         },
         {
           "body": {
-            "end": 6,
-            "kind": 3,
-            "left": {
-              "charCode": 102,
-              "end": 4,
-              "kind": 6,
-              "start": 4,
-              "type": "simple",
-              "value": "f",
-            },
-            "right": {
-              "charCode": 103,
-              "end": 6,
-              "kind": 6,
-              "start": 6,
-              "type": "simple",
-              "value": "g",
-            },
+            "charCode": 102,
+            "end": 4,
+            "kind": 6,
             "start": 4,
+            "type": "simple",
+            "value": "f",
           },
-          "end": 7,
+          "end": 5,
           "kind": 23,
           "specifier": null,
           "start": 3,
@@ -83,9 +70,9 @@ exports[`Group > Common > should correctly parse nested groups 1`] = `
         },
         {
           "charCode": 98,
-          "end": 8,
+          "end": 6,
           "kind": 6,
-          "start": 8,
+          "start": 6,
           "type": "simple",
           "value": "b",
         },
@@ -93,13 +80,13 @@ exports[`Group > Common > should correctly parse nested groups 1`] = `
       "kind": 5,
       "start": 2,
     },
-    "end": 9,
+    "end": 7,
     "kind": 23,
     "specifier": null,
     "start": 1,
     "type": "capturing",
   },
-  "end": 10,
+  "end": 8,
   "flags": "",
   "kind": 0,
   "start": 0,
