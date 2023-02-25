@@ -1,0 +1,93 @@
+// Vitest Snapshot v1
+
+exports[`ASCII Control Character > should correctly parse as escaped character at the end of the line 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "charCode": 99,
+        "end": 3,
+        "kind": 6,
+        "start": 2,
+        "type": "escaped",
+        "value": "c",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`ASCII Control Character > should correctly parse control character > A 1`] = `
+{
+  "body": {
+    "end": 3,
+    "kind": 7,
+    "start": 1,
+    "value": "A",
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`ASCII Control Character > should correctly parse control character > Z 1`] = `
+{
+  "body": {
+    "end": 3,
+    "kind": 7,
+    "start": 1,
+    "value": "Z",
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`ASCII Control Character > should correctly parse control character > a 1`] = `
+{
+  "body": {
+    "end": 3,
+    "kind": 7,
+    "start": 1,
+    "value": "A",
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`ASCII Control Character > should correctly parse control character > z 1`] = `
+{
+  "body": {
+    "end": 3,
+    "kind": 7,
+    "start": 1,
+    "value": "Z",
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

@@ -4,7 +4,7 @@ export type LintedListNode<LocalValue extends object, NextValues extends object 
     }
   : never) & {
   index: number;
-  prev(): LintedListNode<NextValues> | null;
+  prev(): LintedListNode<NextValues>;
   next(): LintedListNode<NextValues> | null;
   __linkedListValue?: LocalValue | undefined;
 };
@@ -29,7 +29,11 @@ export class LazyDoublyLinkedList<Value extends object> {
   }
 
   private prev(node: LintedListNode<Value>) {
-    return this.backwardCache.get(node) ?? null;
+    const prevNode = this.backwardCache.get(node);
+    if (!prevNode) {
+      throw new Error('There is not previous node');
+    }
+    return prevNode;
   }
 
   private createNode(value: Value | null): LintedListNode<Value> | null {

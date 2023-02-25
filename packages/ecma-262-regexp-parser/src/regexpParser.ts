@@ -112,10 +112,7 @@ export const parseRegexp = (source: string | RegExp) => {
   const firstContentToken = firstToken.next();
   assertNullable(firstContentToken, ctx.reportError({ start: firstToken.start }, "Can't parse input"));
 
-  const { expressions, lastStep } = fillExpressions(firstContentToken, ctx, parseTokenInRegexp);
-
-  const closingToken = lastStep.next();
-  assertNullable(closingToken, ctx.reportError(rawSource.length - 1, 'Regexp is not closed with "/" symbol'));
+  const { expressions, lastStep: closingToken } = fillExpressions(firstContentToken, ctx, parseTokenInRegexp);
   if (!isPatternCharToken(closingToken, '/')) {
     throw ctx.reportError(rawSource.length - 1, commonErrorMessages.UnexpectedToken);
   }
@@ -383,10 +380,13 @@ const parseDisjunction: TokenParser = (token, expressions, ctx, recursiveFn = pa
   const { expressions: rightNodes, lastStep } = fillExpressions(nextToken, ctx, (token, expressions, ctx) => {
     // creating tail recursion for correct nesting of multiple disjunctions
     if (isSyntaxToken(token, '|')) {
-      return unmatchedToken(token, expressions);
+      return matchedToken(token.prev(), expressions);
     }
-
-    return recursiveFn(token, expressions, ctx);
+    const result = recursiveFn(token, expressions, ctx);
+    if (result.done) {
+      return matchedToken(result.value.prev(), result.result);
+    }
+    return result;
   });
 
   return matchedToken(lastStep, [factory.createDisjunctionNode(leftNodes, rightNodes, token)]);
@@ -444,22 +444,20 @@ const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = 
       );
     }
 
-    case TokenKind.PatternChar: {
+    case TokenKind.PatternChar:
       switch (token.value) {
         // End of regexp body
         case '/':
-          return unmatchedToken(token, expressions);
+          return matchedToken(token, expressions);
 
         default:
           return forwardParser(parseSimpleChar(token, expressions, ctx));
       }
-    }
 
-    case TokenKind.Decimal: {
+    case TokenKind.Decimal:
       return forwardParser(parseSimpleChar(token, expressions, ctx));
-    }
 
-    case TokenKind.SyntaxChar: {
+    case TokenKind.SyntaxChar:
       switch (token.value) {
         case '[':
           return forwardParser(
@@ -524,7 +522,6 @@ const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = 
         default:
           throw ctx.reportError(token, commonErrorMessages.UnexpectedToken);
       }
-    }
   }
 };
 
@@ -577,19 +574,19 @@ const parseOctalChar: TokenParser = (token, expressions, ctx) => {
 
 // Implementation \cA - ASCII control char
 const parseASCIIControlChar: TokenParser = (token, expressions, ctx) => {
-  const nextStep = token.next();
-  if (!nextStep) {
+  const nextToken = token.next();
+  if (!nextToken || isPatternCharToken(nextToken, '/')) {
     return unmatchedToken(token, expressions);
   }
 
-  if (!/[A-Za-z]/.test(nextStep.value)) {
-    throw ctx.reportError(token, 'Invalid control character');
+  if (!/[A-Za-z]/.test(nextToken.value)) {
+    throw ctx.reportError({ start: token.start, end: nextToken.end }, 'Invalid control character');
   }
-  const node = factory.createASCIIControlCharNode(nextStep.value.toUpperCase(), {
+  const node = factory.createASCIIControlCharNode(nextToken.value.toUpperCase(), {
     start: token.start,
-    end: nextStep.end,
+    end: nextToken.end,
   });
-  return matchedToken(token, expressions.concat(node));
+  return matchedToken(nextToken, expressions.concat(node));
 };
 
 // Implementation (...) - capturing group
@@ -605,7 +602,7 @@ const parseCapturingGroup: TokenParser = (firstToken, parentExpressions, ctx) =>
 
     // Closing group
     if (isParenthesesCloseToken(token)) {
-      return unmatchedToken(token, expressions);
+      return matchedToken(token, expressions);
     }
 
     if (ctx.tokenizer.isLastToken(token)) {
@@ -711,22 +708,16 @@ const parseCapturingGroup: TokenParser = (firstToken, parentExpressions, ctx) =>
   assertNullable(startStep, ctx.reportError(firstToken, commonErrorMessages.EOL));
 
   const { expressions, lastStep } = fillExpressions(startStep, ctx, parseTokenInGroup);
-  const closingParentheses = lastStep.next();
-  assertNullable(
-    closingParentheses,
-    ctx.reportError({ start: firstToken.start, end: lastStep.end }, 'Incomplete group structure'),
-  );
-
   const node = factory.createGroupNode(type, specifier, expressions, {
     start: firstToken.start,
-    end: closingParentheses.end,
+    end: lastStep.end,
   });
 
   if (specifier) {
     ctx.foundGroupSpecifiers.set(specifier.name, node);
   }
 
-  return matchedToken(closingParentheses ?? lastStep, parentExpressions.concat(node));
+  return matchedToken(lastStep, parentExpressions.concat(node));
 };
 
 // Implementation A-z - char range
@@ -750,7 +741,6 @@ const parseCharRange: TokenParser = (token, expressions, ctx, recursiveFn = pars
     return unmatchedToken(token, expressions);
   }
 
-  // TODO relax checks
   if (fromNode.kind !== SyntaxKind.Char) {
     throw ctx.reportError(fromNode, commonErrorMessages.UnexpectedToken);
   }
@@ -870,7 +860,6 @@ const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHand
       ]);
     }
 
-    // Implementation \cA - control char
     case 'c': {
       return matchFirst(token, expressions, [
         (token, expressions) => parseASCIIControlChar(token, expressions, ctx),
@@ -961,6 +950,7 @@ const parseControlEscapeHandler: TokenParser<Step<InferHandlerResult<typeof cont
     case 'v':
       type = ControlEscapeCharType.VerticalWhitespace;
       break;
+    // Implementation \f - form feed char
     case 'f':
       type = ControlEscapeCharType.FormFeedChar;
       break;

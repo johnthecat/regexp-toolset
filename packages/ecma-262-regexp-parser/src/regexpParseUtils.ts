@@ -14,13 +14,7 @@ export const fillExpressions = (
 ): { expressions: AnyRegexpNode[]; lastStep: Step } => {
   const reducerResult = state.tokenizer.reduce<AnyRegexpNode[]>(
     token,
-    (currentToken, expressions) => {
-      const result = tokenParser(currentToken, expressions, state);
-      if (result.done && !result.match) {
-        return unmatchedToken(result.value.prev() ?? result.value, result.result);
-      }
-      return result;
-    },
+    (currentToken, expressions) => tokenParser(currentToken, expressions, state),
     [],
   );
 
