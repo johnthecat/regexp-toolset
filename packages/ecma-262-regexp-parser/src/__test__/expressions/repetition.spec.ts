@@ -128,4 +128,32 @@ describe('Repetition', () => {
       `);
     });
   });
+
+  describe('Single or many (+)', () => {
+    it('should be parsed', () => {
+      expect(parseRegexp(/a+/)).toMatchSnapshot();
+    });
+
+    it('should correct work with lazy quantifier', () => {
+      expect(parseRegexp(/a+?/)).toMatchSnapshot();
+    });
+
+    it('should detect to quantifiable tokens', () => {
+      expect(() => parseRegexp('/$+/')).toThrowErrorMatchingInlineSnapshot(`
+        "
+         ❱ /\$+/
+             ═
+         The preceding token is not quantifiable"
+      `);
+    });
+
+    it('should throw if there is no expression before', () => {
+      expect(() => parseRegexp('/+/')).toThrowErrorMatchingInlineSnapshot(`
+        "
+         ❱ /+/
+            ═
+         There is nothing to quantify"
+      `);
+    });
+  });
 });

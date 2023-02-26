@@ -41,20 +41,17 @@ import { ControlEscapeCharType, QuantifierType, SyntaxKind } from './regexpNodes
 import * as factory from './regexpNodeFactory.js';
 import { createRegexpNode, createSimpleNode } from './regexpNodeFactory.js';
 import type { ParserContext, TokenParser, TokenParserResult } from './regexpParseTypes.js';
+import { hexMatcher, matchTokenSequence, numberMatcher, octalMatcher, wordMatcher } from './regexpSequenceMatcher.js';
 import {
   fillExpressions,
   forwardParser,
-  hexMatcher,
   matchedToken,
   matchFirst,
-  matchTokenSequence,
-  numberMatcher,
-  octalMatcher,
   sealExpressions,
   unmatchedToken,
-  wordMatcher,
 } from './regexpParseUtils.js';
 import type { InferHandlerResult } from './abstract/tokenizer.js';
+import { replace } from './common/array.js';
 
 // TODO
 // Unicode property (\p{Russian})
@@ -194,10 +191,9 @@ const parseQuantifier: TokenParser = (token, expressions, ctx) => {
         : QuantifierType.NoneOrMany,
     greedy: !lazy.match,
   });
-  expressions.pop();
   return matchedToken(
     lazy.match ? lazy.lastStep : token,
-    expressions.concat(factory.createRepetitionNode(prevNode, quantifierNode)),
+    replace(expressions, prevNode, factory.createRepetitionNode(prevNode, quantifierNode)),
   );
 };
 
@@ -244,9 +240,8 @@ const parseQuantifierRange: TokenParser = (token, expressions, ctx) => {
       },
     );
 
-    expressions.pop();
     const repetitionNode = factory.createRepetitionNode(prevNode, quantifierNode);
-    return matchedToken(lazy.match ? lazy.lastStep : range.lastStep, expressions.concat(repetitionNode));
+    return matchedToken(lazy.match ? lazy.lastStep : range.lastStep, replace(expressions, prevNode, repetitionNode));
   };
 
   {
@@ -264,7 +259,7 @@ const parseQuantifierRange: TokenParser = (token, expressions, ctx) => {
     const fromNumberResult = trySequence(token, expressions, [
       [TokenKind.SyntaxChar, { value: '{' }],
       numberMatcher,
-      [TokenKind.PatternChar, { value: ',' }, step => ({ match: true, step, value: Number.POSITIVE_INFINITY })],
+      [TokenKind.PatternChar, { value: ',' }, step => matchedToken(step, Number.POSITIVE_INFINITY)],
       [TokenKind.SyntaxChar, { value: '}' }],
     ]);
     if (fromNumberResult.match) {
@@ -334,10 +329,11 @@ const parseNullChar: TokenParser = (token, expressions) => {
 const parseBackReferenceChar: TokenParser = (token, expressions) => {
   const prevNode = expressions.at(-1);
   if (token.value === '1' && prevNode && prevNode.kind === SyntaxKind.Group) {
-    expressions.pop();
     return matchedToken(
       token,
-      expressions.concat(
+      replace(
+        expressions,
+        prevNode,
         factory.createBackReferenceNode(
           {
             start: prevNode.start,
@@ -745,10 +741,12 @@ const parseCharRange: TokenParser = (token, expressions, ctx, recursiveFn = pars
     );
   }
 
-  expressions.pop();
   nextExpressions.shift();
 
-  return matchedToken(value, expressions.concat([factory.createCharRangeNode(fromNode, toNode), ...nextExpressions]));
+  return matchedToken(
+    value,
+    replace(expressions, fromNode, factory.createCharRangeNode(fromNode, toNode)).concat(nextExpressions),
+  );
 };
 
 // Implementation [...] - char class

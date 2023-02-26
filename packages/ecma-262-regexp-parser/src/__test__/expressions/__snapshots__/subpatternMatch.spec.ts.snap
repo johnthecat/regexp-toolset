@@ -17,6 +17,46 @@ exports[`Subpattern Match > should fallback to escaped char > no end 1`] = `
 }
 `;
 
+exports[`Subpattern Match > should fallback to escaped char > with opened and closed chevrons 1`] = `
+{
+  "body": {
+    "end": 4,
+    "expressions": [
+      {
+        "charCode": 107,
+        "end": 2,
+        "kind": 6,
+        "start": 1,
+        "type": "escaped",
+        "value": "k",
+      },
+      {
+        "charCode": 60,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "<",
+      },
+      {
+        "charCode": 62,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": ">",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
 exports[`Subpattern Match > should fallback to escaped char > with opened chevron 1`] = `
 {
   "body": {

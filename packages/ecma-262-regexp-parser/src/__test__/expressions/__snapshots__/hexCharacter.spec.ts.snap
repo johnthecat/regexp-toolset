@@ -4,31 +4,48 @@ exports[`Octal char > should correctly unicode value 1`] = `
 {
   "body": {
     "charCode": 97,
-    "end": 6,
+    "end": 4,
     "kind": 6,
     "start": 1,
-    "type": "unicode",
+    "type": "hex",
     "value": "a",
   },
-  "end": 7,
+  "end": 5,
   "flags": "",
   "kind": 0,
   "start": 0,
 }
 `;
 
-exports[`Octal char > should fallback to char sequence, if octal value is out of range 1`] = `
+exports[`Octal char > should fallback to char sequence, if octal value is out of range > largest value 1`] = `
 {
   "body": {
-    "end": 6,
+    "charCode": 255,
+    "end": 4,
+    "kind": 6,
+    "start": 1,
+    "type": "hex",
+    "value": "ÿ",
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Octal char > should fallback to char sequence, if octal value is out of range > out of range 1`] = `
+{
+  "body": {
+    "end": 4,
     "expressions": [
       {
-        "charCode": 117,
+        "charCode": 120,
         "end": 2,
         "kind": 6,
         "start": 1,
         "type": "escaped",
-        "value": "u",
+        "value": "x",
       },
       {
         "charCode": 102,
@@ -39,26 +56,10 @@ exports[`Octal char > should fallback to char sequence, if octal value is out of
         "value": "f",
       },
       {
-        "charCode": 102,
+        "charCode": 103,
         "end": 4,
         "kind": 6,
         "start": 4,
-        "type": "simple",
-        "value": "f",
-      },
-      {
-        "charCode": 102,
-        "end": 5,
-        "kind": 6,
-        "start": 5,
-        "type": "simple",
-        "value": "f",
-      },
-      {
-        "charCode": 103,
-        "end": 6,
-        "kind": 6,
-        "start": 6,
         "type": "simple",
         "value": "g",
       },
@@ -66,7 +67,7 @@ exports[`Octal char > should fallback to char sequence, if octal value is out of
     "kind": 5,
     "start": 1,
   },
-  "end": 7,
+  "end": 5,
   "flags": "",
   "kind": 0,
   "start": 0,
@@ -76,45 +77,29 @@ exports[`Octal char > should fallback to char sequence, if octal value is out of
 exports[`Octal char > should fallback to char sequence, if there is not enough chars > with char at the end 1`] = `
 {
   "body": {
-    "end": 7,
+    "end": 5,
     "expressions": [
       {
-        "charCode": 117,
+        "charCode": 120,
         "end": 2,
         "kind": 6,
         "start": 1,
         "type": "escaped",
-        "value": "u",
+        "value": "x",
       },
       {
-        "charCode": 48,
+        "charCode": 102,
         "end": 3,
         "kind": 6,
         "start": 3,
         "type": "simple",
-        "value": "0",
-      },
-      {
-        "charCode": 48,
-        "end": 4,
-        "kind": 6,
-        "start": 4,
-        "type": "simple",
-        "value": "0",
-      },
-      {
-        "charCode": 54,
-        "end": 5,
-        "kind": 6,
-        "start": 5,
-        "type": "simple",
-        "value": "6",
+        "value": "f",
       },
       {
         "charCode": 97,
-        "end": 7,
+        "end": 5,
         "kind": 6,
-        "start": 6,
+        "start": 4,
         "type": "escaped",
         "value": "a",
       },
@@ -122,7 +107,7 @@ exports[`Octal char > should fallback to char sequence, if there is not enough c
     "kind": 5,
     "start": 1,
   },
-  "end": 8,
+  "end": 6,
   "flags": "",
   "kind": 0,
   "start": 0,
@@ -132,45 +117,29 @@ exports[`Octal char > should fallback to char sequence, if there is not enough c
 exports[`Octal char > should fallback to char sequence, if there is not enough chars > with regexp end at the end 1`] = `
 {
   "body": {
-    "end": 5,
+    "end": 3,
     "expressions": [
       {
-        "charCode": 117,
+        "charCode": 120,
         "end": 2,
         "kind": 6,
         "start": 1,
         "type": "escaped",
-        "value": "u",
+        "value": "x",
       },
       {
-        "charCode": 48,
+        "charCode": 102,
         "end": 3,
         "kind": 6,
         "start": 3,
         "type": "simple",
-        "value": "0",
-      },
-      {
-        "charCode": 48,
-        "end": 4,
-        "kind": 6,
-        "start": 4,
-        "type": "simple",
-        "value": "0",
-      },
-      {
-        "charCode": 54,
-        "end": 5,
-        "kind": 6,
-        "start": 5,
-        "type": "simple",
-        "value": "6",
+        "value": "f",
       },
     ],
     "kind": 5,
     "start": 1,
   },
-  "end": 6,
+  "end": 4,
   "flags": "",
   "kind": 0,
   "start": 0,

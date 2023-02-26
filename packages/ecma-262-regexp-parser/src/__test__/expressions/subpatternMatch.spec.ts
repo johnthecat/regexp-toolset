@@ -9,6 +9,7 @@ describe('Subpattern Match', () => {
   it('should fallback to escaped char', () => {
     expect(parseRegexp(/\k/)).toMatchSnapshot('no end');
     expect(parseRegexp(/\k</)).toMatchSnapshot('with opened chevron');
+    expect(parseRegexp(/\k<>/)).toMatchSnapshot('with opened and closed chevrons');
     expect(parseRegexp(/\k<hello/)).toMatchSnapshot('with opened chevron and word');
   });
 

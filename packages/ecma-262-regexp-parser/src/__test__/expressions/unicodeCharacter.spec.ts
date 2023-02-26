@@ -8,7 +8,7 @@ describe('Octal char', () => {
 
   it('should fallback to char sequence, if octal value is out of range', () => {
     // Largest unicode value - ffff₁₆ (65535₁₀)
-    expect(parseRegexp(/\fffd/)).toMatchSnapshot();
+    expect(parseRegexp(/\ufffg/)).toMatchSnapshot();
   });
 
   it('should fallback to char sequence, if there is not enough chars', () => {
