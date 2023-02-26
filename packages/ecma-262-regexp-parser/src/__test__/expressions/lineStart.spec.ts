@@ -1,5 +1,5 @@
 import { expect, describe, it } from 'vitest';
-import { parseRegexp } from '../index.js';
+import { parseRegexp } from '../../index.js';
 
 describe('Line Start', () => {
   it('should correctly parse line start in the start of regexp', () => {

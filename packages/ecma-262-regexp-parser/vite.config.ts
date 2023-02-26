@@ -19,6 +19,13 @@ const config = defineConfig({
       include: ['./src/**'],
     }),
   ],
+  test: {
+    coverage: {
+      provider: 'c8',
+      reporter: ['html'],
+      reportsDirectory: './.coverage',
+    },
+  },
 });
 
 export default config;

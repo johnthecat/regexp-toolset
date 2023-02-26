@@ -1,4 +1,4 @@
-// Vitest Snapshot v1
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`CharClass > Content > can be empty 1`] = `
 {
@@ -42,7 +42,7 @@ exports[`CharClass > Content > should be quantifiable 1`] = `
       "greedy": true,
       "kind": 26,
       "start": 4,
-      "type": 2,
+      "type": 1,
     },
     "start": 1,
   },

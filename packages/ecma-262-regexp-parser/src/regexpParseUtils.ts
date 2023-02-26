@@ -206,10 +206,7 @@ export const hexMatcher: CustomMatcher<string> = firstStep => {
   let value = '';
 
   for (const step of [firstStep, secondStep]) {
-    if (
-      (isPatternCharToken(step) || isDecimalToken(step) || isDecimalEscapeToken(step) || isDecimalEscapeToken(step)) &&
-      /^[0-9A-Fa-f]$/.test(step.value)
-    ) {
+    if ((isPatternCharToken(step) || isDecimalToken(step)) && /^[0-9A-Fa-f]$/.test(step.value)) {
       value += step.value;
     } else {
       return false;

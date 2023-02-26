@@ -1,0 +1,192 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Subpattern Match > should fallback to escaped char > no end 1`] = `
+{
+  "body": {
+    "charCode": 107,
+    "end": 2,
+    "kind": 6,
+    "start": 1,
+    "type": "escaped",
+    "value": "k",
+  },
+  "end": 3,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Subpattern Match > should fallback to escaped char > with opened chevron 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expressions": [
+      {
+        "charCode": 107,
+        "end": 2,
+        "kind": 6,
+        "start": 1,
+        "type": "escaped",
+        "value": "k",
+      },
+      {
+        "charCode": 60,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "<",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Subpattern Match > should fallback to escaped char > with opened chevron and word 1`] = `
+{
+  "body": {
+    "end": 8,
+    "expressions": [
+      {
+        "charCode": 107,
+        "end": 2,
+        "kind": 6,
+        "start": 1,
+        "type": "escaped",
+        "value": "k",
+      },
+      {
+        "charCode": 60,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "<",
+      },
+      {
+        "charCode": 104,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": "h",
+      },
+      {
+        "charCode": 101,
+        "end": 5,
+        "kind": 6,
+        "start": 5,
+        "type": "simple",
+        "value": "e",
+      },
+      {
+        "charCode": 108,
+        "end": 6,
+        "kind": 6,
+        "start": 6,
+        "type": "simple",
+        "value": "l",
+      },
+      {
+        "charCode": 108,
+        "end": 7,
+        "kind": 6,
+        "start": 7,
+        "type": "simple",
+        "value": "l",
+      },
+      {
+        "charCode": 111,
+        "end": 8,
+        "kind": 6,
+        "start": 8,
+        "type": "simple",
+        "value": "o",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 9,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Subpattern Match > should refer to group with same name 1`] = `
+{
+  "body": {
+    "end": 25,
+    "expressions": [
+      {
+        "body": {
+          "charCode": 97,
+          "end": 12,
+          "kind": 6,
+          "start": 12,
+          "type": "simple",
+          "value": "a",
+        },
+        "end": 13,
+        "kind": 23,
+        "specifier": {
+          "end": 11,
+          "kind": 24,
+          "name": "my_name",
+          "start": 3,
+        },
+        "start": 1,
+        "type": "capturing",
+      },
+      {
+        "charCode": 32,
+        "end": 14,
+        "kind": 6,
+        "start": 14,
+        "type": "simple",
+        "value": " ",
+      },
+      {
+        "end": 25,
+        "groupName": "my_name",
+        "kind": 11,
+        "ref": {
+          "body": {
+            "charCode": 97,
+            "end": 12,
+            "kind": 6,
+            "start": 12,
+            "type": "simple",
+            "value": "a",
+          },
+          "end": 13,
+          "kind": 23,
+          "specifier": {
+            "end": 11,
+            "kind": 24,
+            "name": "my_name",
+            "start": 3,
+          },
+          "start": 1,
+          "type": "capturing",
+        },
+        "start": 15,
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 26,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

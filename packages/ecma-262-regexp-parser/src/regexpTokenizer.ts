@@ -82,19 +82,19 @@ export const isEscapedCharToken = (
   value?: string,
 ): token is InferHandlerResult<typeof charEscapeHandler> => genericChecker(TokenKind.CharEscape, token, value);
 
-export const isSyntaxToken = (
+export const isSyntaxCharToken = (
   token: AnyRegexpToken,
   value?: string,
 ): token is InferHandlerResult<typeof syntaxCharHandler> => genericChecker(TokenKind.SyntaxChar, token, value);
 
 export const isParenthesesOpenToken = (token: AnyRegexpToken): token is Token<TokenKind.SyntaxChar, '('> =>
-  isSyntaxToken(token, '(');
+  isSyntaxCharToken(token, '(');
 
 export const isParenthesesCloseToken = (token: AnyRegexpToken): token is Token<TokenKind.SyntaxChar, ')'> =>
-  isSyntaxToken(token, ')');
+  isSyntaxCharToken(token, ')');
 
 export const isBracketsOpenToken = (token: AnyRegexpToken): token is Token<TokenKind.SyntaxChar, '['> =>
-  isSyntaxToken(token, '[');
+  isSyntaxCharToken(token, '[');
 
 export const isBracketsCloseToken = (token: AnyRegexpToken): token is Token<TokenKind.SyntaxChar, ']'> =>
-  isSyntaxToken(token, ']');
+  isSyntaxCharToken(token, ']');

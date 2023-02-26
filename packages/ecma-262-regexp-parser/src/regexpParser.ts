@@ -8,10 +8,11 @@ import type {
 import {
   isBracketsCloseToken,
   isBracketsOpenToken,
+  isEscapedCharToken,
   isParenthesesCloseToken,
   isParenthesesOpenToken,
   isPatternCharToken,
-  isSyntaxToken,
+  isSyntaxCharToken,
   regexpTokenizer,
   TokenKind,
 } from './regexpTokenizer.js';
@@ -189,8 +190,8 @@ const parseQuantifier: TokenParser = (token, expressions, ctx) => {
       token.value === '?'
         ? QuantifierType.NoneOrSingle
         : token.value === '+'
-        ? QuantifierType.NoneOrMany
-        : QuantifierType.SingleOrMany,
+        ? QuantifierType.SingleOrMany
+        : QuantifierType.NoneOrMany,
     greedy: !lazy.match,
   });
   expressions.pop();
@@ -353,19 +354,13 @@ const parseBackReferenceChar: TokenParser = (token, expressions) => {
 
 // Implementation [\b] - backspace
 const parseBackspace: TokenParser = (token, expressions) => {
-  const backspace = matchTokenSequence(token, [
-    [TokenKind.SyntaxChar, { value: '[' }],
-    [TokenKind.CharEscape, { value: 'b' }],
-    [TokenKind.SyntaxChar, { value: ']' }],
-  ]);
-  if (!backspace.match) {
-    return unmatchedToken(token, expressions);
+  if (isEscapedCharToken(token, 'b')) {
+    return matchedToken(
+      token,
+      expressions.concat(factory.createSimpleNode<BackspaceNode>(SyntaxKind.Backspace, token)),
+    );
   }
-
-  return matchedToken(
-    backspace.lastStep,
-    expressions.concat(factory.createSimpleNode<BackspaceNode>(SyntaxKind.Backspace, backspace)),
-  );
+  return unmatchedToken(token, expressions);
 };
 
 // Implementation .|. - disjunction
@@ -379,7 +374,7 @@ const parseDisjunction: TokenParser = (token, expressions, ctx, recursiveFn = pa
 
   const { expressions: rightNodes, lastStep } = fillExpressions(nextToken, ctx, (token, expressions, ctx) => {
     // creating tail recursion for correct nesting of multiple disjunctions
-    if (isSyntaxToken(token, '|')) {
+    if (isSyntaxCharToken(token, '|')) {
       return matchedToken(token.prev(), expressions);
     }
     const result = recursiveFn(token, expressions, ctx);
@@ -391,6 +386,18 @@ const parseDisjunction: TokenParser = (token, expressions, ctx, recursiveFn = pa
 
   return matchedToken(lastStep, [factory.createDisjunctionNode(leftNodes, rightNodes, token)]);
 };
+
+// Implementation ^... - line start
+const parseLineStart: TokenParser = (token, expressions) =>
+  matchedToken(token, expressions.concat(factory.createSimpleNode<LineStartNode>(SyntaxKind.LineStart, token)));
+
+// Implementation ...$ - line end
+const parseLineEnd: TokenParser = (token, expressions) =>
+  matchedToken(token, expressions.concat(factory.createSimpleNode<LineEndNode>(SyntaxKind.LineEnd, token)));
+
+// Implementation . - any character
+const parseAnyChar: TokenParser = (token, expressions) =>
+  matchedToken(token, expressions.concat(factory.createSimpleNode<AnyCharNode>(SyntaxKind.AnyChar, token)));
 
 // eslint-disable-next-line complexity
 const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = parseTokenInRegexp) => {
@@ -460,12 +467,7 @@ const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = 
     case TokenKind.SyntaxChar:
       switch (token.value) {
         case '[':
-          return forwardParser(
-            matchFirst(token, expressions, [
-              (token, expressions) => parseBackspace(token, expressions, ctx),
-              (token, expressions) => parseCharClass(token, expressions, ctx),
-            ]),
-          );
+          return forwardParser(parseCharClass(token, expressions, ctx));
 
         case '{':
           return forwardParser(
@@ -478,32 +480,14 @@ const parseTokenInRegexp: TokenParser = (token, expressions, ctx, recursiveFn = 
         case '(':
           return forwardParser(parseCapturingGroup(token, expressions, ctx));
 
-        // Implementation ^... - line start
         case '^':
-          return {
-            done: false,
-            match: true,
-            value: token,
-            result: expressions.concat(factory.createSimpleNode<LineStartNode>(SyntaxKind.LineStart, token)),
-          };
+          return forwardParser(parseLineStart(token, expressions, ctx));
 
-        // Implementation ...$ - line end
         case '$':
-          return {
-            done: false,
-            match: true,
-            value: token,
-            result: expressions.concat(factory.createSimpleNode<LineEndNode>(SyntaxKind.LineEnd, token)),
-          };
+          return forwardParser(parseLineEnd(token, expressions, ctx));
 
-        // Implementation . - any character
         case '.':
-          return {
-            done: false,
-            match: true,
-            value: token,
-            result: expressions.concat(factory.createSimpleNode<AnyCharNode>(SyntaxKind.AnyChar, token)),
-          };
+          return forwardParser(parseAnyChar(token, expressions, ctx));
 
         case '*':
         case '+':
@@ -763,12 +747,8 @@ const parseCharRange: TokenParser = (token, expressions, ctx, recursiveFn = pars
 
   expressions.pop();
   nextExpressions.shift();
-  return {
-    done: false,
-    match: true,
-    value,
-    result: expressions.concat([factory.createCharRangeNode(fromNode, toNode), ...nextExpressions]),
-  };
+
+  return matchedToken(value, expressions.concat([factory.createCharRangeNode(fromNode, toNode), ...nextExpressions]));
 };
 
 // Implementation [...] - char class
@@ -791,7 +771,12 @@ const parseCharClass: TokenParser = (firstStep, parentExpressions, ctx) => {
         return forwardParser(parseSimpleChar(token, expressions, ctx));
 
       case TokenKind.CharEscape:
-        return forwardParser(parseCharEscape(token, expressions, ctx));
+        return forwardParser(
+          matchFirst(token, expressions, [
+            (token, expressions) => parseBackspace(token, expressions, ctx),
+            (token, expressions) => parseCharEscape(token, expressions, ctx),
+          ]),
+        );
 
       case TokenKind.CharClassEscape:
         return forwardParser(parseCharClassEscape(token, expressions, ctx));
@@ -874,19 +859,11 @@ const parseCharEscape: TokenParser<Step<InferHandlerResult<typeof charEscapeHand
   return unmatchedToken(token, expressions);
 };
 
-const parseEscapedChar: TokenParser = (token, expressions) => ({
-  done: true,
-  match: true,
-  value: token,
-  result: expressions.concat(factory.createCharNode(token.value, token, 'escaped')),
-});
+const parseEscapedChar: TokenParser = (token, expressions) =>
+  matchedToken(token, expressions.concat(factory.createCharNode(token.value, token, 'escaped')));
 
-const parseSimpleChar: TokenParser = (token, expressions) => ({
-  done: true,
-  match: true,
-  value: token,
-  result: expressions.concat(factory.createCharNode(token.value, token, 'simple')),
-});
+const parseSimpleChar: TokenParser = (token, expressions) =>
+  matchedToken(token, expressions.concat(factory.createCharNode(token.value, token, 'simple')));
 
 const parseCharClassEscape: TokenParser<Step<InferHandlerResult<typeof charClassEscapeHandler>>> = (
   token,

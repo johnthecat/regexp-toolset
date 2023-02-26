@@ -1,0 +1,168 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Octal char > should correctly unicode value 1`] = `
+{
+  "body": {
+    "charCode": 97,
+    "end": 6,
+    "kind": 6,
+    "start": 1,
+    "type": "unicode",
+    "value": "a",
+  },
+  "end": 7,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Octal char > should fallback to char sequence, if octal value is out of range 1`] = `
+{
+  "body": {
+    "end": 5,
+    "expressions": [
+      {
+        "end": 2,
+        "kind": 8,
+        "start": 1,
+        "type": 4,
+      },
+      {
+        "charCode": 102,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "f",
+      },
+      {
+        "charCode": 102,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": "f",
+      },
+      {
+        "charCode": 100,
+        "end": 5,
+        "kind": 6,
+        "start": 5,
+        "type": "simple",
+        "value": "d",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Octal char > should fallback to char sequence, if there is not enough chars > with char at the end 1`] = `
+{
+  "body": {
+    "end": 7,
+    "expressions": [
+      {
+        "charCode": 117,
+        "end": 2,
+        "kind": 6,
+        "start": 1,
+        "type": "escaped",
+        "value": "u",
+      },
+      {
+        "charCode": 48,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "0",
+      },
+      {
+        "charCode": 48,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": "0",
+      },
+      {
+        "charCode": 54,
+        "end": 5,
+        "kind": 6,
+        "start": 5,
+        "type": "simple",
+        "value": "6",
+      },
+      {
+        "charCode": 97,
+        "end": 7,
+        "kind": 6,
+        "start": 6,
+        "type": "escaped",
+        "value": "a",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 8,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Octal char > should fallback to char sequence, if there is not enough chars > with regexp end at the end 1`] = `
+{
+  "body": {
+    "end": 5,
+    "expressions": [
+      {
+        "charCode": 117,
+        "end": 2,
+        "kind": 6,
+        "start": 1,
+        "type": "escaped",
+        "value": "u",
+      },
+      {
+        "charCode": 48,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "0",
+      },
+      {
+        "charCode": 48,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": "0",
+      },
+      {
+        "charCode": 54,
+        "end": 5,
+        "kind": 6,
+        "start": 5,
+        "type": "simple",
+        "value": "6",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

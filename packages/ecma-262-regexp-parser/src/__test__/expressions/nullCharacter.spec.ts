@@ -1,5 +1,5 @@
 import { expect, describe, it } from 'vitest';
-import { parseRegexp } from '../index.js';
+import { parseRegexp } from '../../index.js';
 
 describe('Null Character', () => {
   it('should parse null character', () => {

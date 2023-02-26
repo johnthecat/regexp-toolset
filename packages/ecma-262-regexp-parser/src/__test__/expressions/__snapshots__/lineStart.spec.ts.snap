@@ -1,6 +1,6 @@
-// Vitest Snapshot v1
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Line End > should correctly parse line end in the end of regexp 1`] = `
+exports[`Line Start > should correctly parse line start in the end of regexp 1`] = `
 {
   "body": {
     "end": 2,
@@ -15,7 +15,7 @@ exports[`Line End > should correctly parse line end in the end of regexp 1`] = `
       },
       {
         "end": 2,
-        "kind": 2,
+        "kind": 1,
         "start": 2,
       },
     ],
@@ -29,7 +29,7 @@ exports[`Line End > should correctly parse line end in the end of regexp 1`] = `
 }
 `;
 
-exports[`Line End > should correctly parse line end in the middle of regexp 1`] = `
+exports[`Line Start > should correctly parse line start in the middle of regexp 1`] = `
 {
   "body": {
     "end": 3,
@@ -44,7 +44,7 @@ exports[`Line End > should correctly parse line end in the middle of regexp 1`] 
       },
       {
         "end": 2,
-        "kind": 2,
+        "kind": 1,
         "start": 2,
       },
       {
@@ -66,14 +66,14 @@ exports[`Line End > should correctly parse line end in the middle of regexp 1`] 
 }
 `;
 
-exports[`Line End > should correctly parse line end in the start of regexp 1`] = `
+exports[`Line Start > should correctly parse line start in the start of regexp 1`] = `
 {
   "body": {
     "end": 2,
     "expressions": [
       {
         "end": 1,
-        "kind": 2,
+        "kind": 1,
         "start": 1,
       },
       {

@@ -1,0 +1,107 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Octal char > should correctly octal value 1`] = `
+{
+  "body": {
+    "charCode": 97,
+    "end": 4,
+    "kind": 6,
+    "start": 1,
+    "type": "octal",
+    "value": "a",
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Octal char > should fallback to char sequence, if octal value is out of range 1`] = `
+{
+  "body": {
+    "end": 4,
+    "expressions": [
+      {
+        "charCode": 51,
+        "end": 2,
+        "kind": 6,
+        "start": 1,
+        "type": "escaped",
+        "value": "3",
+      },
+      {
+        "charCode": 55,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "7",
+      },
+      {
+        "charCode": 56,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": "8",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Octal char > should fallback to char sequence, if there is not enough digits > with char at the end 1`] = `
+{
+  "body": {
+    "charCode": 31,
+    "end": 4,
+    "kind": 6,
+    "start": 1,
+    "type": "octal",
+    "value": "",
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Octal char > should fallback to char sequence, if there is not enough digits > with regexp end at the end 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expressions": [
+      {
+        "charCode": 51,
+        "end": 2,
+        "kind": 6,
+        "start": 1,
+        "type": "escaped",
+        "value": "3",
+      },
+      {
+        "charCode": 55,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "7",
+      },
+    ],
+    "kind": 5,
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

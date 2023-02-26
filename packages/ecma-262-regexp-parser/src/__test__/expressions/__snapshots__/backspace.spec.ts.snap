@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Backspace > should correctly parse backspace 1`] = `
+{
+  "body": {
+    "end": 4,
+    "expressions": [
+      {
+        "end": 3,
+        "kind": 10,
+        "start": 2,
+      },
+    ],
+    "kind": 22,
+    "negative": false,
+    "start": 1,
+  },
+  "end": 5,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`Backspace > should correctly work, surronded by other characters 1`] = `
+{
+  "body": {
+    "end": 6,
+    "expressions": [
+      {
+        "charCode": 97,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "a",
+      },
+      {
+        "end": 4,
+        "kind": 10,
+        "start": 3,
+      },
+      {
+        "charCode": 99,
+        "end": 5,
+        "kind": 6,
+        "start": 5,
+        "type": "simple",
+        "value": "c",
+      },
+    ],
+    "kind": 22,
+    "negative": false,
+    "start": 1,
+  },
+  "end": 7,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

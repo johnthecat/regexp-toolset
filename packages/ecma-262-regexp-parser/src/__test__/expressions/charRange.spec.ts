@@ -1,5 +1,5 @@
 import { expect, describe, it } from 'vitest';
-import { parseRegexp } from '../index.js';
+import { parseRegexp } from '../../index.js';
 
 describe('CharRange', () => {
   it('should correctly parse simple char range', () => {
