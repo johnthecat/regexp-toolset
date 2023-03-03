@@ -32,7 +32,7 @@ Throws, if got any syntax error.
 
 ```typescript
 import { parseRegexpNode } from 'ecma-262-regexp-parser';
-const regexpAST = parseRegexp('(?:Maybe)\\snot');
+const regexpAST = parseRegexpNode('(?:Maybe)\\snot');
 ```
 
 ### `SyntaxKind`
