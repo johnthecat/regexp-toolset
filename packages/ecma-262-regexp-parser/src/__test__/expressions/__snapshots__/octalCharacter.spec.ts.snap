@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Octal char > should correctly octal value 1`] = `
+exports[`Octal char > should correctly parse octal value 1`] = `
 {
   "body": {
     "charCode": 97,

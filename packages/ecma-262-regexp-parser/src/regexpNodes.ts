@@ -22,7 +22,6 @@ export enum SyntaxKind {
   NonWord,
   WordBoundary,
   NonWordBoundary,
-  ZeroLength,
   CharClass,
   Group,
   GroupName,
@@ -83,7 +82,6 @@ export type NonWordNode = Node<SyntaxKind.NonWord>;
 export type WordBoundaryNode = Node<SyntaxKind.WordBoundary>;
 export type NonWordBoundaryNode = Node<SyntaxKind.NonWordBoundary>;
 export type ControlEscapeCharNode = Node<SyntaxKind.ControlEscapeChar, { type: ControlEscapeCharType }>;
-export type ZeroLengthNode = Node<SyntaxKind.ZeroLength>;
 export type CharClassNode = Node<SyntaxKind.CharClass, { negative: boolean; expressions: AnyRegexpNode[] }>;
 export type GroupNameNode = Node<SyntaxKind.GroupName, { name: string }>;
 export type GroupNode = Node<
@@ -135,7 +133,6 @@ export type AnyRegexpNode =
   | GroupNameNode
   | GroupNode
   | BackReferenceNode
-  | ZeroLengthNode
   | ControlEscapeCharNode
   | AnyWhitespaceNode
   | NonWhitespaceNode

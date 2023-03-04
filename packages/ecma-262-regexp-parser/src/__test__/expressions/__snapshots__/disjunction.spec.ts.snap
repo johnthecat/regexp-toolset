@@ -68,7 +68,7 @@ exports[`Disjunction > should parse disjunction inside group 1`] = `
       "start": 2,
     },
     "end": 5,
-    "kind": 23,
+    "kind": 22,
     "specifier": null,
     "start": 1,
     "type": "capturing",
@@ -86,8 +86,9 @@ exports[`Disjunction > should parse disjunction with empty left size 1`] = `
     "end": 2,
     "kind": 3,
     "left": {
-      "end": 2,
-      "kind": 21,
+      "end": 1,
+      "expressions": [],
+      "kind": 5,
       "start": 1,
     },
     "right": {
@@ -122,8 +123,9 @@ exports[`Disjunction > should parse disjunction with empty right size 1`] = `
     },
     "right": {
       "end": 2,
-      "kind": 21,
-      "start": 1,
+      "expressions": [],
+      "kind": 5,
+      "start": 2,
     },
     "start": 1,
   },

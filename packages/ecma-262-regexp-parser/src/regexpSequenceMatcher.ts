@@ -1,13 +1,13 @@
-import type { TokenMatchReducerFn, TokenMatchReducerResult } from './abstract/tokenizer.js';
 import type { AnyRegexpToken, Step, TokenKind } from './regexpTokenizer.js';
 import { isDecimalEscapeToken, isDecimalToken, isPatternCharToken } from './regexpTokenizer.js';
 import { isBoolean } from './common/typeCheckers.js';
-import { matchedToken, unmatchedToken } from './regexpParseUtils.js';
+import type { NodePosition } from './regexpNodes.js';
+import { matched, unmatched, type Monad, matchSeq } from './common/match.js';
 
-type FullMatcherResult<V> = TokenMatchReducerResult<Step, V | null>;
-type MatcherResult<V> = boolean | FullMatcherResult<V | null>;
+type FullMatcherResult<V> = Monad<{ value: NonNullable<V> | null; token: Step }, unknown>;
+type MatcherResult<V> = boolean | FullMatcherResult<V>;
 
-type CustomMatcher<V> = TokenMatchReducerFn<Step, V>;
+type CustomMatcher<V> = (token: Step) => MatcherResult<V>;
 
 type Matcher<V, T extends AnyRegexpToken = AnyRegexpToken> = T['kind'] | Partial<T> | CustomMatcher<V>;
 type MatcherList<V, T extends AnyRegexpToken = AnyRegexpToken> = Matcher<V, T>[];
@@ -27,98 +27,73 @@ const partialMatcher = <V>(token: Record<string, unknown>, fields: Record<string
   return true;
 };
 
-const applyMatcher = <V>(step: Step, matcher: Matcher<V>): FullMatcherResult<V | null> => {
+const applyMatcher = <V>(token: Step, matcher: Matcher<V>): FullMatcherResult<V> => {
   let result: MatcherResult<V>;
 
   if (typeof matcher === 'number') {
-    result = kindMatcher(step, matcher);
+    result = kindMatcher(token, matcher);
   } else if (typeof matcher === 'function') {
-    result = matcher(step, null as V);
+    result = matcher(token);
   } else {
-    result = partialMatcher(step, matcher);
+    result = partialMatcher(token, matcher);
   }
 
-  return {
-    match: isBoolean(result) ? result : result.match,
-    done: isBoolean(result) ? true : result.done ?? false,
-    value: isBoolean(result) ? step : result.value,
-    result: isBoolean(result) ? null : result.result,
-  };
+  return isBoolean(result) ? (result ? matched({ value: null, token }) : unmatched(null)) : result;
 };
 
-export const matchTokenSequence = <V>(
-  step: Step,
-  seq: (Matcher<V> | MatcherList<V>)[],
-): { match: boolean; values: V[]; lastStep: Step; start: number; end: number } => {
-  let prevStep: Step = step;
-  let currentStep: Step = step;
-  const values: V[] = [];
+type MatchedSeqResult<V> = Monad<NodePosition & { values: NonNullable<V>[]; token: Step }, unknown>;
 
-  const execMatchersForCondition = (step: Step, condition: Matcher<V>): boolean => {
-    const result = applyMatcher(step, condition);
-    if (result.match) {
-      currentStep = result.value;
-      if (result.result !== null) {
-        values.push(result.result);
-      }
-    }
-
-    return result.match;
-  };
+// TODO fix
+export const matchTokenSequence = <V>(token: Step, seq: (Matcher<V> | MatcherList<V>)[]): MatchedSeqResult<V> => {
+  let intermediateResult: MatchedSeqResult<V> = matched({
+    token,
+    values: [],
+    start: token.start,
+    end: token.end,
+  });
 
   for (const condition of seq) {
-    if (Array.isArray(condition)) {
-      for (const conditionItem of condition) {
-        if (!execMatchersForCondition(currentStep, conditionItem)) {
+    intermediateResult = intermediateResult.matched(({ start, values, token: currentToken }) => {
+      if (Array.isArray(condition)) {
+        return matchSeq(condition.map(x => applyMatcher(currentToken, x))).map(res => {
+          const value = res.find(v => v.value !== null)?.value ?? null;
+          const token = res.sort((a, b) => b.token.index - a.token.index).at(0)?.token ?? currentToken;
           return {
-            match: false,
-            lastStep: currentStep,
-            start: step.start,
-            end: currentStep.end,
-            values,
+            token,
+            values: value !== null ? values.concat(value) : values,
+            start,
+            end: token.end,
           };
-        }
+        });
       }
-    } else {
-      const match = execMatchersForCondition(currentStep, condition);
-      if (!match) {
-        return {
-          match: false,
-          lastStep: currentStep,
-          start: step.start,
-          end: currentStep.end,
-          values,
-        };
-      }
-    }
 
-    const nextStep = currentStep?.next();
-    if (!nextStep) {
-      return {
-        match: false,
-        lastStep: currentStep,
-        start: step.start,
-        end: currentStep.end,
-        values,
-      };
-    }
-    prevStep = currentStep;
-    currentStep = nextStep;
+      return applyMatcher(currentToken, condition).map(({ token, value }) => ({
+        token,
+        values: value !== null ? values.concat(value) : values,
+        start,
+        end: token.end,
+      }));
+    });
+
+    intermediateResult = intermediateResult.matched(({ token, ...etc }) => {
+      const next = token.next();
+      if (!next) {
+        return unmatched(null);
+      }
+      return matched({
+        token: next,
+        ...etc,
+      });
+    });
   }
 
-  return {
-    match: true,
-    lastStep: prevStep,
-    start: step.start,
-    end: prevStep?.end,
-    values,
-  };
+  return intermediateResult.map(({ token, ...etc }) => ({ token: token.prev(), ...etc }));
 };
 
-export const wordMatcher: CustomMatcher<string> = (step: Step) => {
+export const wordMatcher: CustomMatcher<string> = (token: Step) => {
   let match = false;
-  let last: Step = step;
-  let current: Step | null = step;
+  let last: Step = token;
+  let current: Step | null = token;
   let value = '';
   do {
     if (/\w/.test(current.value)) {
@@ -130,7 +105,7 @@ export const wordMatcher: CustomMatcher<string> = (step: Step) => {
     }
   } while ((current = current.next()));
 
-  return match ? matchedToken(last, value) : unmatchedToken(last, value);
+  return match ? matched({ value, token: last }) : unmatched({ value, token: last });
 };
 
 export const numberMatcher: CustomMatcher<number> = step => {
@@ -148,52 +123,52 @@ export const numberMatcher: CustomMatcher<number> = step => {
     }
   } while ((current = current.next()));
 
-  return match ? matchedToken(last, parseInt(value)) : unmatchedToken(last, 0);
+  return match ? matched({ value: parseInt(value), token: last }) : unmatched({ value: 0, token: last });
 };
 
-export const octalMatcher: CustomMatcher<string> = firstStep => {
-  const secondStep = firstStep.next();
-  if (!secondStep) {
-    return unmatchedToken(firstStep, '');
+export const octalMatcher: CustomMatcher<string> = firstToken => {
+  const secondToken = firstToken.next();
+  if (!secondToken) {
+    return unmatched({ value: '', token: firstToken });
   }
-  const thirdStep = secondStep.next();
-  if (!thirdStep) {
-    return unmatchedToken(secondStep, '');
+  const thirdToken = secondToken.next();
+  if (!thirdToken) {
+    return unmatched({ value: '', token: secondToken });
   }
 
   let value = '';
 
-  for (const step of [firstStep, secondStep, thirdStep]) {
-    if ((step === firstStep && isDecimalEscapeToken(step)) || isDecimalToken(step)) {
-      const num = parseInt(step.value);
+  for (const token of [firstToken, secondToken, thirdToken]) {
+    if ((token === firstToken && isDecimalEscapeToken(token)) || isDecimalToken(token)) {
+      const num = parseInt(token.value);
       if (num > 7 || num < 0) {
-        return unmatchedToken(step, value);
+        return unmatched({ value, token });
       }
 
-      value = value + step.value;
+      value = value + token.value;
       if (parseInt(value) > 377) {
-        return unmatchedToken(step, value);
+        return unmatched({ value, token });
       }
     }
   }
 
-  return value.length ? matchedToken(thirdStep, value) : unmatchedToken(thirdStep, value);
+  return value.length ? matched({ value, token: thirdToken }) : unmatched({ value, token: thirdToken });
 };
 
-export const hexMatcher: CustomMatcher<string> = firstStep => {
-  const secondStep = firstStep.next();
-  if (!secondStep) {
-    return unmatchedToken(firstStep, '');
+export const hexMatcher: CustomMatcher<string> = firstToken => {
+  const secondToken = firstToken.next();
+  if (!secondToken) {
+    return unmatched({ value: '', token: firstToken });
   }
 
   let value = '';
-  for (const step of [firstStep, secondStep]) {
-    if ((isPatternCharToken(step) || isDecimalToken(step)) && /^[0-9A-Fa-f]$/.test(step.value)) {
-      value += step.value;
+  for (const token of [firstToken, secondToken]) {
+    if ((isPatternCharToken(token) || isDecimalToken(token)) && /^[0-9A-Fa-f]$/.test(token.value)) {
+      value += token.value;
     } else {
-      return unmatchedToken(step, value);
+      return unmatched({ value, token });
     }
   }
 
-  return matchedToken(secondStep, value);
+  return matched({ value, token: secondToken });
 };

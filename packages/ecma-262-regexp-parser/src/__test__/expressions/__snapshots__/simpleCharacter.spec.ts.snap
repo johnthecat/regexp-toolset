@@ -1,0 +1,18 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Simple char > should correctly parse simple value 1`] = `
+{
+  "body": {
+    "charCode": 97,
+    "end": 1,
+    "kind": 6,
+    "start": 1,
+    "type": "simple",
+    "value": "a",
+  },
+  "end": 2,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;

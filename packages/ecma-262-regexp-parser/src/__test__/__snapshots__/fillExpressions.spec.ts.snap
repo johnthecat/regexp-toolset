@@ -1,0 +1,60 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fillExpressions > should work 1`] = `
+{
+  "match": true,
+  "value": {
+    "nodes": [
+      {
+        "charCode": 104,
+        "end": 0,
+        "kind": 6,
+        "start": 0,
+        "type": "simple",
+        "value": "h",
+      },
+      {
+        "charCode": 101,
+        "end": 1,
+        "kind": 6,
+        "start": 1,
+        "type": "simple",
+        "value": "e",
+      },
+      {
+        "charCode": 108,
+        "end": 2,
+        "kind": 6,
+        "start": 2,
+        "type": "simple",
+        "value": "l",
+      },
+      {
+        "charCode": 108,
+        "end": 3,
+        "kind": 6,
+        "start": 3,
+        "type": "simple",
+        "value": "l",
+      },
+      {
+        "charCode": 111,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": "o",
+      },
+    ],
+    "token": {
+      "end": 4,
+      "index": 4,
+      "kind": 1,
+      "next": [Function],
+      "prev": [Function],
+      "start": 4,
+      "value": "o",
+    },
+  },
+}
+`;

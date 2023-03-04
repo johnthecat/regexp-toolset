@@ -22,7 +22,6 @@ export type SyntaxCharToken = Token<
   TokenKind.SyntaxChar,
   '$' | '^' | '\\' | '.' | '*' | '+' | '?' | '(' | ')' | '[' | ']' | '{' | '}' | '|'
 >;
-
 export type CharClassEscape = Token<TokenKind.CharClassEscape, 'd' | 'D' | 's' | 'S' | 'w' | 'W'>;
 export type ControlEscapeToken = Token<TokenKind.ControlEscape, 'f' | 'n' | 'r' | 't' | 'v'>;
 export type CharEscapeToken = Token<TokenKind.CharEscape>;

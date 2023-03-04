@@ -1,8 +1,8 @@
 import * as factory from './regexpNodeFactory.js';
 
-export { factory };
-export { parseRegexp, parseRegexpNode } from './regexpParser.js';
+export { parseRegexp, parseRegexpNode } from './api.js';
 export { SyntaxKind, ControlEscapeCharType, QuantifierType } from './regexpNodes.js';
+export { factory };
 export type {
   AnyRegexpNode,
   RegexpNode,
@@ -24,11 +24,12 @@ export type {
   AnyWordNode,
   NonWordNode,
   ControlEscapeCharNode,
-  ZeroLengthNode,
   CharClassNode,
   GroupNode,
   GroupNameNode,
   BackReferenceNode,
   QuantifierNode,
   RepetitionNode,
+  WordBoundaryNode,
+  NonWordBoundaryNode,
 } from './regexpNodes.js';

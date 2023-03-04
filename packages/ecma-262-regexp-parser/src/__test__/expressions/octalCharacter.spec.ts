@@ -2,7 +2,7 @@ import { expect, describe, it } from 'vitest';
 import { parseRegexp } from '../../index.js';
 
 describe('Octal char', () => {
-  it('should correctly octal value', () => {
+  it('should correctly parse octal value', () => {
     expect(parseRegexp(/\141/)).toMatchSnapshot();
   });
 

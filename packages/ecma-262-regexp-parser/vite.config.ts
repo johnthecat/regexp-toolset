@@ -1,6 +1,19 @@
+import { builtinModules } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-import { externals } from 'rollup-plugin-node-externals';
+
+const externals = () => {
+  const packageJson = JSON.parse(readFileSync(resolve('./package.json'), { encoding: 'utf-8' }));
+
+  return [
+    ...builtinModules,
+    ...builtinModules.map(x => `node:${x}`),
+    ...Object.keys(packageJson.dependencies ?? {}),
+    ...Object.keys(packageJson.optionalDependencies ?? {}),
+  ];
+};
 
 const config = defineConfig({
   build: {
@@ -10,9 +23,11 @@ const config = defineConfig({
       fileName: 'index',
       formats: ['es', 'cjs'],
     },
+    rollupOptions: {
+      external: externals(),
+    },
   },
   plugins: [
-    { ...externals(), enforce: 'pre' },
     dts({
       noEmitOnError: true,
       copyDtsFiles: true,
@@ -20,6 +35,8 @@ const config = defineConfig({
     }),
   ],
   test: {
+    testTimeout: 3000,
+    reporters: ['verbose'],
     coverage: {
       provider: 'c8',
       reporter: ['html'],

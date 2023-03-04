@@ -62,8 +62,7 @@ const renderingPrimitives = {
   largeBlockSpanEnd: '┕ ·',
   singleBlockNode: '·',
   blockVerticalConnector: '│',
-  singleVerticalConnector: '╎',
-  horizontalSeparator: '╌'.repeat(15),
+  horizontalSeparator: '╌'.repeat(20),
   referenceArrow: '«',
   ellipsis: '...',
   whitespace: '•',
@@ -123,7 +122,7 @@ const controlEscapeCharTitle = {
   [ControlEscapeCharType.Tab]: 'Tab',
 };
 
-const genericNodeTitle = {
+const genericNodeTitle: Record<number, GenericTitle> = {
   [SyntaxKind.GroupName]: { header: 'Group name', color: 'expression' },
   [SyntaxKind.NullChar]: { header: 'Null Character', color: 'expression' },
   [SyntaxKind.AnyWhitespace]: { header: 'Any Whitespace', color: 'expression' },
@@ -137,11 +136,10 @@ const genericNodeTitle = {
   [SyntaxKind.AnyDigit]: { header: 'Any Digit', description: 'matches [0-9]', color: 'expression' },
   [SyntaxKind.NonDigit]: { header: 'Non Digit', description: 'matches [^0-9]', color: 'expression' },
   [SyntaxKind.Backspace]: { header: 'Backspace', color: 'expression' },
-  [SyntaxKind.ZeroLength]: { header: 'Zero Length' },
   [SyntaxKind.Quantifier]: { header: 'Quantifier', color: 'expression' },
   [SyntaxKind.WordBoundary]: { header: 'Word Boundary', color: 'expression' },
   [SyntaxKind.NonWordBoundary]: { header: 'Non Word Boundary', color: 'expression' },
-} satisfies Record<number, GenericTitle>;
+};
 
 const paint = (content: string, color: Colors, index = 0) => {
   let formatter: Formatter;
@@ -192,7 +190,7 @@ const renderBlock = (ctx: ExplainerContext, content: string, index = 0, of = 1):
     return `${borderColor(renderingPrimitives.simpleBlockEnd)} ${content}`;
   }
 
-  return `${borderColor(renderingPrimitives.singleVerticalConnector)} ${content}`;
+  return `${borderColor(renderingPrimitives.singleBlockNode)} ${content}`;
 };
 
 const printNode = (source: string, node: AnyRegexpNode): string => {
@@ -305,7 +303,7 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
               )
               .join('\n'),
           ),
-          paint('┄'.repeat(15), colorMap.border),
+          paint(renderingPrimitives.horizontalSeparator, colorMap.border),
         );
       }
 
@@ -550,16 +548,14 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
       const kind = node.kind;
       const title = genericNodeTitle[kind];
       if (title) {
-        const color =
+        const name =
           parentNode.kind === SyntaxKind.CharClass
-            ? String
+            ? paint(title.header, colorMap.secondaryHeader)
             : 'color' in title
-            ? assignColor(node, parentNode, ctx, colorMap[title.color])
-            : String;
+            ? assignColor(node, parentNode, ctx, colorMap[title.color])(paint(title.header, colorMap.header))
+            : paint(title.header, colorMap.secondaryHeader);
         result.push(
-          `${color(paint(title.header, colorMap.header))}${
-            'description' in title ? ` ${paint(title.description, colorMap.secondary)}` : ''
-          } ${printed}`,
+          `${name}${'description' in title ? ` ${paint(title.description, colorMap.secondary)}` : ''} ${printed}`,
         );
       } else {
         //   should be never, if all nodes supported.
