@@ -110,19 +110,6 @@ export const parseRegexp: SingleNodeParser<RegexpNode> = (firstToken, ctx) => {
     .unmatched(() => errored(ctx.reportError(firstToken, "Can't parse input")));
 };
 
-// export const parseRegexpNode = (source: string): AnyRegexpNode => {
-//   const tokenizer = regexpTokenizer(source);
-//   const ctx = createParserContext(source, tokenizer);
-//
-//   const firstStep = tokenizer.getFirstStep();
-//   assertNullable(firstStep, ctx.reportError({ start: 0, end: source.length - 1 }, "Can't parse input"));
-//
-//   const { nodes, lastStep } = fillExpressions(firstStep, ctx, parseTokenInRegexp);
-//   connectSubpatternsWithGroups(ctx);
-//
-//   return sealExpressions(nodes, firstStep, lastStep);
-// };
-
 const parseFlags = (step: Step, ctx: ParserContext): string => {
   const supportedFlags = ['g', 'i', 'm', 's', 'u', 'y'];
 
