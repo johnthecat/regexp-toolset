@@ -28,6 +28,8 @@ export enum SyntaxKind {
   BackReference,
   Quantifier,
   Repetition,
+  UnicodeProperty,
+  NonUnicodeProperty,
 }
 
 export enum QuantifierType {
@@ -113,6 +115,8 @@ export type QuantifierNode = Node<
 >;
 
 export type RepetitionNode = Node<SyntaxKind.Repetition, { expression: AnyRegexpNode; quantifier: QuantifierNode }>;
+export type UnicodePropertyNode = Node<SyntaxKind.UnicodeProperty, { name: string; value: string | null }>;
+export type NonUnicodePropertyNode = Node<SyntaxKind.NonUnicodeProperty, { name: string; value: string | null }>;
 
 export type AnyRegexpNode =
   | RegexpNode
@@ -141,4 +145,6 @@ export type AnyRegexpNode =
   | AnyWordNode
   | NonWordNode
   | WordBoundaryNode
-  | NonWordBoundaryNode;
+  | NonWordBoundaryNode
+  | UnicodePropertyNode
+  | NonUnicodePropertyNode;

@@ -1,0 +1,129 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`property 'General_Category=Letter' > Non Unicode Property 1`] = `
+{
+  "body": {
+    "end": 27,
+    "kind": 28,
+    "name": "General_Category",
+    "start": 1,
+    "value": "Letter",
+  },
+  "end": 29,
+  "flags": "u",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`property 'General_Category=Letter' > Unicode Property 1`] = `
+{
+  "body": {
+    "end": 27,
+    "kind": 27,
+    "name": "General_Category",
+    "start": 1,
+    "value": "Letter",
+  },
+  "end": 29,
+  "flags": "u",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`property 'Hex' > Non Unicode Property 1`] = `
+{
+  "body": {
+    "end": 7,
+    "kind": 28,
+    "name": "Hex",
+    "start": 1,
+    "value": null,
+  },
+  "end": 9,
+  "flags": "u",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`property 'Hex' > Unicode Property 1`] = `
+{
+  "body": {
+    "end": 7,
+    "kind": 27,
+    "name": "Hex",
+    "start": 1,
+    "value": null,
+  },
+  "end": 9,
+  "flags": "u",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`property 'L' > Non Unicode Property 1`] = `
+{
+  "body": {
+    "end": 5,
+    "kind": 28,
+    "name": "L",
+    "start": 1,
+    "value": null,
+  },
+  "end": 7,
+  "flags": "u",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`property 'L' > Unicode Property 1`] = `
+{
+  "body": {
+    "end": 5,
+    "kind": 27,
+    "name": "L",
+    "start": 1,
+    "value": null,
+  },
+  "end": 7,
+  "flags": "u",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`property 'Script=Latin' > Non Unicode Property 1`] = `
+{
+  "body": {
+    "end": 16,
+    "kind": 28,
+    "name": "Script",
+    "start": 1,
+    "value": "Latin",
+  },
+  "end": 18,
+  "flags": "u",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`property 'Script=Latin' > Unicode Property 1`] = `
+{
+  "body": {
+    "end": 16,
+    "kind": 27,
+    "name": "Script",
+    "start": 1,
+    "value": "Latin",
+  },
+  "end": 18,
+  "flags": "u",
+  "kind": 0,
+  "start": 0,
+}
+`;

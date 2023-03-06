@@ -6,7 +6,7 @@ import type { Match } from './common/monads/match.js';
 // export type NodeParserResult = EitherMatch<AnyRegexpNode>;
 export type NodeParserResultValue = { nodes: AnyRegexpNode[]; token: Step };
 export type NodeParserResult = Match<NodeParserResultValue>;
-export type SingleNodeParserResult<T extends AnyRegexpNode = AnyRegexpNode> = Match<{ node: T; token: Step }>;
+export type SingleNodeParserResult<T extends AnyRegexpNode = AnyRegexpNode> = Match<{ node: T }>;
 
 export type NodeParser = (
   input: NodeParserResultValue,

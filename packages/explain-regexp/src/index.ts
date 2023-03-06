@@ -544,6 +544,20 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
       break;
     }
 
+    case SyntaxKind.UnicodeProperty: {
+      const color = assignColor(node, parentNode, ctx, colorMap.expression);
+      const name = node.value ? `${node.value} in ${node.name}` : node.name;
+      result.push(`${color(paint(`Unicode Property: ${name}`, colorMap.header))} ${printed}`);
+      break;
+    }
+
+    case SyntaxKind.NonUnicodeProperty: {
+      const color = assignColor(node, parentNode, ctx, colorMap.expression);
+      const name = node.value ? `${node.value} in ${node.name}` : node.name;
+      result.push(`${color(paint(`Non Unicode Property: ${name}`, colorMap.header))} ${printed}`);
+      break;
+    }
+
     default: {
       const kind = node.kind;
       const title = genericNodeTitle[kind];

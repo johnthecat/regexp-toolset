@@ -1,5 +1,5 @@
 import { regexpTokenizer } from './regexpTokenizer.js';
-import { createParserContext, parseRegexp as parseRegexpBase, parseTokenInRegexp } from './regexpParser.js';
+import { createParserContext, parseRegexp as parseRegexpBase, parseNodeInRegexp } from './regexpParser.js';
 import type { AnyRegexpNode, RegexpNode } from './regexpNodes.js';
 import { fillExpressions } from './regexpParseUtils.js';
 import { sealExpressions } from './regexpNodeFactory.js';
@@ -36,7 +36,7 @@ export const parseRegexpNode = (source: string): AnyRegexpNode => {
     throw ctx.reportError(0, "Can't parse input");
   }
 
-  const result = fillExpressions(firstToken, ctx, parseTokenInRegexp)
+  const result = fillExpressions(firstToken, ctx, parseNodeInRegexp)
     .map(({ nodes }) => sealExpressions(nodes, firstToken))
     .unwrap();
 

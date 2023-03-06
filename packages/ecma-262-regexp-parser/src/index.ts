@@ -32,4 +32,6 @@ export type {
   RepetitionNode,
   WordBoundaryNode,
   NonWordBoundaryNode,
+  UnicodePropertyNode,
+  NonUnicodePropertyNode,
 } from './regexpNodes.js';

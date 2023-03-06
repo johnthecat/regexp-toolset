@@ -47,8 +47,10 @@ import {
   isControlEscapeCharNode,
   isGroupNode,
   isNonDigitNode,
+  isNonUnicodePropertyNode,
   isNonWhitespaceNode,
   isNonWordNode,
+  isUnicodePropertyNode,
 } from './regexpNodeFactory.js';
 import type { NodeParser, NodeParserResultValue, ParserContext, SingleNodeParser } from './regexpParseTypes.js';
 import {
@@ -64,10 +66,6 @@ import { fillExpressions } from './regexpParseUtils.js';
 import { remove, replace } from './common/array.js';
 import * as match from './common/monads/match.js';
 import { isNumber, nonNullable } from './common/typeCheckers.js';
-
-// TODO
-// Unicode property (\p{Russian})
-// Non Unicode property (\P{Russian})
 
 const commonErrorMessages = {
   EOL: 'Unexpected end of line',
@@ -106,28 +104,21 @@ const connectSubpatternsWithGroups = (ctx: ParserContext): match.Match<void> => 
 };
 
 export const parseRegexp: SingleNodeParser<RegexpNode> = (firstToken, ctx) => {
-  if (!isForwardSlashToken(firstToken)) {
-    return match.errored(ctx.reportError(0, 'Regexp should start with "/" symbol, like this: /.../gm'));
-  }
+  const firstContentToken = match.nonNullable(firstToken.next()).orError(() => ctx.reportError(0, "Can't parse input"));
+  const collectedNodes = firstContentToken
+    .matched(token => fillExpressions(token, ctx, parseNodeInRegexp))
+    .filter(({ token: closingToken }) => isForwardSlashToken(closingToken))
+    .orError(() => ctx.reportError(0, 'Regexp body should end with "/" symbol, like this: /.../gm'));
 
-  const firstContentToken = firstToken.next();
-  if (!firstContentToken) {
-    return match.errored(ctx.reportError({ start: firstToken.start }, "Can't parse input"));
-  }
+  const flags = collectedNodes
+    .flatMap(({ token }) => match.nonNullable(token.next()))
+    .map(token => parseFlags(token, ctx))
+    .orElse(() => match.matched(''));
 
-  return fillExpressions(firstContentToken, ctx, parseTokenInRegexp)
-    .matched(({ nodes, token: closingToken }) => {
-      if (!isForwardSlashToken(closingToken)) {
-        return match.errored(
-          ctx.reportError(closingToken, 'Regexp body should end with "/" symbol, like this: /.../gm'),
-        );
-      }
-
-      const firstFlagToken = closingToken.next();
-      const regexpNode = createRegexpNode(nodes, firstFlagToken ? parseFlags(firstFlagToken, ctx) : '');
-      return connectSubpatternsWithGroups(ctx).map(() => ({ node: regexpNode, token: firstFlagToken }));
-    })
-    .unmatched(() => match.errored(ctx.reportError(firstToken, "Can't parse input")));
+  return match.all(collectedNodes, flags).matched(([{ nodes }, flags]) => {
+    const regexpNode = createRegexpNode(nodes, flags);
+    return connectSubpatternsWithGroups(ctx).map(() => ({ node: regexpNode }));
+  });
 };
 
 const supportedFlags = ['g', 'i', 'm', 's', 'u', 'y'];
@@ -155,6 +146,7 @@ const parseFlags = (step: Step, ctx: ParserContext): string => {
   return result;
 };
 
+// eslint-disable-next-line complexity
 const isQuantifiable = (node: AnyRegexpNode) =>
   isCharNode(node) ||
   isCharClassNode(node) ||
@@ -166,7 +158,9 @@ const isQuantifiable = (node: AnyRegexpNode) =>
   isAnyDigitNode(node) ||
   isNonDigitNode(node) ||
   isAnyWhitespaceNode(node) ||
-  isNonWhitespaceNode(node);
+  isNonWhitespaceNode(node) ||
+  isUnicodePropertyNode(node) ||
+  isNonUnicodePropertyNode(node);
 
 // Implementation .* ; .+ ; .? - quantifiers
 export const parseQuantifier: NodeParser = ({ nodes, token }, ctx) => {
@@ -329,7 +323,7 @@ export const parseBackspace: NodeParser = ({ nodes, token }) =>
 export const parseDisjunction: NodeParser = (
   { token: separatorToken, nodes: leftNodes },
   ctx,
-  recursiveFn = parseTokenInRegexp,
+  recursiveFn = parseNodeInRegexp,
 ) => {
   const wrappedRecursiveParser = (y: NodeParserResultValue, ctx: ParserContext) => {
     // creating tail recursion for correct nesting of multiple disjunctions
@@ -446,8 +440,68 @@ export const parseASCIIControlChar: NodeParser = ({ token, nodes }, ctx) => {
     });
 };
 
+const parseUnicodeProperty: NodeParser = x => {
+  const unicodePropertyWithValue = matchTokenSequence(x.token, [
+    [TokenKind.CharEscape, { value: 'p' }],
+    curlyBracketOpenMatcher,
+    wordMatcher,
+    [TokenKind.PatternChar, { value: '=' }],
+    wordMatcher,
+    curlyBracketCloseMatcher,
+  ]);
+  const unicodePropertyWithoutValue = matchTokenSequence(x.token, [
+    [TokenKind.CharEscape, { value: 'p' }],
+    curlyBracketOpenMatcher,
+    wordMatcher,
+    curlyBracketCloseMatcher,
+  ]);
+
+  const matchedConstruction = unicodePropertyWithValue.orElse(() => unicodePropertyWithoutValue);
+  const position = matchedConstruction.map(y => ({ start: x.token.start, end: y.token.end }));
+  const name = matchedConstruction.matched(({ values }) => match.nonNullable(values.at(0)));
+  const value = matchedConstruction.map(({ values }) => values.at(1) ?? null);
+  const unicodePropertyNode = match
+    .all(name, value, position)
+    .map(([name, value, position]) => factory.createUnicodePropertyNode(name, value, position));
+
+  return match.all(unicodePropertyNode, matchedConstruction).map(([node, { token }]) => ({
+    nodes: x.nodes.concat(node),
+    token,
+  }));
+};
+
+const parseNonUnicodeProperty: NodeParser = x => {
+  const unicodePropertyWithValue = matchTokenSequence(x.token, [
+    [TokenKind.CharEscape, { value: 'P' }],
+    curlyBracketOpenMatcher,
+    wordMatcher,
+    [TokenKind.PatternChar, { value: '=' }],
+    wordMatcher,
+    curlyBracketCloseMatcher,
+  ]);
+  const unicodePropertyWithoutValue = matchTokenSequence(x.token, [
+    [TokenKind.CharEscape, { value: 'P' }],
+    curlyBracketOpenMatcher,
+    wordMatcher,
+    curlyBracketCloseMatcher,
+  ]);
+
+  const matchedConstruction = unicodePropertyWithValue.orElse(() => unicodePropertyWithoutValue);
+  const position = matchedConstruction.map(y => ({ start: x.token.start, end: y.token.end }));
+  const name = matchedConstruction.matched(({ values }) => match.nonNullable(values.at(0)));
+  const value = matchedConstruction.map(({ values }) => values.at(1) ?? null);
+  const unicodePropertyNode = match
+    .all(name, value, position)
+    .map(([name, value, position]) => factory.createNonUnicodePropertyNode(name, value, position));
+
+  return match.all(unicodePropertyNode, matchedConstruction).map(([node, { token }]) => ({
+    nodes: x.nodes.concat(node),
+    token,
+  }));
+};
+
 // eslint-disable-next-line complexity
-export const parseTokenInRegexp: NodeParser = (x, ctx, recursiveFn = parseTokenInRegexp) => {
+export const parseNodeInRegexp: NodeParser = (x, ctx, recursiveFn = parseNodeInRegexp) => {
   const { token, nodes } = x;
   switch (token.kind) {
     case TokenKind.CharClassEscape:
@@ -468,6 +522,16 @@ export const parseTokenInRegexp: NodeParser = (x, ctx, recursiveFn = parseTokenI
             nodes: nodes.concat(createSimpleNode<NonWordBoundaryNode>(SyntaxKind.NonWordBoundary, token)),
             token,
           });
+        case 'p':
+          return match.first(
+            () => parseUnicodeProperty(x, ctx),
+            () => parseEscapedChar(x, ctx),
+          );
+        case 'P':
+          return match.first(
+            () => parseNonUnicodeProperty(x, ctx),
+            () => parseEscapedChar(x, ctx),
+          );
         case 'k':
           return match.first(
             () => parseSubpatternMatch(x, ctx),
@@ -562,7 +626,7 @@ export const parseGroup: NodeParser = ({ token: firstToken, nodes: parentNodes }
       return match.errored(ctx.reportError({ start: firstToken.start, end: token.end }, 'Incomplete group structure'));
     }
 
-    return parseTokenInRegexp(x, ctx, parseNodeInGroup);
+    return parseNodeInRegexp(x, ctx, parseNodeInGroup);
   };
 
   const firstTokenMatch = match

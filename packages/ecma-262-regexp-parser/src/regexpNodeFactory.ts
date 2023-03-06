@@ -24,6 +24,7 @@ import type {
   Node,
   NodePosition,
   NonDigitNode,
+  NonUnicodePropertyNode,
   NonWhitespaceNode,
   NonWordBoundaryNode,
   NonWordNode,
@@ -32,6 +33,7 @@ import type {
   RegexpNode,
   RepetitionNode,
   SubpatternNode,
+  UnicodePropertyNode,
   WordBoundaryNode,
 } from './regexpNodes.js';
 import { SyntaxKind } from './regexpNodes.js';
@@ -180,13 +182,18 @@ export const createGroupNode = (
   specifier: GroupNode['specifier'],
   expressions: AnyRegexpNode[],
   position: NodePosition,
-) => {
-  return createNode<GroupNode>(SyntaxKind.Group, position, {
+) =>
+  createNode<GroupNode>(SyntaxKind.Group, position, {
     type,
     specifier,
     body: sealExpressions(expressions, position),
   });
-};
+
+export const createUnicodePropertyNode = (name: string, value: string | null, position: NodePosition) =>
+  createNode<UnicodePropertyNode>(SyntaxKind.UnicodeProperty, position, { name, value });
+
+export const createNonUnicodePropertyNode = (name: string, value: string | null, position: NodePosition) =>
+  createNode<NonUnicodePropertyNode>(SyntaxKind.NonUnicodeProperty, position, { name, value });
 
 // checkers
 
@@ -222,3 +229,5 @@ export const isGroupNameNode = createChecker<GroupNameNode>(SyntaxKind.GroupName
 export const isBackReferenceNode = createChecker<BackReferenceNode>(SyntaxKind.BackReference);
 export const isQuantifierNode = createChecker<QuantifierNode>(SyntaxKind.Quantifier);
 export const isRepetitionNode = createChecker<RepetitionNode>(SyntaxKind.Repetition);
+export const isUnicodePropertyNode = createChecker<UnicodePropertyNode>(SyntaxKind.UnicodeProperty);
+export const isNonUnicodePropertyNode = createChecker<NonUnicodePropertyNode>(SyntaxKind.NonUnicodeProperty);
