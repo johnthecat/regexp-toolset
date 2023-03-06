@@ -1,5 +1,12 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`fillExpressions > should propagate error 1`] = `
+{
+  "error": [Error: This is 2.],
+  "match": false,
+}
+`;
+
 exports[`fillExpressions > should work 1`] = `
 {
   "match": true,

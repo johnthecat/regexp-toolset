@@ -1,10 +1,10 @@
-import type { AnyRegexpToken, Step, TokenKind } from './regexpTokenizer.js';
-import { isDecimalEscapeToken, isDecimalToken, isPatternCharToken } from './regexpTokenizer.js';
+import type { AnyRegexpToken, Step } from './regexpTokenizer.js';
+import { isDecimalEscapeToken, isDecimalToken, isPatternCharToken, TokenKind } from './regexpTokenizer.js';
 import { isBoolean } from './common/typeCheckers.js';
 import type { NodePosition } from './regexpNodes.js';
-import { matched, unmatched, type Monad, matchSeq } from './common/match.js';
+import * as match from './common/monads/match.js';
 
-type FullMatcherResult<V> = Monad<{ value: NonNullable<V> | null; token: Step }, unknown>;
+type FullMatcherResult<V> = match.Match<{ value: NonNullable<V> | null; token: Step }>;
 type MatcherResult<V> = boolean | FullMatcherResult<V>;
 
 type CustomMatcher<V> = (token: Step) => MatcherResult<V>;
@@ -38,14 +38,13 @@ const applyMatcher = <V>(token: Step, matcher: Matcher<V>): FullMatcherResult<V>
     result = partialMatcher(token, matcher);
   }
 
-  return isBoolean(result) ? (result ? matched({ value: null, token }) : unmatched(null)) : result;
+  return isBoolean(result) ? (result ? match.matched({ value: null, token }) : match.unmatched()) : result;
 };
 
-type MatchedSeqResult<V> = Monad<NodePosition & { values: NonNullable<V>[]; token: Step }, unknown>;
+type MatchedSeqResult<V> = match.Match<NodePosition & { values: NonNullable<V>[]; token: Step }>;
 
-// TODO fix
 export const matchTokenSequence = <V>(token: Step, seq: (Matcher<V> | MatcherList<V>)[]): MatchedSeqResult<V> => {
-  let intermediateResult: MatchedSeqResult<V> = matched({
+  let intermediateResult: MatchedSeqResult<V> = match.matched({
     token,
     values: [],
     start: token.start,
@@ -53,69 +52,69 @@ export const matchTokenSequence = <V>(token: Step, seq: (Matcher<V> | MatcherLis
   });
 
   for (const condition of seq) {
-    intermediateResult = intermediateResult.matched(({ start, values, token: currentToken }) => {
-      if (Array.isArray(condition)) {
-        return matchSeq(condition.map(x => applyMatcher(currentToken, x))).map(res => {
-          const value = res.find(v => v.value !== null)?.value ?? null;
-          const token = res.sort((a, b) => b.token.index - a.token.index).at(0)?.token ?? currentToken;
-          return {
-            token,
-            values: value !== null ? values.concat(value) : values,
-            start,
-            end: token.end,
-          };
+    intermediateResult = intermediateResult
+      .matched(({ start, values, token: currentToken }) => {
+        if (Array.isArray(condition)) {
+          return match.all(...condition.map(x => applyMatcher(currentToken, x))).map(res => {
+            const value = res.find(v => v.value !== null)?.value ?? null;
+            const token = res.at(-1)?.token ?? currentToken;
+            return {
+              token,
+              values: value !== null ? values.concat(value) : values,
+              start,
+              end: token.end,
+            };
+          });
+        }
+
+        return applyMatcher(currentToken, condition).map(({ token, value }) => ({
+          token,
+          values: value !== null ? values.concat(value) : values,
+          start,
+          end: token.end,
+        }));
+      })
+      .matched(({ token, ...etc }) => {
+        const next = token.next();
+        if (!next) {
+          return match.unmatched();
+        }
+        return match.matched({
+          token: next,
+          ...etc,
         });
-      }
-
-      return applyMatcher(currentToken, condition).map(({ token, value }) => ({
-        token,
-        values: value !== null ? values.concat(value) : values,
-        start,
-        end: token.end,
-      }));
-    });
-
-    intermediateResult = intermediateResult.matched(({ token, ...etc }) => {
-      const next = token.next();
-      if (!next) {
-        return unmatched(null);
-      }
-      return matched({
-        token: next,
-        ...etc,
       });
-    });
   }
 
   return intermediateResult.map(({ token, ...etc }) => ({ token: token.prev(), ...etc }));
 };
 
+const wordRegexp = /\w/;
 export const wordMatcher: CustomMatcher<string> = (token: Step) => {
-  let match = false;
+  let wordMatched = false;
   let last: Step = token;
   let current: Step | null = token;
   let value = '';
   do {
-    if (/\w/.test(current.value)) {
-      match = true;
+    if (wordRegexp.test(current.value)) {
+      wordMatched = true;
       last = current;
       value += current.value;
     } else {
       break;
     }
   } while ((current = current.next()));
-
-  return match ? matched({ value, token: last }) : unmatched({ value, token: last });
+  return wordMatched ? match.matched({ value, token: last }) : match.unmatched();
 };
 
 export const numberMatcher: CustomMatcher<number> = step => {
-  let match = false;
+  let numberMatched = false;
   let last: Step = step;
   let current: Step | null = step;
   let value = '';
   do {
     if (isDecimalToken(current) || isDecimalEscapeToken(current)) {
-      match = true;
+      numberMatched = true;
       last = current;
       value += current.value;
     } else {
@@ -123,17 +122,17 @@ export const numberMatcher: CustomMatcher<number> = step => {
     }
   } while ((current = current.next()));
 
-  return match ? matched({ value: parseInt(value), token: last }) : unmatched({ value: 0, token: last });
+  return numberMatched ? match.matched({ value: parseInt(value), token: last }) : match.unmatched();
 };
 
 export const octalMatcher: CustomMatcher<string> = firstToken => {
   const secondToken = firstToken.next();
   if (!secondToken) {
-    return unmatched({ value: '', token: firstToken });
+    return match.unmatched();
   }
   const thirdToken = secondToken.next();
   if (!thirdToken) {
-    return unmatched({ value: '', token: secondToken });
+    return match.unmatched();
   }
 
   let value = '';
@@ -142,23 +141,23 @@ export const octalMatcher: CustomMatcher<string> = firstToken => {
     if ((token === firstToken && isDecimalEscapeToken(token)) || isDecimalToken(token)) {
       const num = parseInt(token.value);
       if (num > 7 || num < 0) {
-        return unmatched({ value, token });
+        return match.unmatched();
       }
 
       value = value + token.value;
       if (parseInt(value) > 377) {
-        return unmatched({ value, token });
+        return match.unmatched();
       }
     }
   }
 
-  return value.length ? matched({ value, token: thirdToken }) : unmatched({ value, token: thirdToken });
+  return value.length ? match.matched({ value, token: thirdToken }) : match.unmatched();
 };
 
 export const hexMatcher: CustomMatcher<string> = firstToken => {
   const secondToken = firstToken.next();
   if (!secondToken) {
-    return unmatched({ value: '', token: firstToken });
+    return match.unmatched();
   }
 
   let value = '';
@@ -166,9 +165,12 @@ export const hexMatcher: CustomMatcher<string> = firstToken => {
     if ((isPatternCharToken(token) || isDecimalToken(token)) && /^[0-9A-Fa-f]$/.test(token.value)) {
       value += token.value;
     } else {
-      return unmatched({ value, token });
+      return match.unmatched();
     }
   }
 
-  return matched({ value, token: secondToken });
+  return match.matched({ value, token: secondToken });
 };
+
+export const curlyBracketOpenMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '{' }];
+export const curlyBracketCloseMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '}' }];

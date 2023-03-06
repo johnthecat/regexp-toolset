@@ -1,12 +1,8 @@
-export type LintedListNode<LocalValue extends object, NextValues extends object = LocalValue> = (LocalValue extends any
-  ? LocalValue & {
-      __linkedListValue?: LocalValue | undefined;
-    }
-  : never) & {
+export type LintedListNode<Value extends object> = Value & {
   index: number;
-  prev(): LintedListNode<NextValues>;
-  next(): LintedListNode<NextValues> | null;
-  __linkedListValue?: LocalValue | undefined;
+  prev(): LintedListNode<Value>;
+  next(): LintedListNode<Value> | null;
+  __linkedListValue?: Value | undefined;
 };
 
 export class LazyDoublyLinkedList<Value extends object> {

@@ -10,10 +10,7 @@ export type Token<K, V extends string = string> = {
 
 export type AnyToken<K = any, V extends string = string> = Token<K, V>;
 
-export type TokenizerStep<
-  CurrentToken extends AnyToken = AnyToken,
-  NextTokens extends AnyToken = CurrentToken,
-> = LintedListNode<CurrentToken, NextTokens>;
+export type TokenizerStep<Token extends AnyToken = AnyToken> = LintedListNode<Token>;
 
 export type TokenMatcherResult<T extends TokenizerStep> = IteratorResult<T, T> & {
   match: boolean;

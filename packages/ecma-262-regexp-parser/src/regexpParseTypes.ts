@@ -1,15 +1,15 @@
 import type { AnyRegexpNode, GroupNode, NodePosition, SubpatternNode } from './regexpNodes.js';
 import type { RegexpTokenizer, Step } from './regexpTokenizer.js';
 import type { ParsingError } from './common/parsingError.js';
-import type { Monad } from './common/match.js';
+import type { Match } from './common/monads/match.js';
 
 // export type NodeParserResult = EitherMatch<AnyRegexpNode>;
-export type NodeParserResult = Monad<{ nodes: AnyRegexpNode[]; token: Step }, unknown>;
-export type SingleNodeParserResult<T extends AnyRegexpNode = AnyRegexpNode> = Monad<{ node: T; token: Step }, unknown>;
+export type NodeParserResultValue = { nodes: AnyRegexpNode[]; token: Step };
+export type NodeParserResult = Match<NodeParserResultValue>;
+export type SingleNodeParserResult<T extends AnyRegexpNode = AnyRegexpNode> = Match<{ node: T; token: Step }>;
 
 export type NodeParser = (
-  token: Step,
-  nodes: AnyRegexpNode[],
+  input: NodeParserResultValue,
   ctx: ParserContext,
   recursiveFn?: NodeParser,
 ) => NodeParserResult;
