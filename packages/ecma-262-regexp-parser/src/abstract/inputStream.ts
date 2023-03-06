@@ -1,19 +1,19 @@
+export type StringStream = {
+  chars(): InputStreamIterator;
+  size(): number;
+  [Symbol.iterator](): InputStreamIterator;
+};
+
 export type InputStreamIterator = Iterator<string, null> & {
   isDone(): boolean;
   collect(regexp: RegExp): { value: string; start: number; end: number } | null;
 };
 
-export const createStringStream = (input: string) => {
-  return {
-    chars() {
-      return this[Symbol.iterator]();
-    },
-
-    size() {
-      return input.length - 1;
-    },
-
-    [Symbol.iterator](): InputStreamIterator {
+export const createStringStream = (input: string): StringStream => {
+  const self: StringStream = {
+    chars: () => self[Symbol.iterator](),
+    size: () => input.length,
+    [Symbol.iterator]: () => {
       let pos = 0;
 
       const inputIterator: InputStreamIterator = {
@@ -58,4 +58,5 @@ export const createStringStream = (input: string) => {
       return inputIterator;
     },
   };
+  return self;
 };

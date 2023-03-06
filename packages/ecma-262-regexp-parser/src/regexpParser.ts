@@ -106,7 +106,7 @@ const connectSubpatternsWithGroups = (ctx: ParserContext): match.Match<void> => 
 };
 
 export const parseRegexp: SingleNodeParser<RegexpNode> = (firstToken, ctx) => {
-  if (!isPatternCharToken(firstToken, '/')) {
+  if (!isForwardSlashToken(firstToken)) {
     return match.errored(ctx.reportError(0, 'Regexp should start with "/" symbol, like this: /.../gm'));
   }
 
@@ -117,7 +117,7 @@ export const parseRegexp: SingleNodeParser<RegexpNode> = (firstToken, ctx) => {
 
   return fillExpressions(firstContentToken, ctx, parseTokenInRegexp)
     .matched(({ nodes, token: closingToken }) => {
-      if (!isPatternCharToken(closingToken, '/')) {
+      if (!isForwardSlashToken(closingToken)) {
         return match.errored(
           ctx.reportError(closingToken, 'Regexp body should end with "/" symbol, like this: /.../gm'),
         );
@@ -547,9 +547,10 @@ export const parseTokenInRegexp: NodeParser = (x, ctx, recursiveFn = parseTokenI
 // Implementation (...) - capturing group
 // eslint-disable-next-line complexity
 export const parseGroup: NodeParser = ({ token: firstToken, nodes: parentNodes }, ctx) => {
-  const parseNodeInGroup: NodeParser = ({ token, nodes }, ctx) => {
+  const parseNodeInGroup: NodeParser = (x, ctx) => {
+    const { token } = x;
     if (isParenthesesOpenToken(token)) {
-      return parseGroup({ token, nodes }, ctx);
+      return parseGroup(x, ctx);
     }
 
     // Closing group
@@ -557,11 +558,11 @@ export const parseGroup: NodeParser = ({ token: firstToken, nodes: parentNodes }
       return match.unmatched();
     }
 
-    if (ctx.tokenizer.isLastToken(token)) {
+    if (isForwardSlashToken(token) || ctx.tokenizer.isLastToken(token)) {
       return match.errored(ctx.reportError({ start: firstToken.start, end: token.end }, 'Incomplete group structure'));
     }
 
-    return parseTokenInRegexp({ token, nodes }, ctx, parseNodeInGroup);
+    return parseTokenInRegexp(x, ctx, parseNodeInGroup);
   };
 
   const firstTokenMatch = match
@@ -724,9 +725,12 @@ export const parseCharRange: NodeParser = ({ token: startToken, nodes }, ctx, re
 export const parseCharClass: NodeParser = ({ token: firstToken, nodes: parentNodes }, ctx) => {
   const parseTokenInCharClass: NodeParser = (x, ctx) => {
     const { token } = x;
+
     if (isBracketsCloseToken(token)) {
       return match.unmatched();
-    } else if (ctx.tokenizer.isLastToken(token)) {
+    }
+
+    if (isForwardSlashToken(token) || ctx.tokenizer.isLastToken(token)) {
       return match.errored(
         ctx.reportError(
           {
