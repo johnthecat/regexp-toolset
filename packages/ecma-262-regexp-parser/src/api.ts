@@ -5,7 +5,7 @@ import { fillExpressions } from './regexpParseUtils.js';
 import { sealExpressions } from './regexpNodeFactory.js';
 
 export const parseRegexp = (source: string | RegExp): RegexpNode => {
-  const rawSource = source instanceof RegExp ? `/${source.source}/${source.flags}` : source;
+  const rawSource = source.toString();
   const tokenizer = regexpTokenizer(rawSource);
   const ctx = createParserContext(rawSource, tokenizer);
 

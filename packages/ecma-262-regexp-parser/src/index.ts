@@ -1,6 +1,7 @@
 import * as factory from './regexpNodeFactory.js';
 
 export { parseRegexp, parseRegexpNode } from './api.js';
+export { printRegexpNode, createRegExpFromRegexpNode } from './regexpPrinter.js';
 export { SyntaxKind, ControlEscapeCharType, QuantifierType } from './regexpNodes.js';
 export { factory };
 export type {

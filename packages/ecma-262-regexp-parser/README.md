@@ -35,6 +35,24 @@ import { parseRegexpNode } from 'ecma-262-regexp-parser';
 const regexpAST = parseRegexpNode('(?:Maybe)\\snot');
 ```
 
+### `printRegexpNode(ast: AnyRegexpNode): string`
+Prints AST back to string as full representation (e.g. `'/hello/gi'`)
+
+```typescript
+import { printRegexpNode } from 'ecma-262-regexp-parser';
+const regexp = parseRegexpNode(someAST);
+```
+
+### `createRegExpFromRegexpNode(ast: RegexpNode): RegExp`
+Generates javascript `RegExp` from `RegexpNode`.
+
+```typescript
+import { createRegExpFromRegexpNode, parseRegexp } from 'ecma-262-regexp-parser';
+const regexpAST = parseRegexp(/a|b/);
+const regexp = createRegExpFromRegexpNode(regexpAST);
+console.log(regexp.test('a')) // <- true
+```
+
 ### `SyntaxKind`
 Enum, which describes all possible node types.
 
