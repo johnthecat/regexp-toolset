@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`CharClass > Content > can be empty 1`] = `
+exports[`CharClass > can be empty 1`] = `
 {
   "body": {
     "end": 2,
@@ -16,7 +16,7 @@ exports[`CharClass > Content > can be empty 1`] = `
 }
 `;
 
-exports[`CharClass > Content > should be quantifiable 1`] = `
+exports[`CharClass > should be quantifiable 1`] = `
 {
   "body": {
     "end": 4,
@@ -53,7 +53,7 @@ exports[`CharClass > Content > should be quantifiable 1`] = `
 }
 `;
 
-exports[`CharClass > Content > should be quantifiable 2`] = `
+exports[`CharClass > should be quantifiable 2`] = `
 {
   "body": {
     "end": 6,
@@ -92,32 +92,7 @@ exports[`CharClass > Content > should be quantifiable 2`] = `
 }
 `;
 
-exports[`CharClass > Content > should correctly parse char 1`] = `
-{
-  "body": {
-    "end": 3,
-    "expressions": [
-      {
-        "charCode": 97,
-        "end": 2,
-        "kind": 6,
-        "start": 2,
-        "type": "simple",
-        "value": "a",
-      },
-    ],
-    "kind": 21,
-    "negative": false,
-    "start": 1,
-  },
-  "end": 4,
-  "flags": "",
-  "kind": 0,
-  "start": 0,
-}
-`;
-
-exports[`CharClass > Content > should correctly parse char range 1`] = `
+exports[`CharClass > should correctly parse char range 1`] = `
 {
   "body": {
     "end": 5,
@@ -215,6 +190,135 @@ exports[`CharClass > should correctly parse simple char class 1`] = `
     "start": 1,
   },
   "end": 4,
+  "flags": "",
+  "kind": 0,
+  "start": 0,
+}
+`;
+
+exports[`CharClass > should correctly parse syntax chars 1`] = `
+{
+  "body": {
+    "end": 19,
+    "expressions": [
+      {
+        "charCode": 92,
+        "end": 3,
+        "kind": 6,
+        "start": 2,
+        "type": "escaped",
+        "value": "\\\\",
+      },
+      {
+        "charCode": 46,
+        "end": 4,
+        "kind": 6,
+        "start": 4,
+        "type": "simple",
+        "value": ".",
+      },
+      {
+        "charCode": 42,
+        "end": 5,
+        "kind": 6,
+        "start": 5,
+        "type": "simple",
+        "value": "*",
+      },
+      {
+        "charCode": 43,
+        "end": 6,
+        "kind": 6,
+        "start": 6,
+        "type": "simple",
+        "value": "+",
+      },
+      {
+        "charCode": 63,
+        "end": 7,
+        "kind": 6,
+        "start": 7,
+        "type": "simple",
+        "value": "?",
+      },
+      {
+        "charCode": 41,
+        "end": 8,
+        "kind": 6,
+        "start": 8,
+        "type": "simple",
+        "value": ")",
+      },
+      {
+        "charCode": 40,
+        "end": 9,
+        "kind": 6,
+        "start": 9,
+        "type": "simple",
+        "value": "(",
+      },
+      {
+        "charCode": 93,
+        "end": 11,
+        "kind": 6,
+        "start": 10,
+        "type": "escaped",
+        "value": "]",
+      },
+      {
+        "charCode": 91,
+        "end": 13,
+        "kind": 6,
+        "start": 12,
+        "type": "escaped",
+        "value": "[",
+      },
+      {
+        "charCode": 125,
+        "end": 14,
+        "kind": 6,
+        "start": 14,
+        "type": "simple",
+        "value": "}",
+      },
+      {
+        "charCode": 123,
+        "end": 15,
+        "kind": 6,
+        "start": 15,
+        "type": "simple",
+        "value": "{",
+      },
+      {
+        "charCode": 124,
+        "end": 16,
+        "kind": 6,
+        "start": 16,
+        "type": "simple",
+        "value": "|",
+      },
+      {
+        "charCode": 36,
+        "end": 17,
+        "kind": 6,
+        "start": 17,
+        "type": "simple",
+        "value": "$",
+      },
+      {
+        "charCode": 94,
+        "end": 18,
+        "kind": 6,
+        "start": 18,
+        "type": "simple",
+        "value": "^",
+      },
+    ],
+    "kind": 21,
+    "negative": false,
+    "start": 1,
+  },
+  "end": 20,
   "flags": "",
   "kind": 0,
   "start": 0,

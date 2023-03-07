@@ -12,7 +12,7 @@ export type InputStreamIterator = Iterator<string, null> & {
 export const createStringStream = (input: string): StringStream => {
   const self: StringStream = {
     chars: () => self[Symbol.iterator](),
-    size: () => input.length,
+    size: () => input.length - 1,
     [Symbol.iterator]: () => {
       let pos = 0;
 

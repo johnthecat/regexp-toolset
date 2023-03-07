@@ -794,7 +794,7 @@ export const parseCharClass: NodeParser = ({ token: firstToken, nodes: parentNod
       return match.unmatched();
     }
 
-    if (isForwardSlashToken(token) || ctx.tokenizer.isLastToken(token)) {
+    if (ctx.tokenizer.isLastToken(token)) {
       return match.errored(
         ctx.reportError(
           {
@@ -814,6 +814,7 @@ export const parseCharClass: NodeParser = ({ token: firstToken, nodes: parentNod
         return match.first(
           () => parseBackspace(x, ctx),
           () => parseCharEscape(x, ctx),
+          () => parseEscapedChar(x, ctx),
         );
 
       case TokenKind.CharClassEscape:
