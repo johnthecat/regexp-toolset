@@ -1,24 +1,5 @@
-import { defineConfig } from 'vite';
-import dts from 'vite-plugin-dts';
-import { externals } from 'rollup-plugin-node-externals';
+import { createViteConfig } from '../../configs/vite.js';
 
-const config = defineConfig({
-  build: {
-    reportCompressedSize: true,
-    lib: {
-      entry: './src/index.ts',
-      fileName: 'index',
-      formats: ['es'],
-    },
-  },
-  plugins: [
-    { ...externals(), enforce: 'pre' },
-    dts({
-      noEmitOnError: true,
-      copyDtsFiles: true,
-      include: ['./src/**'],
-    }),
-  ],
+export default createViteConfig({
+  formats: ['es'],
 });
-
-export default config;
