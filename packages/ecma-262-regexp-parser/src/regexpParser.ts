@@ -54,12 +54,17 @@ import {
 } from './regexpNodeFactory.js';
 import type { NodeParser, NodeParserResultValue, ParserContext, SingleNodeParser } from './regexpParseTypes.js';
 import {
+  chevronsCloseMatcher,
+  chevronsOpenMatcher,
   curlyBracketCloseMatcher,
   curlyBracketOpenMatcher,
+  equalsMatcher,
   hexMatcher,
   matchTokenSequence,
   numberMatcher,
   octalMatcher,
+  parenthesisOpenMatcher,
+  questionMarkMatcher,
   wordMatcher,
 } from './regexpSequenceMatcher.js';
 import { fillExpressions } from './regexpParseUtils.js';
@@ -164,7 +169,7 @@ const isQuantifiable = (node: AnyRegexpNode) =>
 
 // Implementation .* ; .+ ; .? - quantifiers
 export const parseQuantifier: NodeParser = ({ nodes, token }, ctx) => {
-  const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]);
+  const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, questionMarkMatcher]);
   const lastToken = lazy.map(x => x.token).orElse(() => match.matched(token));
 
   const quantifiableNode = match
@@ -212,9 +217,7 @@ export const parseRangeQuantifier: NodeParser = (x, ctx) => {
       .orError(() => ctx.reportError(token, "Can't parse numeric values from range."));
     const to = range.map(x => x.values.at(1));
 
-    const lazy = range.flatMap(({ token }) =>
-      matchTokenSequence(token, [TokenKind.SyntaxChar, [TokenKind.SyntaxChar, { value: '?' }]]),
-    );
+    const lazy = range.flatMap(({ token }) => matchTokenSequence(token, [TokenKind.SyntaxChar, questionMarkMatcher]));
 
     const lastToken = lazy.map(x => x.token).orElse(() => range.map(x => x.token));
 
@@ -264,9 +267,9 @@ export const parseRangeQuantifier: NodeParser = (x, ctx) => {
 export const parseSubpatternMatch: NodeParser = ({ token, nodes }, ctx) => {
   return matchTokenSequence(token, [
     [TokenKind.CharEscape, { value: 'k' }],
-    [TokenKind.PatternChar, { value: '<' }],
+    chevronsOpenMatcher,
     wordMatcher,
-    [TokenKind.PatternChar, { value: '>' }],
+    chevronsCloseMatcher,
   ]).matched(subpattern => {
     const groupName = subpattern.values.at(0);
     if (!groupName) {
@@ -432,7 +435,7 @@ export const parseASCIIControlChar: NodeParser = ({ token, nodes }, ctx) => {
   return nextToken
     .flatMap(() => valueToken)
     .map(valueToken => {
-      const node = factory.createASCIIControlCharNode(valueToken.value.toUpperCase(), {
+      const node = factory.createASCIIControlCharNode(valueToken.value, {
         start: token.start,
         end: valueToken.end,
       });
@@ -445,7 +448,7 @@ const parseUnicodeProperty: NodeParser = x => {
     [TokenKind.CharEscape, { value: 'p' }],
     curlyBracketOpenMatcher,
     wordMatcher,
-    [TokenKind.PatternChar, { value: '=' }],
+    equalsMatcher,
     wordMatcher,
     curlyBracketCloseMatcher,
   ]);
@@ -475,7 +478,7 @@ const parseNonUnicodeProperty: NodeParser = x => {
     [TokenKind.CharEscape, { value: 'P' }],
     curlyBracketOpenMatcher,
     wordMatcher,
-    [TokenKind.PatternChar, { value: '=' }],
+    equalsMatcher,
     wordMatcher,
     curlyBracketCloseMatcher,
   ]);
@@ -639,11 +642,7 @@ export const parseGroup: NodeParser = ({ token: firstToken, nodes: parentNodes }
     () =>
       firstTokenMatch
         .flatMap(firstToken =>
-          matchTokenSequence(firstToken, [
-            [TokenKind.SyntaxChar, { value: '(' }],
-            [TokenKind.SyntaxChar, { value: '?' }],
-            [TokenKind.PatternChar, { value: '=' }],
-          ]),
+          matchTokenSequence(firstToken, [parenthesisOpenMatcher, questionMarkMatcher, equalsMatcher]),
         )
         .map(({ token }) => ({ token, type: 'positiveLookahead', specifier: null } as const)),
 
@@ -652,8 +651,8 @@ export const parseGroup: NodeParser = ({ token: firstToken, nodes: parentNodes }
       firstTokenMatch
         .flatMap(firstToken =>
           matchTokenSequence(firstToken, [
-            [TokenKind.SyntaxChar, { value: '(' }],
-            [TokenKind.SyntaxChar, { value: '?' }],
+            parenthesisOpenMatcher,
+            questionMarkMatcher,
             [TokenKind.PatternChar, { value: '!' }],
           ]),
         )
@@ -664,10 +663,10 @@ export const parseGroup: NodeParser = ({ token: firstToken, nodes: parentNodes }
       firstTokenMatch
         .flatMap(firstToken =>
           matchTokenSequence(firstToken, [
-            [TokenKind.SyntaxChar, { value: '(' }],
-            [TokenKind.SyntaxChar, { value: '?' }],
-            [TokenKind.PatternChar, { value: '<' }],
-            [TokenKind.PatternChar, { value: '=' }],
+            parenthesisOpenMatcher,
+            questionMarkMatcher,
+            chevronsOpenMatcher,
+            equalsMatcher,
           ]),
         )
         .map(({ token }) => ({ token, type: 'positiveLookbehind', specifier: null } as const)),
@@ -677,9 +676,9 @@ export const parseGroup: NodeParser = ({ token: firstToken, nodes: parentNodes }
       firstTokenMatch
         .flatMap(firstToken =>
           matchTokenSequence(firstToken, [
-            [TokenKind.SyntaxChar, { value: '(' }],
-            [TokenKind.SyntaxChar, { value: '?' }],
-            [TokenKind.PatternChar, { value: '<' }],
+            parenthesisOpenMatcher,
+            questionMarkMatcher,
+            chevronsOpenMatcher,
             [TokenKind.PatternChar, { value: '!' }],
           ]),
         )
@@ -690,8 +689,8 @@ export const parseGroup: NodeParser = ({ token: firstToken, nodes: parentNodes }
       firstTokenMatch
         .flatMap(firstToken =>
           matchTokenSequence(firstToken, [
-            [TokenKind.SyntaxChar, { value: '(' }],
-            [TokenKind.SyntaxChar, { value: '?' }],
+            parenthesisOpenMatcher,
+            questionMarkMatcher,
             [TokenKind.PatternChar, { value: ':' }],
           ]),
         )
@@ -702,11 +701,11 @@ export const parseGroup: NodeParser = ({ token: firstToken, nodes: parentNodes }
       firstTokenMatch
         .flatMap(firstToken =>
           matchTokenSequence<string>(firstToken, [
-            [TokenKind.SyntaxChar, { value: '(' }],
-            [TokenKind.SyntaxChar, { value: '?' }],
-            [TokenKind.PatternChar, { value: '<' }],
+            parenthesisOpenMatcher,
+            questionMarkMatcher,
+            chevronsOpenMatcher,
             wordMatcher,
-            [TokenKind.PatternChar, { value: '>' }],
+            chevronsCloseMatcher,
           ]),
         )
         .flatMap(groupName => {

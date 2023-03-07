@@ -174,3 +174,9 @@ export const hexMatcher: CustomMatcher<string> = firstToken => {
 
 export const curlyBracketOpenMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '{' }];
 export const curlyBracketCloseMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '}' }];
+export const chevronsOpenMatcher: MatcherList<never> = [TokenKind.PatternChar, { value: '<' }];
+export const chevronsCloseMatcher: MatcherList<never> = [TokenKind.PatternChar, { value: '>' }];
+export const equalsMatcher: MatcherList<never> = [TokenKind.PatternChar, { value: '=' }];
+export const questionMarkMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '?' }];
+export const parenthesisOpenMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '(' }];
+export const parenthesisCloseMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: ')' }];

@@ -6,8 +6,11 @@ describe('Printer', () => {
   test.each([
     '//gui',
     /a/,
+    /^$/,
     /[A-z]/,
     /[\b]/,
+    /\cA/,
+    /\ca/,
     /(hello)/,
     /(?:hello) world/,
     /(?<group>hello)\s\k<group>/,
@@ -34,6 +37,7 @@ describe('Printer', () => {
 
     // just flexin'
     /\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}/g,
+    /(?<!\.d)\.(?<ext>[cm]?ts|tsx)$/gm,
   ])('Print regexp %s', source => {
     expect(printRegexpNode(parseRegexp(source))).toBe(source.toString());
   });
