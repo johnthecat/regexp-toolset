@@ -363,7 +363,7 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
 
     case SyntaxKind.Alternative: {
       if (node.expressions.length === 0) {
-        result.push(paint(paint('Empty', colorMap.header), colorMap.inverse));
+        result.push(paint(paint('Zero Length', colorMap.header), colorMap.inverse));
         break;
       }
 
