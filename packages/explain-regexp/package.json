@@ -1,6 +1,6 @@
 {
   "name": "explain-regexp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "license": "MIT",
   "description": "CLI util for fast analyze of RegExp",
   "homepage": "https://github.com/johnthecat/regexp-toolset/tree/main/packages/explain-regexp",
