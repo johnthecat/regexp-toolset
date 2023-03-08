@@ -13,12 +13,12 @@
     "prepublishOnly": "npm run lint && npm run test"
   },
   "devDependencies": {
-    "@types/node": "^18.14.1",
-    "@typescript-eslint/eslint-plugin": "^5.53.0",
-    "@typescript-eslint/parser": "^5.53.0",
-    "@vitest/coverage-c8": "^0.29.1",
-    "eslint": "^8.34.0",
-    "eslint-config-prettier": "^8.6.0",
+    "@types/node": "^18.14.6",
+    "@typescript-eslint/eslint-plugin": "^5.54.1",
+    "@typescript-eslint/parser": "^5.54.1",
+    "@vitest/coverage-c8": "^0.29.2",
+    "eslint": "^8.35.0",
+    "eslint-config-prettier": "^8.7.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-prettier": "^4.2.1",
     "husky": "^8.0.3",
@@ -28,6 +28,6 @@
     "typescript": "4.9.5",
     "vite": "^4.1.4",
     "vite-plugin-dts": "^2.0.2",
-    "vitest": "^0.29.1"
+    "vitest": "^0.29.2"
   }
 }

@@ -1,3 +1,5 @@
+import { nonNullable } from './typeCheckers.js';
+
 export const waterfall = <T extends ((...args: any[]) => any)[]>(list: T): T[number] => {
   return (...args) => {
     for (let index = 0; index < list.length; index++) {
@@ -7,7 +9,7 @@ export const waterfall = <T extends ((...args: any[]) => any)[]>(list: T): T[num
       }
 
       const result = fn(...args);
-      if (result !== void 0 && result !== null) {
+      if (nonNullable(result)) {
         return result;
       }
     }

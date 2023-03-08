@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fillExpressions } from '../regexpParseUtils.js';
 import { regexpTokenizer } from '../regexpTokenizer.js';
 import { createParserContext } from '../regexpParser.js';
-import { errored, matched } from '../common/monads/match.js';
+import { err, ok } from '../common/match/match.js';
 import { createCharNode } from '../regexpNodeFactory.js';
 
 describe('fillExpressions', () => {
@@ -14,7 +14,7 @@ describe('fillExpressions', () => {
       throw new Error('Fail');
     }
     const result = fillExpressions(token, createParserContext(source, tokenizer), ({ token, nodes }) => {
-      return matched({ nodes: nodes.concat(createCharNode(token.value, token, 'simple')), token });
+      return ok({ nodes: nodes.concat(createCharNode(token.value, token, 'simple')), token });
     });
 
     expect(result.unwrap()).toMatchSnapshot();
@@ -29,9 +29,9 @@ describe('fillExpressions', () => {
     }
     const result = fillExpressions(token, createParserContext(source, tokenizer), ({ token, nodes }) => {
       if (token.value === '1') {
-        return matched({ nodes: nodes.concat(createCharNode(token.value, token, 'simple')), token });
+        return ok({ nodes: nodes.concat(createCharNode(token.value, token, 'simple')), token });
       }
-      return errored(new Error('This is 2.'));
+      return err(new Error('This is 2.'));
     });
 
     expect(result.unwrap()).toMatchSnapshot();

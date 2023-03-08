@@ -189,6 +189,12 @@ export const createGroupNode = (
     body: sealExpressions(expressions, position),
   });
 
+export const createSubpatternNode = (groupName: string, ref: GroupNode | null, position: NodePosition) =>
+  createNode<SubpatternNode>(SyntaxKind.Subpattern, position, {
+    ref,
+    groupName,
+  });
+
 export const createUnicodePropertyNode = (name: string, value: string | null, position: NodePosition) =>
   createNode<UnicodePropertyNode>(SyntaxKind.UnicodeProperty, position, { name, value });
 

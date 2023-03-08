@@ -43,17 +43,7 @@ export type TokenizerApi<T extends AnyToken> = TokenizerIterable<TokenizerStep<T
   isFirstToken(token: T): boolean;
   isLastToken(token: T): boolean;
   getFirstStep(): TokenizerStep<T> | null;
-  match(step: TokenizerStep<T>, fn: TokenMatcherFn<TokenizerStep<T>>): TokenizerStep<T>;
-  reduce<R>(
-    step: TokenizerStep<T>,
-    fn: TokenReducerFn<TokenizerStep<T>, R>,
-    initial: R,
-  ): TokenReducerResult<TokenizerStep<T>, R>;
-  matchReduce<R>(
-    step: TokenizerStep<T>,
-    fn: TokenMatchReducerFn<TokenizerStep<T>, R>,
-    initial: R,
-  ): TokenMatchReducerResult<TokenizerStep<T>, R>;
+  iterate(step: TokenizerStep<T>): TokenizerIterable<TokenizerStep<T>>;
 };
 
 export type Tokenizer<T extends AnyToken = AnyToken> = TokenizerApi<T>;
@@ -107,69 +97,7 @@ export const createTokenizer = <T extends Handler<AnyToken>>(
       isFirstToken: token => token.start === 0,
       isLastToken: token => token.end === stream.size(),
       getFirstStep: () => list.getHead(),
-      match(step, matcher) {
-        let currentStep = step;
-        while (currentStep) {
-          const result = matcher(currentStep);
-          if (result.done) {
-            currentStep = result.value;
-            break;
-          }
-          const nextStep = result.value.next() ?? null;
-          if (!nextStep) {
-            break;
-          }
-          currentStep = nextStep;
-        }
-        return currentStep;
-      },
-      reduce: <Result>(step: TokenizerStep, fn: TokenReducerFn<TokenizerStep, Result>, initial: Result) => {
-        let currentReturn: TokenReducerResult<TokenizerStep, Result> = {
-          done: true,
-          value: step,
-          result: initial,
-        };
-        while (currentReturn) {
-          const result = fn(currentReturn.value, currentReturn.result);
-          if (result.done) {
-            currentReturn = result;
-            break;
-          }
-          const nextStep = result.value.next();
-          currentReturn = {
-            done: false,
-            result: result.result,
-            value: nextStep ?? currentReturn.value,
-          };
-          if (!nextStep) {
-            break;
-          }
-        }
-        return currentReturn;
-      },
-      matchReduce: <Result>(token: TokenizerStep, fn: TokenMatchReducerFn<TokenizerStep, Result>, initial: Result) => {
-        let currentToken = token;
-        let currentResult = initial;
-        while (currentToken) {
-          const result = fn(currentToken, currentResult);
-          if (result.match) {
-            return result;
-          }
-          if (result.done) {
-            break;
-          }
-
-          const nextToken = result.value.next();
-          if (!nextToken) {
-            break;
-          }
-
-          currentToken = nextToken;
-          currentResult = result.result;
-        }
-
-        throw new Error(`Unmatched token: ${token.value} at ${token.start}:${token.end}`);
-      },
+      iterate: createStepIterable,
     };
     return api as Tokenizer<InferHandlerResult<T>>;
   };

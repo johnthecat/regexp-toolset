@@ -2,7 +2,7 @@ import type { AnyRegexpToken, Step } from './regexpTokenizer.js';
 import { isDecimalEscapeToken, isDecimalToken, isPatternCharToken, TokenKind } from './regexpTokenizer.js';
 import { isBoolean } from './common/typeCheckers.js';
 import type { NodePosition } from './regexpNodes.js';
-import * as match from './common/monads/match.js';
+import * as match from './common/match/match.js';
 
 type FullMatcherResult<V> = match.Match<{ value: NonNullable<V> | null; token: Step }>;
 type MatcherResult<V> = boolean | FullMatcherResult<V>;
@@ -38,13 +38,13 @@ const applyMatcher = <V>(token: Step, matcher: Matcher<V>): FullMatcherResult<V>
     result = partialMatcher(token, matcher);
   }
 
-  return isBoolean(result) ? (result ? match.matched({ value: null, token }) : match.unmatched()) : result;
+  return isBoolean(result) ? (result ? match.ok({ value: null, token }) : match.none()) : result;
 };
 
 type MatchedSeqResult<V> = match.Match<NodePosition & { values: NonNullable<V>[]; token: Step }>;
 
 export const matchTokenSequence = <V>(token: Step, seq: (Matcher<V> | MatcherList<V>)[]): MatchedSeqResult<V> => {
-  let intermediateResult: MatchedSeqResult<V> = match.matched({
+  let intermediateResult: MatchedSeqResult<V> = match.ok({
     token,
     values: [],
     start: token.start,
@@ -77,9 +77,9 @@ export const matchTokenSequence = <V>(token: Step, seq: (Matcher<V> | MatcherLis
       .matched(({ token, ...etc }) => {
         const next = token.next();
         if (!next) {
-          return match.unmatched();
+          return match.none();
         }
-        return match.matched({
+        return match.ok({
           token: next,
           ...etc,
         });
@@ -104,7 +104,7 @@ export const wordMatcher: CustomMatcher<string> = (token: Step) => {
       break;
     }
   } while ((current = current.next()));
-  return wordMatched ? match.matched({ value, token: last }) : match.unmatched();
+  return wordMatched ? match.ok({ value, token: last }) : match.none();
 };
 
 export const numberMatcher: CustomMatcher<number> = step => {
@@ -122,17 +122,17 @@ export const numberMatcher: CustomMatcher<number> = step => {
     }
   } while ((current = current.next()));
 
-  return numberMatched ? match.matched({ value: parseInt(value), token: last }) : match.unmatched();
+  return numberMatched ? match.ok({ value: parseInt(value), token: last }) : match.none();
 };
 
 export const octalMatcher: CustomMatcher<string> = firstToken => {
   const secondToken = firstToken.next();
   if (!secondToken) {
-    return match.unmatched();
+    return match.none();
   }
   const thirdToken = secondToken.next();
   if (!thirdToken) {
-    return match.unmatched();
+    return match.none();
   }
 
   let value = '';
@@ -141,23 +141,23 @@ export const octalMatcher: CustomMatcher<string> = firstToken => {
     if ((token === firstToken && isDecimalEscapeToken(token)) || isDecimalToken(token)) {
       const num = parseInt(token.value);
       if (num > 7 || num < 0) {
-        return match.unmatched();
+        return match.none();
       }
 
       value = value + token.value;
       if (parseInt(value) > 377) {
-        return match.unmatched();
+        return match.none();
       }
     }
   }
 
-  return value.length ? match.matched({ value, token: thirdToken }) : match.unmatched();
+  return value.length ? match.ok({ value, token: thirdToken }) : match.none();
 };
 
 export const hexMatcher: CustomMatcher<string> = firstToken => {
   const secondToken = firstToken.next();
   if (!secondToken) {
-    return match.unmatched();
+    return match.none();
   }
 
   let value = '';
@@ -165,11 +165,11 @@ export const hexMatcher: CustomMatcher<string> = firstToken => {
     if ((isPatternCharToken(token) || isDecimalToken(token)) && /^[0-9A-Fa-f]$/.test(token.value)) {
       value += token.value;
     } else {
-      return match.unmatched();
+      return match.none();
     }
   }
 
-  return match.matched({ value, token: secondToken });
+  return match.ok({ value, token: secondToken });
 };
 
 export const curlyBracketOpenMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '{' }];

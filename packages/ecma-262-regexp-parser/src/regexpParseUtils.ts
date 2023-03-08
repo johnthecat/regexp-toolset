@@ -1,31 +1,25 @@
 import type { Step } from './regexpTokenizer.js';
-import type { NodeParser, NodeParserResult, ParserContext } from './regexpParseTypes.js';
-import { matched, errored } from './common/monads/match.js';
+import type { NodeParser, NodeParserResult, NodeParserResultValue, ParserContext } from './regexpParseTypes.js';
+import { ok } from './common/match/match.js';
 
 export const fillExpressions = (token: Step, ctx: ParserContext, tokenParser: NodeParser): NodeParserResult => {
-  let currentMatch: NodeParserResult = matched({ nodes: [], token });
-  let done = false;
+  let currentParserResult: NodeParserResultValue = { nodes: [], token };
 
-  while (!done) {
-    currentMatch = currentMatch
-      .flatMap(x => tokenParser(x, ctx))
-      .matched(x => {
-        const nextToken = x.token.next();
-        if (!nextToken) {
-          done = true;
-          return matched(x);
-        }
-        return matched({ nodes: x.nodes, token: nextToken });
-      })
-      .unmatched(() => {
-        done = true;
-        return currentMatch;
-      })
-      .error(error => {
-        done = true;
-        return errored(error);
-      });
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const parseResult = tokenParser(currentParserResult, ctx);
+    const unwrapped = parseResult.unwrap();
+    if (unwrapped.match) {
+      const nextToken = unwrapped.value.token.next();
+      if (!nextToken) {
+        return parseResult;
+      }
+      currentParserResult = { nodes: unwrapped.value.nodes, token: nextToken };
+    } else {
+      if ('error' in unwrapped) {
+        return parseResult;
+      }
+      return ok(currentParserResult);
+    }
   }
-
-  return currentMatch;
 };

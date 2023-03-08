@@ -1,7 +1,7 @@
 import type { AnyRegexpNode, GroupNode, NodePosition, SubpatternNode } from './regexpNodes.js';
 import type { RegexpTokenizer, Step } from './regexpTokenizer.js';
 import type { ParsingError } from './common/parsingError.js';
-import type { Match } from './common/monads/match.js';
+import type { Match } from './common/match/match.js';
 
 // export type NodeParserResult = EitherMatch<AnyRegexpNode>;
 export type NodeParserResultValue = { nodes: AnyRegexpNode[]; token: Step };
