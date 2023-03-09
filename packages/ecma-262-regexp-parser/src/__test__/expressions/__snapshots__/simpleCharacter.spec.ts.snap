@@ -5,14 +5,14 @@ exports[`Simple char > should correctly parse simple value 1`] = `
   "body": {
     "charCode": 97,
     "end": 1,
-    "kind": 6,
+    "kind": "Char",
     "start": 1,
-    "type": "simple",
+    "type": "Simple",
     "value": "a",
   },
   "end": 2,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;

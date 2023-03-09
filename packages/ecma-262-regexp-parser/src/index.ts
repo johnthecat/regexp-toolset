@@ -1,9 +1,11 @@
 import * as factory from './regexpNodeFactory.js';
+import * as types from './regexpNodeTypes.js';
 
+export { factory, types };
 export { parseRegexp, parseRegexpNode } from './api.js';
 export { printRegexpNode, createRegExpFromRegexpNode } from './regexpPrinter.js';
-export { SyntaxKind, ControlEscapeCharType, QuantifierType } from './regexpNodes.js';
-export { factory };
+export { traverseRegexpNode } from './regexpTraverse.js';
+export { SyntaxKind, ControlEscapeCharType, QuantifierType, CharType } from './regexpNodes.js';
 export type {
   AnyRegexpNode,
   RegexpNode,

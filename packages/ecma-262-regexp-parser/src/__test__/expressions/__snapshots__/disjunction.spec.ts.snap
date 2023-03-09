@@ -4,24 +4,24 @@ exports[`Disjunction > should parse chained disjunction 1`] = `
 {
   "body": {
     "end": 5,
-    "kind": 3,
+    "kind": "Disjunction",
     "left": {
       "end": 3,
-      "kind": 3,
+      "kind": "Disjunction",
       "left": {
         "charCode": 97,
         "end": 1,
-        "kind": 6,
+        "kind": "Char",
         "start": 1,
-        "type": "simple",
+        "type": "Simple",
         "value": "a",
       },
       "right": {
         "charCode": 98,
         "end": 3,
-        "kind": 6,
+        "kind": "Char",
         "start": 3,
-        "type": "simple",
+        "type": "Simple",
         "value": "b",
       },
       "start": 1,
@@ -29,16 +29,16 @@ exports[`Disjunction > should parse chained disjunction 1`] = `
     "right": {
       "charCode": 99,
       "end": 5,
-      "kind": 6,
+      "kind": "Char",
       "start": 5,
-      "type": "simple",
+      "type": "Simple",
       "value": "c",
     },
     "start": 1,
   },
   "end": 6,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -48,34 +48,34 @@ exports[`Disjunction > should parse disjunction inside group 1`] = `
   "body": {
     "body": {
       "end": 4,
-      "kind": 3,
+      "kind": "Disjunction",
       "left": {
         "charCode": 97,
         "end": 2,
-        "kind": 6,
+        "kind": "Char",
         "start": 2,
-        "type": "simple",
+        "type": "Simple",
         "value": "a",
       },
       "right": {
         "charCode": 98,
         "end": 4,
-        "kind": 6,
+        "kind": "Char",
         "start": 4,
-        "type": "simple",
+        "type": "Simple",
         "value": "b",
       },
       "start": 2,
     },
     "end": 5,
-    "kind": 22,
+    "kind": "Group",
     "specifier": null,
     "start": 1,
     "type": "capturing",
   },
   "end": 6,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -84,26 +84,26 @@ exports[`Disjunction > should parse disjunction with empty left size 1`] = `
 {
   "body": {
     "end": 2,
-    "kind": 3,
+    "kind": "Disjunction",
     "left": {
       "end": 1,
       "expressions": [],
-      "kind": 5,
+      "kind": "Alternative",
       "start": 1,
     },
     "right": {
       "charCode": 98,
       "end": 2,
-      "kind": 6,
+      "kind": "Char",
       "start": 2,
-      "type": "simple",
+      "type": "Simple",
       "value": "b",
     },
     "start": 1,
   },
   "end": 3,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -112,26 +112,26 @@ exports[`Disjunction > should parse disjunction with empty right size 1`] = `
 {
   "body": {
     "end": 2,
-    "kind": 3,
+    "kind": "Disjunction",
     "left": {
       "charCode": 97,
       "end": 1,
-      "kind": 6,
+      "kind": "Char",
       "start": 1,
-      "type": "simple",
+      "type": "Simple",
       "value": "a",
     },
     "right": {
       "end": 2,
       "expressions": [],
-      "kind": 5,
+      "kind": "Alternative",
       "start": 2,
     },
     "start": 1,
   },
   "end": 3,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -140,28 +140,28 @@ exports[`Disjunction > should parse simple disjunction 1`] = `
 {
   "body": {
     "end": 3,
-    "kind": 3,
+    "kind": "Disjunction",
     "left": {
       "charCode": 97,
       "end": 1,
-      "kind": 6,
+      "kind": "Char",
       "start": 1,
-      "type": "simple",
+      "type": "Simple",
       "value": "a",
     },
     "right": {
       "charCode": 98,
       "end": 3,
-      "kind": 6,
+      "kind": "Char",
       "start": 3,
-      "type": "simple",
+      "type": "Simple",
       "value": "b",
     },
     "start": 1,
   },
   "end": 4,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;

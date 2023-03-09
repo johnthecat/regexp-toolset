@@ -1,35 +1,38 @@
 export type NodePosition = { start: number; end: number };
 
 export enum SyntaxKind {
-  Regexp,
-  LineStart,
-  LineEnd,
-  Disjunction,
-  CharRange,
-  Alternative,
-  Char,
-  ASCIIControlChar,
-  ControlEscapeChar,
-  NullChar,
-  Backspace,
-  Subpattern,
-  AnyChar,
-  AnyDigit,
-  NonDigit,
-  AnyWhitespace,
-  NonWhitespace,
-  AnyWord,
-  NonWord,
-  WordBoundary,
-  NonWordBoundary,
-  CharClass,
-  Group,
-  GroupName,
-  BackReference,
-  Quantifier,
-  Repetition,
-  UnicodeProperty,
-  NonUnicodeProperty,
+  /**
+   * Root regexp node
+   */
+  Regexp = 'Regexp',
+  LineStart = 'LineStart',
+  LineEnd = 'LineEnd',
+  Disjunction = 'Disjunction',
+  CharRange = 'CharRange',
+  Alternative = 'Alternative',
+  Char = 'Char',
+  ASCIIControlChar = 'ASCIIControlChar',
+  ControlEscapeChar = 'ControlEscapeChar',
+  NullChar = 'NullChar',
+  Backspace = 'Backspace',
+  Subpattern = 'Subpattern',
+  AnyChar = 'AnyChar',
+  AnyDigit = 'AnyDigit',
+  NonDigit = 'NonDigit',
+  AnyWhitespace = 'AnyWhitespace',
+  NonWhitespace = 'NonWhitespace',
+  AnyWord = 'AnyWord',
+  NonWord = 'NonWord',
+  WordBoundary = 'WordBoundary',
+  NonWordBoundary = 'NonWordBoundary',
+  CharClass = 'CharClass',
+  Group = 'Group',
+  GroupName = 'GroupName',
+  BackReference = 'BackReference',
+  Quantifier = 'Quantifier',
+  Repetition = 'Repetition',
+  UnicodeProperty = 'UnicodeProperty',
+  NonUnicodeProperty = 'NonUnicodeProperty',
 }
 
 export enum QuantifierType {
@@ -47,13 +50,21 @@ export enum ControlEscapeCharType {
   FormFeedChar,
 }
 
+export enum CharType {
+  Simple = 'Simple',
+  Hex = 'Hex',
+  Unicode = 'Unicode',
+  Escaped = 'Escaped',
+  Octal = 'Octal',
+}
+
 export type Node<
   Kind extends SyntaxKind = SyntaxKind,
   Value extends Record<string, unknown> = Record<string, never>,
 > = Value &
   NodePosition & {
     kind: Kind;
-    __value?: Value;
+    __type__?: Value;
   };
 
 export type InferNodeKind<T> = T extends Node<infer U, Record<string, unknown>> ? U : never;
@@ -66,10 +77,7 @@ export type LineEndNode = Node<SyntaxKind.LineEnd>;
 export type DisjunctionNode = Node<SyntaxKind.Disjunction, { left: AnyRegexpNode; right: AnyRegexpNode }>;
 export type CharRangeNode = Node<SyntaxKind.CharRange, { from: CharNode; to: CharNode }>;
 export type AlternativeNode = Node<SyntaxKind.Alternative, { expressions: AnyRegexpNode[] }>;
-export type CharNode = Node<
-  SyntaxKind.Char,
-  { value: string; charCode: number; type: 'simple' | 'hex' | 'unicode' | 'escaped' | 'octal' }
->;
+export type CharNode = Node<SyntaxKind.Char, { value: string; charCode: number; type: CharType }>;
 export type ASCIIControlCharNode = Node<SyntaxKind.ASCIIControlChar, { value: string }>;
 export type NullCharNode = Node<SyntaxKind.NullChar>;
 export type BackspaceNode = Node<SyntaxKind.Backspace>;

@@ -11,6 +11,7 @@ import type {
   CharClassNode,
   CharNode,
   CharRangeNode,
+  CharType,
   ControlEscapeCharNode,
   ControlEscapeCharType,
   DisjunctionNode,
@@ -37,6 +38,7 @@ import type {
   WordBoundaryNode,
 } from './regexpNodes.js';
 import { SyntaxKind } from './regexpNodes.js';
+import { isAlternativeNode } from './regexpNodeTypes.js';
 
 const simplePosition = (x: number): NodePosition => ({ start: x, end: x });
 
@@ -62,12 +64,14 @@ export const createNode = <T extends Node<SyntaxKind, Record<string, unknown>>>(
     end,
   } as T);
 
-export const createSimpleNode = <T extends Node>(kind: InferNodeKind<T>, { start, end }: NodePosition): T =>
-  ({
-    kind,
-    start,
-    end,
-  } as unknown as T);
+const simpleNodeCreator =
+  <T extends Node>(kind: InferNodeKind<T>) =>
+  ({ start, end }: NodePosition): T =>
+    ({
+      kind,
+      start,
+      end,
+    } as unknown as T);
 
 export const createRegexpNode = (expressions: AnyRegexpNode[], flags: string = ''): RegexpNode => {
   const body = sealExpressions(expressions, simplePosition(1));
@@ -84,12 +88,38 @@ export const createRegexpNode = (expressions: AnyRegexpNode[], flags: string = '
   );
 };
 
-export const createCharNode = (value: string, position: NodePosition, type: CharNode['type']) =>
+export const createCharNode = (value: string, type: CharType, position: NodePosition) =>
   createNode<CharNode>(SyntaxKind.Char, position, {
     type,
     value,
     charCode: value.charCodeAt(0),
   });
+
+export const createAnyCharNode = simpleNodeCreator<AnyCharNode>(SyntaxKind.AnyChar);
+
+export const createAnyDigitNode = simpleNodeCreator<AnyDigitNode>(SyntaxKind.AnyDigit);
+
+export const createNonDigitNode = simpleNodeCreator<NonDigitNode>(SyntaxKind.NonDigit);
+
+export const createAnyWhitespaceNode = simpleNodeCreator<AnyWhitespaceNode>(SyntaxKind.AnyWhitespace);
+
+export const createNonWhitespaceNode = simpleNodeCreator<NonWhitespaceNode>(SyntaxKind.NonWhitespace);
+
+export const createAnyWordNode = simpleNodeCreator<AnyWordNode>(SyntaxKind.AnyWord);
+
+export const createNonWordNode = simpleNodeCreator<NonWordNode>(SyntaxKind.NonWord);
+
+export const createWordBoundaryNode = simpleNodeCreator<WordBoundaryNode>(SyntaxKind.WordBoundary);
+
+export const createNonWordBoundaryNode = simpleNodeCreator<NonWordBoundaryNode>(SyntaxKind.NonWordBoundary);
+
+export const createBackspaceNode = simpleNodeCreator<BackspaceNode>(SyntaxKind.Backspace);
+
+export const createLineEndNode = simpleNodeCreator<LineEndNode>(SyntaxKind.LineEnd);
+
+export const createLineStartNode = simpleNodeCreator<LineStartNode>(SyntaxKind.LineStart);
+
+export const createNullCharNode = simpleNodeCreator<NullCharNode>(SyntaxKind.NullChar);
 
 export const createASCIIControlCharNode = (value: string, position: NodePosition) =>
   createNode<ASCIIControlCharNode>(SyntaxKind.ASCIIControlChar, position, {
@@ -128,7 +158,7 @@ export const createCharRangeNode = (from: CharNode, to: CharNode) =>
     },
   );
 
-export const createQuantifierNode = (position: NodePosition, value: InferNodeValue<QuantifierNode>) =>
+export const createQuantifierNode = (value: InferNodeValue<QuantifierNode>, position: NodePosition) =>
   createNode<QuantifierNode>(SyntaxKind.Quantifier, position, value);
 
 export const createRepetitionNode = (expression: AnyRegexpNode, quantifier: QuantifierNode) =>
@@ -144,7 +174,7 @@ export const createRepetitionNode = (expression: AnyRegexpNode, quantifier: Quan
     },
   );
 
-export const createBackReferenceNode = (position: NodePosition, group: GroupNode) =>
+export const createBackReferenceNode = (group: GroupNode, position: NodePosition) =>
   createNode<BackReferenceNode>(SyntaxKind.BackReference, position, {
     group,
   });
@@ -200,40 +230,3 @@ export const createUnicodePropertyNode = (name: string, value: string | null, po
 
 export const createNonUnicodePropertyNode = (name: string, value: string | null, position: NodePosition) =>
   createNode<NonUnicodePropertyNode>(SyntaxKind.NonUnicodeProperty, position, { name, value });
-
-// checkers
-
-const createChecker =
-  <T extends Node<SyntaxKind, Record<string, unknown>>>(kind: T['kind']) =>
-  (node: unknown): node is T =>
-    typeof node === 'object' && !!node ? (node as Node).kind === kind : false;
-
-export const isRegexpNode = createChecker<RegexpNode>(SyntaxKind.Regexp);
-export const isLineStartNode = createChecker<LineStartNode>(SyntaxKind.LineStart);
-export const isLineEndNode = createChecker<LineEndNode>(SyntaxKind.LineEnd);
-export const isDisjunctionNode = createChecker<DisjunctionNode>(SyntaxKind.Disjunction);
-export const isCharRangeNode = createChecker<CharRangeNode>(SyntaxKind.CharRange);
-export const isAlternativeNode = createChecker<AlternativeNode>(SyntaxKind.Alternative);
-export const isCharNode = createChecker<CharNode>(SyntaxKind.Char);
-export const isASCIIControlCharNode = createChecker<ASCIIControlCharNode>(SyntaxKind.ASCIIControlChar);
-export const isControlEscapeCharNode = createChecker<ControlEscapeCharNode>(SyntaxKind.ControlEscapeChar);
-export const isNullCharNode = createChecker<NullCharNode>(SyntaxKind.NullChar);
-export const isBackspaceNode = createChecker<BackspaceNode>(SyntaxKind.Backspace);
-export const isSubpatternNode = createChecker<SubpatternNode>(SyntaxKind.Subpattern);
-export const isAnyCharNode = createChecker<AnyCharNode>(SyntaxKind.AnyChar);
-export const isAnyDigitNode = createChecker<AnyDigitNode>(SyntaxKind.AnyDigit);
-export const isNonDigitNode = createChecker<NonDigitNode>(SyntaxKind.NonDigit);
-export const isAnyWhitespaceNode = createChecker<AnyWhitespaceNode>(SyntaxKind.AnyWhitespace);
-export const isNonWhitespaceNode = createChecker<NonWhitespaceNode>(SyntaxKind.NonWhitespace);
-export const isAnyWordNode = createChecker<AnyWordNode>(SyntaxKind.AnyWord);
-export const isNonWordNode = createChecker<NonWordNode>(SyntaxKind.NonWord);
-export const isWordBoundaryNode = createChecker<WordBoundaryNode>(SyntaxKind.WordBoundary);
-export const isNonWordBoundaryNode = createChecker<NonWordBoundaryNode>(SyntaxKind.NonWordBoundary);
-export const isCharClassNode = createChecker<CharClassNode>(SyntaxKind.CharClass);
-export const isGroupNode = createChecker<GroupNode>(SyntaxKind.Group);
-export const isGroupNameNode = createChecker<GroupNameNode>(SyntaxKind.GroupName);
-export const isBackReferenceNode = createChecker<BackReferenceNode>(SyntaxKind.BackReference);
-export const isQuantifierNode = createChecker<QuantifierNode>(SyntaxKind.Quantifier);
-export const isRepetitionNode = createChecker<RepetitionNode>(SyntaxKind.Repetition);
-export const isUnicodePropertyNode = createChecker<UnicodePropertyNode>(SyntaxKind.UnicodeProperty);
-export const isNonUnicodePropertyNode = createChecker<NonUnicodePropertyNode>(SyntaxKind.NonUnicodeProperty);

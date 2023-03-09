@@ -8,26 +8,26 @@ exports[`ASCII Control Character > should correctly parse as escaped character a
       {
         "charCode": 97,
         "end": 1,
-        "kind": 6,
+        "kind": "Char",
         "start": 1,
-        "type": "simple",
+        "type": "Simple",
         "value": "a",
       },
       {
         "charCode": 99,
         "end": 3,
-        "kind": 6,
+        "kind": "Char",
         "start": 2,
-        "type": "escaped",
+        "type": "Escaped",
         "value": "c",
       },
     ],
-    "kind": 5,
+    "kind": "Alternative",
     "start": 1,
   },
   "end": 4,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -36,13 +36,13 @@ exports[`ASCII Control Character > should correctly parse control character > A 
 {
   "body": {
     "end": 3,
-    "kind": 7,
+    "kind": "ASCIIControlChar",
     "start": 1,
     "value": "A",
   },
   "end": 4,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -51,13 +51,13 @@ exports[`ASCII Control Character > should correctly parse control character > Z 
 {
   "body": {
     "end": 3,
-    "kind": 7,
+    "kind": "ASCIIControlChar",
     "start": 1,
     "value": "Z",
   },
   "end": 4,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -66,13 +66,13 @@ exports[`ASCII Control Character > should correctly parse control character > a 
 {
   "body": {
     "end": 3,
-    "kind": 7,
+    "kind": "ASCIIControlChar",
     "start": 1,
     "value": "a",
   },
   "end": 4,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -81,13 +81,13 @@ exports[`ASCII Control Character > should correctly parse control character > z 
 {
   "body": {
     "end": 3,
-    "kind": 7,
+    "kind": "ASCIIControlChar",
     "start": 1,
     "value": "z",
   },
   "end": 4,
   "flags": "",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;

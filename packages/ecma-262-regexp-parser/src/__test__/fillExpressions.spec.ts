@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { fillExpressions } from '../regexpParseUtils.js';
 import { regexpTokenizer } from '../regexpTokenizer.js';
 import { createParserContext } from '../regexpParser.js';
 import { err, ok } from '../common/match/match.js';
 import { createCharNode } from '../regexpNodeFactory.js';
+import { CharType } from '../regexpNodes.js';
 
 describe('fillExpressions', () => {
   it('should work', () => {
@@ -14,7 +15,7 @@ describe('fillExpressions', () => {
       throw new Error('Fail');
     }
     const result = fillExpressions(token, createParserContext(source, tokenizer), ({ token, nodes }) => {
-      return ok({ nodes: nodes.concat(createCharNode(token.value, token, 'simple')), token });
+      return ok({ nodes: nodes.concat(createCharNode(token.value, CharType.Simple, token)), token });
     });
 
     expect(result.unwrap()).toMatchSnapshot();
@@ -29,7 +30,7 @@ describe('fillExpressions', () => {
     }
     const result = fillExpressions(token, createParserContext(source, tokenizer), ({ token, nodes }) => {
       if (token.value === '1') {
-        return ok({ nodes: nodes.concat(createCharNode(token.value, token, 'simple')), token });
+        return ok({ nodes: nodes.concat(createCharNode(token.value, CharType.Simple, token)), token });
       }
       return err(new Error('This is 2.'));
     });

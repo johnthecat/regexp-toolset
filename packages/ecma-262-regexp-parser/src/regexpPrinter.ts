@@ -1,5 +1,5 @@
 import type { RegexpNode } from './regexpNodes.js';
-import { ControlEscapeCharType, QuantifierType, SyntaxKind, type AnyRegexpNode } from './regexpNodes.js';
+import { type AnyRegexpNode, CharType, ControlEscapeCharType, QuantifierType, SyntaxKind } from './regexpNodes.js';
 
 // eslint-disable-next-line complexity
 export const printRegexpNode = (node: AnyRegexpNode): string => {
@@ -44,15 +44,15 @@ export const printRegexpNode = (node: AnyRegexpNode): string => {
       return `[${node.negative ? '^' : ''}${node.expressions.map(printRegexpNode).join('')}]`;
     case SyntaxKind.Char:
       switch (node.type) {
-        case 'simple':
+        case CharType.Simple:
           return node.value;
-        case 'hex':
+        case CharType.Hex:
           return `\\x${node.value.charCodeAt(0).toString(16).padStart(2, '0')}`;
-        case 'unicode':
+        case CharType.Unicode:
           return `\\u${node.value.charCodeAt(0).toString(16).padStart(4, '0')}`;
-        case 'escaped':
+        case CharType.Escaped:
           return `\\${node.value}`;
-        case 'octal':
+        case CharType.Octal:
           return `\\${node.value.charCodeAt(0).toString(8).padStart(3, '0')}`;
         default:
           throw new Error('Unsupported');

@@ -11,27 +11,8 @@ import {
   TokenKind,
 } from './regexpTokenizer.js';
 import { ParsingError } from './common/parsingError.js';
-import type {
-  AnyCharNode,
-  AnyDigitNode,
-  AnyRegexpNode,
-  AnyWhitespaceNode,
-  AnyWordNode,
-  BackspaceNode,
-  GroupNameNode,
-  GroupNode,
-  LineEndNode,
-  LineStartNode,
-  NodePosition,
-  NonDigitNode,
-  NonWhitespaceNode,
-  NonWordBoundaryNode,
-  NonWordNode,
-  NullCharNode,
-  RegexpNode,
-  WordBoundaryNode,
-} from './regexpNodes.js';
-import { ControlEscapeCharType, QuantifierType, SyntaxKind } from './regexpNodes.js';
+import type { AnyRegexpNode, GroupNameNode, GroupNode, NodePosition, RegexpNode } from './regexpNodes.js';
+import { CharType, ControlEscapeCharType, QuantifierType } from './regexpNodes.js';
 import * as factory from './regexpNodeFactory.js';
 import {
   isAnyCharNode,
@@ -47,7 +28,7 @@ import {
   isNonWhitespaceNode,
   isNonWordNode,
   isUnicodePropertyNode,
-} from './regexpNodeFactory.js';
+} from './regexpNodeTypes.js';
 import type { NodeParser, NodeParserResultValue, ParserContext, SingleNodeParser } from './regexpParseTypes.js';
 import {
   chevronsCloseMatcher,
@@ -187,15 +168,18 @@ export const parseQuantifier: NodeParser = ({ nodes, token }, ctx) => {
     .orError(() => ctx.reportError(token, 'The preceding token is not quantifiable'));
 
   const quantifierNode = match.all(lazy.isMatched(), lastToken).map(([isLazy, lastToken]) => {
-    return factory.createQuantifierNode(positionRange(token, lastToken), {
-      type:
-        token.value === '?'
-          ? QuantifierType.NoneOrSingle
-          : token.value === '+'
-          ? QuantifierType.SingleOrMany
-          : QuantifierType.NoneOrMany,
-      greedy: !isLazy,
-    });
+    return factory.createQuantifierNode(
+      {
+        type:
+          token.value === '?'
+            ? QuantifierType.NoneOrSingle
+            : token.value === '+'
+            ? QuantifierType.SingleOrMany
+            : QuantifierType.NoneOrMany,
+        greedy: !isLazy,
+      },
+      positionRange(token, lastToken),
+    );
   });
 
   return match
@@ -237,12 +221,15 @@ export const parseRangeQuantifier: NodeParser = (x, ctx) => {
         return match.err(ctx.reportError(position, 'The quantifier range is out of order'));
       }
       return match.ok(
-        factory.createQuantifierNode(position, {
-          type: QuantifierType.Range,
-          greedy: !isLazy,
-          from,
-          to,
-        }),
+        factory.createQuantifierNode(
+          {
+            type: QuantifierType.Range,
+            greedy: !isLazy,
+            from,
+            to,
+          },
+          position,
+        ),
       );
     });
 
@@ -296,7 +283,7 @@ export const parseSubpatternMatch: NodeParser = ({ token, nodes }, ctx) => {
 // Implementation \0 - null char
 export const parseNullChar: NodeParser = x => {
   if (getToken(x).value === '0') {
-    return createSimpleParser(token => factory.createSimpleNode<NullCharNode>(SyntaxKind.NullChar, token))(x);
+    return createSimpleParser(factory.createNullCharNode)(x);
   }
   return match.none();
 };
@@ -307,7 +294,7 @@ export const parseBackReferenceChar: NodeParser = ({ token, nodes }) => {
   const backReferenceToken = match.ok(token).filter(x => x.value === '1');
   const backReferenceNode = match
     .all(groupNode, backReferenceToken)
-    .map(([group, token]) => factory.createBackReferenceNode(positionRange(group, token), group));
+    .map(([group, token]) => factory.createBackReferenceNode(group, positionRange(group, token)));
 
   return match
     .all(groupNode, backReferenceNode, backReferenceToken)
@@ -319,7 +306,7 @@ export const parseBackspace: NodeParser = x =>
   match
     .ok(x)
     .filter(x => isEscapedCharToken(getToken(x), 'b'))
-    .matched(createSimpleParser(token => factory.createSimpleNode<BackspaceNode>(SyntaxKind.Backspace, token)));
+    .matched(createSimpleParser(factory.createBackspaceNode));
 
 // Implementation .|. - disjunction
 export const parseDisjunction: NodeParser = (
@@ -327,10 +314,12 @@ export const parseDisjunction: NodeParser = (
   ctx,
   recursiveFn = parseNodeInRegexp,
 ) => {
-  const wrappedRecursiveParser = (y: NodeParserResultValue, ctx: ParserContext) => {
+  const wrappedRecursiveParser = (x: NodeParserResultValue, ctx: ParserContext) => {
     // creating tail recursion for correct nesting of multiple disjunctions
-    const hasSimpleBody = match.ok(y).filter(x => !isSyntaxCharToken(getToken(x), '|'));
-    return hasSimpleBody.matched(x => recursiveFn(x, ctx));
+    return match
+      .ok(x)
+      .filter(x => !isSyntaxCharToken(getToken(x), '|'))
+      .matched(x => recursiveFn(x, ctx));
   };
   const rightNodesFirstToken = matchNextToken(separatorToken);
 
@@ -350,19 +339,13 @@ export const parseDisjunction: NodeParser = (
 };
 
 // Implementation ^... - line start
-export const parseLineStart: NodeParser = createSimpleParser(token =>
-  factory.createSimpleNode<LineStartNode>(SyntaxKind.LineStart, token),
-);
+export const parseLineStart: NodeParser = createSimpleParser(factory.createLineStartNode);
 
 // Implementation ...$ - line end
-export const parseLineEnd: NodeParser = createSimpleParser(token =>
-  factory.createSimpleNode<LineEndNode>(SyntaxKind.LineEnd, token),
-);
+export const parseLineEnd: NodeParser = createSimpleParser(factory.createLineEndNode);
 
 // Implementation . - any character
-export const parseAnyChar: NodeParser = createSimpleParser(token =>
-  factory.createSimpleNode<AnyCharNode>(SyntaxKind.AnyChar, token),
-);
+export const parseAnyChar: NodeParser = createSimpleParser(factory.createAnyCharNode);
 
 // Implementation \uYYYY - unicode symbol code
 export const parseUnicodeChar: NodeParser = ({ nodes, token }, ctx) =>
@@ -374,7 +357,7 @@ export const parseUnicodeChar: NodeParser = ({ nodes, token }, ctx) =>
 
     return match.ok(
       createParserResult(
-        nodes.concat(factory.createCharNode(String.fromCharCode(parseInt(value, 16)), unicode, 'unicode')),
+        nodes.concat(factory.createCharNode(String.fromCharCode(parseInt(value, 16)), CharType.Unicode, unicode)),
         unicode.token,
       ),
     );
@@ -389,7 +372,7 @@ export const parseHexChar: NodeParser = ({ nodes, token }, ctx) =>
     }
     return match.ok(
       createParserResult(
-        nodes.concat(factory.createCharNode(String.fromCharCode(parseInt(value, 16)), hex, 'hex')),
+        nodes.concat(factory.createCharNode(String.fromCharCode(parseInt(value, 16)), CharType.Hex, hex)),
         hex.token,
       ),
     );
@@ -405,7 +388,7 @@ export const parseOctalChar: NodeParser = ({ nodes, token }, ctx) =>
 
     return match.ok(
       createParserResult(
-        nodes.concat(factory.createCharNode(String.fromCodePoint(parseInt(value, 8)), octal, 'octal')),
+        nodes.concat(factory.createCharNode(String.fromCodePoint(parseInt(value, 8)), CharType.Octal, octal)),
         octal.token,
       ),
     );
@@ -505,13 +488,9 @@ export const parseNodeInRegexp: NodeParser = (x, ctx, recursiveFn = parseNodeInR
     case TokenKind.CharEscape:
       switch (token.value) {
         case 'b':
-          return createSimpleParser(token =>
-            factory.createSimpleNode<WordBoundaryNode>(SyntaxKind.WordBoundary, token),
-          )(x);
+          return createSimpleParser(factory.createWordBoundaryNode)(x);
         case 'B':
-          return createSimpleParser(token =>
-            factory.createSimpleNode<NonWordBoundaryNode>(SyntaxKind.NonWordBoundary, token),
-          )(x);
+          return createSimpleParser(factory.createNonWordBoundaryNode)(x);
         case 'p':
           return match.first(
             () => parseUnicodeProperty(x, ctx),
@@ -863,11 +842,11 @@ export const parseCharEscape: NodeParser = (x, ctx) => {
 };
 
 export const parseEscapedChar: NodeParser = createSimpleParser(token =>
-  factory.createCharNode(token.value, token, 'escaped'),
+  factory.createCharNode(token.value, CharType.Escaped, token),
 );
 
 export const parseSimpleChar: NodeParser = createSimpleParser(token =>
-  factory.createCharNode(token.value, token, 'simple'),
+  factory.createCharNode(token.value, CharType.Simple, token),
 );
 
 export const parseCharClassEscape: NodeParser = x => {
@@ -875,26 +854,22 @@ export const parseCharClassEscape: NodeParser = x => {
   switch (token.value) {
     // Implementation \d - any digit
     case 'd':
-      return createSimpleParser(token => factory.createSimpleNode<AnyDigitNode>(SyntaxKind.AnyDigit, token))(x);
+      return createSimpleParser(factory.createAnyDigitNode)(x);
     // Implementation \D - any non digit
     case 'D':
-      return createSimpleParser(token => factory.createSimpleNode<NonDigitNode>(SyntaxKind.NonDigit, token))(x);
+      return createSimpleParser(factory.createNonDigitNode)(x);
     // Implementation \s - any whitespace
     case 's':
-      return createSimpleParser(token => factory.createSimpleNode<AnyWhitespaceNode>(SyntaxKind.AnyWhitespace, token))(
-        x,
-      );
+      return createSimpleParser(factory.createAnyWhitespaceNode)(x);
     // Implementation \S - non whitespace
     case 'S':
-      return createSimpleParser(token => factory.createSimpleNode<NonWhitespaceNode>(SyntaxKind.NonWhitespace, token))(
-        x,
-      );
+      return createSimpleParser(factory.createNonWhitespaceNode)(x);
     // Implementation \w - any word [a-zA-Z0-9_]
     case 'w':
-      return createSimpleParser(token => factory.createSimpleNode<AnyWordNode>(SyntaxKind.AnyWord, token))(x);
+      return createSimpleParser(factory.createAnyWordNode)(x);
     // Implementation \w - any non word [^a-zA-Z0-9_]
     case 'W':
-      return createSimpleParser(token => factory.createSimpleNode<NonWordNode>(SyntaxKind.NonWord, token))(x);
+      return createSimpleParser(factory.createNonWordNode)(x);
   }
 
   return match.none();

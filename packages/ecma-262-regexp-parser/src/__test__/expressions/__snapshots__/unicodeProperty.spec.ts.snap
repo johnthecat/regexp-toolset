@@ -4,14 +4,14 @@ exports[`property 'General_Category=Letter' > Non Unicode Property 1`] = `
 {
   "body": {
     "end": 27,
-    "kind": 28,
+    "kind": "NonUnicodeProperty",
     "name": "General_Category",
     "start": 1,
     "value": "Letter",
   },
   "end": 29,
   "flags": "u",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -20,14 +20,14 @@ exports[`property 'General_Category=Letter' > Unicode Property 1`] = `
 {
   "body": {
     "end": 27,
-    "kind": 27,
+    "kind": "UnicodeProperty",
     "name": "General_Category",
     "start": 1,
     "value": "Letter",
   },
   "end": 29,
   "flags": "u",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -36,14 +36,14 @@ exports[`property 'Hex' > Non Unicode Property 1`] = `
 {
   "body": {
     "end": 7,
-    "kind": 28,
+    "kind": "NonUnicodeProperty",
     "name": "Hex",
     "start": 1,
     "value": null,
   },
   "end": 9,
   "flags": "u",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -52,14 +52,14 @@ exports[`property 'Hex' > Unicode Property 1`] = `
 {
   "body": {
     "end": 7,
-    "kind": 27,
+    "kind": "UnicodeProperty",
     "name": "Hex",
     "start": 1,
     "value": null,
   },
   "end": 9,
   "flags": "u",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -68,14 +68,14 @@ exports[`property 'L' > Non Unicode Property 1`] = `
 {
   "body": {
     "end": 5,
-    "kind": 28,
+    "kind": "NonUnicodeProperty",
     "name": "L",
     "start": 1,
     "value": null,
   },
   "end": 7,
   "flags": "u",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -84,14 +84,14 @@ exports[`property 'L' > Unicode Property 1`] = `
 {
   "body": {
     "end": 5,
-    "kind": 27,
+    "kind": "UnicodeProperty",
     "name": "L",
     "start": 1,
     "value": null,
   },
   "end": 7,
   "flags": "u",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -100,14 +100,14 @@ exports[`property 'Script=Latin' > Non Unicode Property 1`] = `
 {
   "body": {
     "end": 16,
-    "kind": 28,
+    "kind": "NonUnicodeProperty",
     "name": "Script",
     "start": 1,
     "value": "Latin",
   },
   "end": 18,
   "flags": "u",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
@@ -116,14 +116,14 @@ exports[`property 'Script=Latin' > Unicode Property 1`] = `
 {
   "body": {
     "end": 16,
-    "kind": 27,
+    "kind": "UnicodeProperty",
     "name": "Script",
     "start": 1,
     "value": "Latin",
   },
   "end": 18,
   "flags": "u",
-  "kind": 0,
+  "kind": "Regexp",
   "start": 0,
 }
 `;
