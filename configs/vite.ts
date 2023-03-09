@@ -4,8 +4,8 @@ import { resolve } from 'node:path';
 import { defineConfig, type LibraryFormats } from 'vite';
 import dts from 'vite-plugin-dts';
 
-const externals = () => {
-  const packageJson = JSON.parse(readFileSync(resolve('./package.json'), { encoding: 'utf-8' }));
+const externals = (root: string) => {
+  const packageJson = JSON.parse(readFileSync(resolve(root, './package.json'), { encoding: 'utf-8' }));
 
   return [
     ...builtinModules,
@@ -31,14 +31,6 @@ const defaultConfig: ConfigInput = {
 
 export const createViteConfig = (input: Partial<ConfigInput> = defaultConfig) => {
   const mergedConfig = { ...defaultConfig, ...input };
-  const packageJson = JSON.parse(readFileSync(resolve(mergedConfig.root, './package.json'), { encoding: 'utf-8' }));
-
-  const external = [
-    ...builtinModules,
-    ...builtinModules.map(x => `node:${x}`),
-    ...Object.keys(packageJson.dependencies ?? {}),
-    ...Object.keys(packageJson.optionalDependencies ?? {}),
-  ];
 
   return defineConfig({
     build: {
@@ -49,7 +41,7 @@ export const createViteConfig = (input: Partial<ConfigInput> = defaultConfig) =>
         formats: mergedConfig.formats,
       },
       rollupOptions: {
-        external,
+        external: externals(mergedConfig.root),
       },
     },
     plugins: [
@@ -57,6 +49,7 @@ export const createViteConfig = (input: Partial<ConfigInput> = defaultConfig) =>
         noEmitOnError: true,
         copyDtsFiles: true,
         include: mergedConfig.includeTypes,
+        rollupTypes: true,
       }),
     ],
     test: {
@@ -70,35 +63,3 @@ export const createViteConfig = (input: Partial<ConfigInput> = defaultConfig) =>
     },
   });
 };
-
-const config = defineConfig({
-  build: {
-    reportCompressedSize: true,
-    lib: {
-      entry: './src/index.ts',
-      fileName: 'index',
-      formats: ['es', 'cjs'],
-    },
-    rollupOptions: {
-      external: externals(),
-    },
-  },
-  plugins: [
-    dts({
-      noEmitOnError: true,
-      copyDtsFiles: true,
-      include: ['./src/**'],
-    }),
-  ],
-  test: {
-    testTimeout: 3000,
-    reporters: ['verbose'],
-    coverage: {
-      provider: 'c8',
-      reporter: ['html'],
-      reportsDirectory: './.coverage',
-    },
-  },
-});
-
-export default config;

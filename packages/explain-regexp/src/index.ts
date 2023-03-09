@@ -1,11 +1,12 @@
 import type { AnyRegexpNode } from 'ecma-262-regexp-parser';
 import {
+  CharType,
   ControlEscapeCharType,
   parseRegexp,
   parseRegexpNode,
   QuantifierType,
   SyntaxKind,
-  factory,
+  types,
 } from 'ecma-262-regexp-parser';
 import {
   addIndent,
@@ -123,7 +124,7 @@ const controlEscapeCharTitle = {
   [ControlEscapeCharType.Tab]: 'Tab',
 };
 
-const genericNodeTitle: Record<number, GenericTitle> = {
+const genericNodeTitle: Record<string, GenericTitle> = {
   [SyntaxKind.GroupName]: { header: 'Group name', color: 'expression' },
   [SyntaxKind.NullChar]: { header: 'Null Character', color: 'expression' },
   [SyntaxKind.AnyWhitespace]: { header: 'Any Whitespace', color: 'expression' },
@@ -260,9 +261,9 @@ const paintSource = (node: AnyRegexpNode, ctx: ExplainerContext): string => {
 };
 
 const shouldWrapInBlock = (node: AnyRegexpNode) =>
-  !factory.isDisjunctionNode(node) &&
-  !(factory.isAlternativeNode(node) && node.expressions.length) &&
-  !factory.isCharClassNode(node);
+  !types.isDisjunctionNode(node) &&
+  !(types.isAlternativeNode(node) && node.expressions.length) &&
+  !types.isCharClassNode(node);
 
 export const explainRegexp = (source: string, config: { enableColors: boolean }): string => {
   const regexp = parseRegexp(source);
@@ -319,15 +320,15 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
 
     case SyntaxKind.Disjunction: {
       const shouldRenderNode = (node: AnyRegexpNode) =>
-        !(factory.isAlternativeNode(node) && node.expressions.length === 0);
+        !(types.isAlternativeNode(node) && node.expressions.length === 0);
 
       const color = assignColor(node, parentNode, ctx, colorMap.expression);
 
-      if (!factory.isDisjunctionNode(parentNode)) {
+      if (!types.isDisjunctionNode(parentNode)) {
         let deepestLeftNode: AnyRegexpNode = node.left;
         // eslint-disable-next-line no-constant-condition
         while (true) {
-          if (factory.isDisjunctionNode(deepestLeftNode)) {
+          if (types.isDisjunctionNode(deepestLeftNode)) {
             deepestLeftNode = deepestLeftNode.left;
             continue;
           }
@@ -491,9 +492,9 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
       const isWhitespace = /\s/.test(node.value);
       let color: Formatter;
 
-      if (factory.isCharClassNode(parentNode)) {
+      if (types.isCharClassNode(parentNode)) {
         color = x => paint(x, colorMap.dim);
-      } else if (node.type === 'unicode' || node.type === 'hex' || node.type === 'octal') {
+      } else if (node.type === CharType.Unicode || node.type === CharType.Hex || node.type === CharType.Octal) {
         color = assignColor(node, parentNode, ctx, colorMap.expression);
       } else {
         color = assignColor(node, parentNode, ctx, isWhitespace ? colorMap.whitespace : colorMap.char);
@@ -504,7 +505,7 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
       const title = `Literally ${resetEnd(char)}`;
       result.push(
         `${title}${
-          node.value !== rawPrinted && node.type !== 'simple'
+          node.value !== rawPrinted && node.type !== CharType.Simple
             ? ` ${paint(`(raw ${node.type}`, colorMap.secondary)} ${color(rawPrinted)}${paint(')', colorMap.secondary)}`
             : ''
         }`,
@@ -568,7 +569,7 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
     default: {
       const title = genericNodeTitle[node.kind];
       if (title) {
-        const name = factory.isCharClassNode(parentNode)
+        const name = types.isCharClassNode(parentNode)
           ? paint(title.header, colorMap.secondaryHeader)
           : 'color' in title
           ? assignColor(node, parentNode, ctx, colorMap[title.color])(paint(title.header, colorMap.header))
