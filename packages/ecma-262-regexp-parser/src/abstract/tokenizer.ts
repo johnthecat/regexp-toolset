@@ -50,19 +50,7 @@ export type Tokenizer<T extends AnyToken = AnyToken> = TokenizerApi<T>;
 
 export type Handler<T extends AnyToken> = (inputStream: InputStreamIterator) => T | null;
 
-export type InferTokenFromTokenizer<T extends (input: string) => Tokenizer> = T extends (
-  input: string,
-) => Tokenizer<infer U>
-  ? U
-  : never;
-
-export type InferTokenizer<T extends (input: string) => Tokenizer> = T extends ((
-  input: string,
-) => infer U extends Tokenizer)
-  ? U
-  : never;
-
-export type InferHandlerResult<T extends Handler<any>> = T extends Handler<infer U> ? Exclude<U, null> : never;
+type InferHandlerResult<T extends Handler<any>> = T extends Handler<infer U> ? Exclude<U, null> : never;
 
 export const createStepIterator = <T extends TokenizerStep>(step: T | null): TokenizerIterator<T> => {
   let currentToken: TokenizerStep | null = step;
@@ -86,21 +74,20 @@ export const createStepIterable = <T extends TokenizerStep>(step: T | null): Tok
 };
 
 export const createTokenizer = <T extends Handler<AnyToken>>(
+  input: string,
   handler: T,
-): ((input: string) => Tokenizer<InferHandlerResult<T>>) => {
-  return input => {
-    const stream = createStringStream(input);
-    const chars = stream.chars();
-    const list = new LazyDoublyLinkedList<AnyToken>(() => (chars.isDone() ? null : handler(chars)));
-    const api: Tokenizer = {
-      ...createStepIterable(list.getHead()),
-      isFirstToken: token => token.start === 0,
-      isLastToken: token => token.end === stream.size(),
-      getFirstStep: () => list.getHead(),
-      iterate: createStepIterable,
-    };
-    return api as Tokenizer<InferHandlerResult<T>>;
+): Tokenizer<InferHandlerResult<T>> => {
+  const stream = createStringStream(input);
+  const chars = stream.chars();
+  const list = new LazyDoublyLinkedList<AnyToken>(() => (chars.isDone() ? null : handler(chars)));
+  const api: Tokenizer = {
+    ...createStepIterable(list.getHead()),
+    isFirstToken: token => token.start === 0,
+    isLastToken: token => token.end === stream.size(),
+    getFirstStep: () => list.getHead(),
+    iterate: createStepIterable,
   };
+  return api as Tokenizer<InferHandlerResult<T>>;
 };
 
 export const createToken = <CurrentToken extends AnyToken>(

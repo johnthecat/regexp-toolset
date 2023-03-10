@@ -1,5 +1,81 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`Disjunction > should correctly parse character class in disjunction > left 1`] = `
+{
+  "body": {
+    "end": 5,
+    "kind": "Disjunction",
+    "left": {
+      "end": 3,
+      "expressions": [
+        {
+          "charCode": 97,
+          "end": 2,
+          "kind": "Char",
+          "start": 2,
+          "type": "Simple",
+          "value": "a",
+        },
+      ],
+      "kind": "CharClass",
+      "negative": false,
+      "start": 1,
+    },
+    "right": {
+      "charCode": 98,
+      "end": 5,
+      "kind": "Char",
+      "start": 5,
+      "type": "Simple",
+      "value": "b",
+    },
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Disjunction > should correctly parse character class in disjunction > right 1`] = `
+{
+  "body": {
+    "end": 5,
+    "kind": "Disjunction",
+    "left": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "right": {
+      "end": 5,
+      "expressions": [
+        {
+          "charCode": 98,
+          "end": 4,
+          "kind": "Char",
+          "start": 4,
+          "type": "Simple",
+          "value": "b",
+        },
+      ],
+      "kind": "CharClass",
+      "negative": false,
+      "start": 3,
+    },
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
 exports[`Disjunction > should parse chained disjunction 1`] = `
 {
   "body": {
@@ -43,7 +119,57 @@ exports[`Disjunction > should parse chained disjunction 1`] = `
 }
 `;
 
-exports[`Disjunction > should parse disjunction inside group 1`] = `
+exports[`Disjunction > should parse disjunction inside group > double 1`] = `
+{
+  "body": {
+    "body": {
+      "end": 6,
+      "kind": "Disjunction",
+      "left": {
+        "end": 4,
+        "kind": "Disjunction",
+        "left": {
+          "charCode": 97,
+          "end": 2,
+          "kind": "Char",
+          "start": 2,
+          "type": "Simple",
+          "value": "a",
+        },
+        "right": {
+          "charCode": 98,
+          "end": 4,
+          "kind": "Char",
+          "start": 4,
+          "type": "Simple",
+          "value": "b",
+        },
+        "start": 2,
+      },
+      "right": {
+        "charCode": 99,
+        "end": 6,
+        "kind": "Char",
+        "start": 6,
+        "type": "Simple",
+        "value": "c",
+      },
+      "start": 2,
+    },
+    "end": 7,
+    "kind": "Group",
+    "specifier": null,
+    "start": 1,
+    "type": "capturing",
+  },
+  "end": 8,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Disjunction > should parse disjunction inside group > single 1`] = `
 {
   "body": {
     "body": {

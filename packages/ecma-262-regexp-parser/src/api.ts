@@ -1,4 +1,4 @@
-import { regexpTokenizer } from './regexpTokenizer.js';
+import { createRegexpTokenizer } from './regexpTokenizer.js';
 import { createParserContext, parseRegexp as parseRegexpBase, parseNodeInRegexp } from './regexpParser.js';
 import type { AnyRegexpNode, RegexpNode } from './regexpNodes.js';
 import { fillExpressions } from './regexpParseUtils.js';
@@ -20,7 +20,7 @@ const unwrap = <T>(x: match.Match<T>): T => {
 
 export const parseRegexp = (source: string | RegExp): RegexpNode => {
   const rawSource = source.toString();
-  const tokenizer = regexpTokenizer(rawSource);
+  const tokenizer = createRegexpTokenizer(rawSource);
   const ctx = createParserContext(rawSource, tokenizer);
 
   const regexpNode = match
@@ -32,7 +32,7 @@ export const parseRegexp = (source: string | RegExp): RegexpNode => {
 };
 
 export const parseRegexpNode = (source: string): AnyRegexpNode => {
-  const tokenizer = regexpTokenizer(source);
+  const tokenizer = createRegexpTokenizer(source);
   const ctx = createParserContext(source, tokenizer);
 
   const firstStep = match.nonNullable(tokenizer.getFirstStep()).orError(() => ctx.reportError(0, "Can't parse input"));

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fillExpressions } from '../regexpParseUtils.js';
-import { regexpTokenizer } from '../regexpTokenizer.js';
+import { createRegexpTokenizer } from '../regexpTokenizer.js';
 import { createParserContext } from '../regexpParser.js';
 import { err, ok } from '../common/match/match.js';
 import { createCharNode } from '../regexpNodeFactory.js';
@@ -9,7 +9,7 @@ import { CharType } from '../regexpNodes.js';
 describe('fillExpressions', () => {
   it('should work', () => {
     const source = 'hello';
-    const tokenizer = regexpTokenizer(source);
+    const tokenizer = createRegexpTokenizer(source);
     const token = tokenizer.getFirstStep();
     if (!token) {
       throw new Error('Fail');
@@ -23,7 +23,7 @@ describe('fillExpressions', () => {
 
   it('should propagate error', () => {
     const source = '12';
-    const tokenizer = regexpTokenizer(source);
+    const tokenizer = createRegexpTokenizer(source);
     const token = tokenizer.getFirstStep();
     if (!token) {
       throw new Error('Fail');

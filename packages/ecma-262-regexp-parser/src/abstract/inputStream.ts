@@ -15,7 +15,6 @@ export const createStringStream = (input: string): StringStream => {
     size: () => input.length - 1,
     [Symbol.iterator]: () => {
       let pos = 0;
-
       const inputIterator: InputStreamIterator = {
         isDone: () => pos === input.length,
         next: () => {
@@ -35,12 +34,13 @@ export const createStringStream = (input: string): StringStream => {
           normalizedRegexp.lastIndex = pos;
 
           const found = normalizedRegexp.exec(input);
-
           if (!found) {
             return null;
           }
+
           const fullMatch = found[0];
           const foundValue = found[1] ?? fullMatch;
+
           if (pos + fullMatch.length === normalizedRegexp.lastIndex) {
             const start = pos;
             pos += fullMatch.length;

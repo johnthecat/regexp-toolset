@@ -19,7 +19,13 @@ describe('Disjunction', () => {
     expect(parseRegexp(/|b/)).toMatchSnapshot();
   });
 
+  it('should correctly parse character class in disjunction', () => {
+    expect(parseRegexp(/[a]|b/)).toMatchSnapshot('left');
+    expect(parseRegexp(/a|[b]/)).toMatchSnapshot('right');
+  });
+
   it('should parse disjunction inside group', () => {
-    expect(parseRegexp(/(a|b)/)).toMatchSnapshot();
+    expect(parseRegexp(/(a|b)/)).toMatchSnapshot('single');
+    expect(parseRegexp(/(a|b|c)/)).toMatchSnapshot('double');
   });
 });

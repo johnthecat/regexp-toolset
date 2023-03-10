@@ -74,14 +74,16 @@ export const matchTokenSequence = <V>(token: Step, seq: (Matcher<V> | MatcherLis
           end: token.end,
         }));
       })
-      .matched(({ token, ...etc }) => {
+      .matched(({ token, values, start, end }) => {
         const next = token.next();
         if (!next) {
           return match.none();
         }
         return match.ok({
           token: next,
-          ...etc,
+          values,
+          start,
+          end,
         });
       });
   }

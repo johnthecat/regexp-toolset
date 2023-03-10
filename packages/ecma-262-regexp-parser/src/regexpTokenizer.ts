@@ -1,14 +1,8 @@
 import { waterfall } from './common/waterfall.js';
 import { createHandler, createTokenizer } from './abstract/tokenizer.js';
-import type {
-  InferHandlerResult,
-  InferTokenFromTokenizer,
-  InferTokenizer,
-  TokenizerStep,
-  Token,
-} from './abstract/tokenizer.js';
+import type { TokenizerStep, Token, Tokenizer } from './abstract/tokenizer.js';
 
-export enum TokenKind {
+export const enum TokenKind {
   SyntaxChar,
   PatternChar,
   Decimal,
@@ -29,6 +23,17 @@ export type PatternCharToken = Token<TokenKind.PatternChar>;
 export type DecimalEscapeToken = Token<TokenKind.DecimalEscape, `${number}`>;
 export type DecimalToken = Token<TokenKind.Decimal, `${number}`>;
 
+export type AnyRegexpToken =
+  | SyntaxCharToken
+  | CharClassEscape
+  | ControlEscapeToken
+  | CharEscapeToken
+  | PatternCharToken
+  | DecimalEscapeToken
+  | DecimalToken;
+export type RegexpTokenizer = Tokenizer<AnyRegexpToken>;
+export type Step = TokenizerStep<AnyRegexpToken>;
+
 export const syntaxCharHandler = createHandler<SyntaxCharToken>(TokenKind.SyntaxChar, /([\\.*+?)(\]\[}{|$^])/);
 export const controlEscapeHandler = createHandler<ControlEscapeToken>(TokenKind.ControlEscape, /\\([fnrtv])/);
 export const charClassEscapeHandler = createHandler<CharClassEscape>(TokenKind.CharClassEscape, /\\([dDsSwW])/);
@@ -37,21 +42,19 @@ export const decimalEscapeHandler = createHandler<DecimalEscapeToken>(TokenKind.
 export const decimalHandler = createHandler<DecimalToken>(TokenKind.Decimal, /\d/);
 export const patternCharHandler = createHandler<PatternCharToken>(TokenKind.PatternChar, /(.)/);
 
-export const regexpTokenizer = createTokenizer(
-  waterfall([
-    controlEscapeHandler,
-    charClassEscapeHandler,
-    decimalEscapeHandler,
-    decimalHandler,
-    charEscapeHandler,
-    syntaxCharHandler,
-    patternCharHandler,
-  ]),
-);
-
-export type RegexpTokenizer = InferTokenizer<typeof regexpTokenizer>;
-export type AnyRegexpToken = InferTokenFromTokenizer<typeof regexpTokenizer>;
-export type Step = TokenizerStep<AnyRegexpToken>;
+export const createRegexpTokenizer = (input: string): Tokenizer<AnyRegexpToken> =>
+  createTokenizer(
+    input,
+    waterfall([
+      controlEscapeHandler,
+      charClassEscapeHandler,
+      decimalEscapeHandler,
+      decimalHandler,
+      charEscapeHandler,
+      syntaxCharHandler,
+      patternCharHandler,
+    ]),
+  );
 
 const genericChecker = <T extends AnyRegexpToken>(
   kind: AnyRegexpToken['kind'],
@@ -63,28 +66,20 @@ const genericChecker = <T extends AnyRegexpToken>(
     : false;
 };
 
-export const isPatternCharToken = (
-  token: unknown,
-  value?: string,
-): token is InferHandlerResult<typeof patternCharHandler> => genericChecker(TokenKind.PatternChar, token, value);
+export const isPatternCharToken = (token: unknown, value?: string): token is PatternCharToken =>
+  genericChecker(TokenKind.PatternChar, token, value);
 
-export const isDecimalToken = (token: unknown, value?: string): token is InferHandlerResult<typeof decimalHandler> =>
+export const isDecimalToken = (token: unknown, value?: string): token is DecimalToken =>
   genericChecker(TokenKind.Decimal, token, value);
 
-export const isDecimalEscapeToken = (
-  token: unknown,
-  value?: string,
-): token is InferHandlerResult<typeof decimalEscapeHandler> => genericChecker(TokenKind.DecimalEscape, token, value);
+export const isDecimalEscapeToken = (token: unknown, value?: string): token is DecimalEscapeToken =>
+  genericChecker(TokenKind.DecimalEscape, token, value);
 
-export const isEscapedCharToken = (
-  token: unknown,
-  value?: string,
-): token is InferHandlerResult<typeof charEscapeHandler> => genericChecker(TokenKind.CharEscape, token, value);
+export const isEscapedCharToken = (token: unknown, value?: string): token is CharEscapeToken =>
+  genericChecker(TokenKind.CharEscape, token, value);
 
-export const isSyntaxCharToken = (
-  token: unknown,
-  value?: string,
-): token is InferHandlerResult<typeof syntaxCharHandler> => genericChecker(TokenKind.SyntaxChar, token, value);
+export const isSyntaxCharToken = (token: unknown, value?: string): token is SyntaxCharToken =>
+  genericChecker(TokenKind.SyntaxChar, token, value);
 
 export const isParenthesesOpenToken = (token: unknown): token is Token<TokenKind.SyntaxChar, '('> =>
   isSyntaxCharToken(token, '(');
