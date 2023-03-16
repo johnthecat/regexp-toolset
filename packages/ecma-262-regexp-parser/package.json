@@ -31,8 +31,8 @@
   "scripts": {
     "prepublishOnly": "npm run build",
     "test": "vitest run",
-    "test:bench": "vitest bench",
     "test:watch": "vitest watch",
+    "test:bench": "vitest bench",
     "test:coverage": "vitest run --coverage",
     "build": "vite build --mode production",
     "build:watch": "vite build --mode development --watch",

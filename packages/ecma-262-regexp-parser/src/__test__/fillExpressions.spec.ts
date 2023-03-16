@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fillExpressions } from '../regexpParseUtils.js';
 import { createRegexpTokenizer } from '../regexpTokenizer.js';
 import { createParserContext } from '../regexpParser.js';
-import { err, ok } from '../common/match/match.js';
+import { err, ok } from '../common/fp/match.js';
 import { createCharNode } from '../regexpNodeFactory.js';
 import { CharType } from '../regexpNodes.js';
 

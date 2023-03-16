@@ -1,5 +1,5 @@
 import { createStringStream, type InputStreamIterator } from './inputStream.js';
-import { LazyDoublyLinkedList, type LintedListNode } from '../common/lazyDoublyLinkedList.js';
+import { LazyLinkedList, type LintedListNode } from '../common/lazyLinkedList.js';
 
 export type Token<K, V extends string = string> = {
   kind: K;
@@ -10,28 +10,9 @@ export type Token<K, V extends string = string> = {
 
 export type AnyToken<K = any, V extends string = string> = Token<K, V>;
 
+export type InferTokenValue<T> = T extends Token<any, infer U> ? U : never;
+
 export type TokenizerStep<Token extends AnyToken = AnyToken> = LintedListNode<Token>;
-
-export type TokenMatcherResult<T extends TokenizerStep> = IteratorResult<T, T> & {
-  match: boolean;
-};
-export type TokenMatcherFn<T extends TokenizerStep> = (step: T) => TokenMatcherResult<T>;
-
-export type TokenReducerResult<Step extends TokenizerStep, Result> = IteratorResult<Step, Step> & {
-  result: Result;
-};
-
-export type TokenReducerFn<T extends TokenizerStep, R> = (step: T, result: R) => TokenReducerResult<T, R>;
-
-export type TokenMatchReducerResult<Step extends TokenizerStep, Result> = IteratorResult<Step, Step> & {
-  result: Result;
-  match: boolean;
-};
-
-export type TokenMatchReducerFn<T extends TokenizerStep, R, U extends TokenizerStep = T> = (
-  step: T,
-  result: R,
-) => TokenMatchReducerResult<U, R>;
 
 export type TokenizerIterator<T extends TokenizerStep> = Iterator<T, null>;
 
@@ -50,7 +31,7 @@ export type Tokenizer<T extends AnyToken = AnyToken> = TokenizerApi<T>;
 
 export type Handler<T extends AnyToken> = (inputStream: InputStreamIterator) => T | null;
 
-type InferHandlerResult<T extends Handler<any>> = T extends Handler<infer U> ? Exclude<U, null> : never;
+type InferHandlerResult<T> = T extends Handler<infer U> ? Exclude<U, null> : never;
 
 export const createStepIterator = <T extends TokenizerStep>(step: T | null): TokenizerIterator<T> => {
   let currentToken: TokenizerStep | null = step;
@@ -79,7 +60,7 @@ export const createTokenizer = <T extends Handler<AnyToken>>(
 ): Tokenizer<InferHandlerResult<T>> => {
   const stream = createStringStream(input);
   const chars = stream.chars();
-  const list = new LazyDoublyLinkedList<AnyToken>(() => (chars.isDone() ? null : handler(chars)));
+  const list = new LazyLinkedList<AnyToken>(() => (chars.isDone() ? null : handler(chars)));
   const api: Tokenizer = {
     ...createStepIterable(list.getHead()),
     isFirstToken: token => token.start === 0,
@@ -110,5 +91,10 @@ export const createHandler =
     if (!result) {
       return null;
     }
-    return createToken<CurrentToken>(kind, result.value as CurrentToken['value'], result.start, result.end);
+    return {
+      kind,
+      value: result.value,
+      start: result.start,
+      end: result.end,
+    } as CurrentToken;
   };

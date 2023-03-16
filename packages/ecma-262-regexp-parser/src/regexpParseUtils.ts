@@ -1,8 +1,8 @@
-import type { Step } from './regexpTokenizer.js';
+import type { TokenStep } from './regexpTokenizer.js';
 import type { NodeParser, NodeParserResult, NodeParserResultValue, ParserContext } from './regexpParseTypes.js';
-import { ok } from './common/match/match.js';
+import { ok } from './common/fp/match.js';
 
-export const fillExpressions = (token: Step, ctx: ParserContext, tokenParser: NodeParser): NodeParserResult => {
+export const fillExpressions = (token: TokenStep, ctx: ParserContext, tokenParser: NodeParser): NodeParserResult => {
   let currentParserResult: NodeParserResultValue = { nodes: [], token };
 
   // eslint-disable-next-line no-constant-condition

@@ -116,4 +116,49 @@ describe('Traverse', () => {
       "
     `);
   });
+
+  it('test', () => {
+    type Address = {
+      city: string;
+    };
+    type Person = {
+      address: Address;
+      name: string;
+      surname: string;
+    };
+
+    type Lens<S, A> = (f: (y: A) => A, x: S) => S;
+
+    const view =
+      <S, A>(lens: Lens<S, A>) =>
+      (x: S) => {
+        let variable: unknown = null;
+        lens(x => (variable = x), x);
+        return variable as A;
+      };
+    const set =
+      <S, A>(lens: Lens<S, A>) =>
+      (x: S, v: A) =>
+        lens(() => v, x);
+
+    const testPerson: Person = {
+      name: 'Biba',
+      surname: 'Boba',
+      address: {
+        city: 'Omsk',
+      },
+    };
+
+    const personAddressL: Lens<Person, Address> = (f, x) => ({ ...x, address: f(x.address) });
+
+    const viewPersonAddress = view(personAddressL);
+    expect(viewPersonAddress(testPerson)).toEqual({ city: 'Omsk' });
+
+    const setPersonAddress = set(personAddressL);
+    expect(setPersonAddress(testPerson, { city: 'Zeliboba' })).toEqual({
+      ...testPerson,
+      address: { city: 'Zeliboba' },
+    });
+    expect(setPersonAddress(testPerson, { city: 'Zeliboba' })).not.toBe(testPerson);
+  });
 });

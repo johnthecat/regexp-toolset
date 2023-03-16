@@ -3,7 +3,7 @@ import { createParserContext, parseRegexp as parseRegexpBase, parseNodeInRegexp 
 import type { AnyRegexpNode, RegexpNode } from './regexpNodes.js';
 import { fillExpressions } from './regexpParseUtils.js';
 import { sealExpressions } from './regexpNodeFactory.js';
-import * as match from './common/match/match.js';
+import * as match from './common/fp/match.js';
 
 const unwrap = <T>(x: match.Match<T>): T => {
   const r = x.unwrap();
@@ -26,7 +26,7 @@ export const parseRegexp = (source: string | RegExp): RegexpNode => {
   const regexpNode = match
     .nonNullable(tokenizer.getFirstStep())
     .orError(() => ctx.reportError({ start: 0, end: rawSource.length - 1 }, "Can't parse input"))
-    .matched(firstToken => parseRegexpBase(firstToken, ctx));
+    .match(firstToken => parseRegexpBase(firstToken, ctx));
 
   return unwrap(regexpNode).node;
 };
@@ -36,8 +36,8 @@ export const parseRegexpNode = (source: string): AnyRegexpNode => {
   const ctx = createParserContext(source, tokenizer);
 
   const firstStep = match.nonNullable(tokenizer.getFirstStep()).orError(() => ctx.reportError(0, "Can't parse input"));
-  const nodes = firstStep.matched(firstToken => fillExpressions(firstToken, ctx, parseNodeInRegexp));
-  const result = match.all(firstStep, nodes).map(([token, { nodes }]) => sealExpressions(nodes, token));
+  const nodes = firstStep.match(firstToken => fillExpressions(firstToken, ctx, parseNodeInRegexp));
+  const result = match.all([firstStep, nodes]).map(([token, { nodes }]) => sealExpressions(nodes, token));
 
   return unwrap(result);
 };

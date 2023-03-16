@@ -1,4 +1,4 @@
-import type { RegexpTokenizer, Step } from './regexpTokenizer.js';
+import type { RegexpTokenizer, TokenStep } from './regexpTokenizer.js';
 import {
   isBracketsCloseToken,
   isBracketsOpenToken,
@@ -11,7 +11,14 @@ import {
   TokenKind,
 } from './regexpTokenizer.js';
 import { ParsingError } from './common/parsingError.js';
-import type { AnyRegexpNode, GroupNameNode, GroupNode, NodePosition, RegexpNode } from './regexpNodes.js';
+import type {
+  AnyRegexpNode,
+  GroupNameNode,
+  GroupNode,
+  NodePosition,
+  QuantifierNodeRangeValue,
+  RegexpNode,
+} from './regexpNodes.js';
 import { CharType, ControlEscapeCharType, QuantifierType } from './regexpNodes.js';
 import * as factory from './regexpNodeFactory.js';
 import {
@@ -31,28 +38,49 @@ import {
 } from './regexpNodeTypes.js';
 import type { NodeParser, NodeParserResultValue, ParserContext, SingleNodeParser } from './regexpParseTypes.js';
 import {
-  chevronsCloseMatcher,
-  chevronsOpenMatcher,
-  curlyBracketCloseMatcher,
-  curlyBracketOpenMatcher,
-  equalsMatcher,
+  createCharEscapeMatcher,
+  createPatternCharMatcher,
+  createSyntaxCharMatcher,
   hexMatcher,
   matchTokenSequence,
   numberMatcher,
   octalMatcher,
-  parenthesisOpenMatcher,
-  questionMarkMatcher,
+  mapMatcher,
   wordMatcher,
 } from './regexpSequenceMatcher.js';
 import { fillExpressions } from './regexpParseUtils.js';
 import { remove, replace } from './common/array.js';
-import * as match from './common/match/match.js';
-import { isNumber } from './common/typeCheckers.js';
+import { isNumber, not } from './common/typeCheckers.js';
+import type { Match } from './common/fp/match.js';
+import { ok, none, all, err, nonNullable, first } from './common/fp/match.js';
+import { view, type Lens } from './common/fp/lens.js';
+import { pipe2 } from './common/pipe.js';
 
 const commonErrorMessages = {
   EOL: 'Unexpected end of line',
   UnexpectedToken: 'Unexpected token',
 };
+
+// helpers
+
+const nodesL: Lens<NodeParserResultValue, AnyRegexpNode[]> = (f, x) => ({ ...x, nodes: f(x.nodes) });
+const tokenL: Lens<{ token: TokenStep }, TokenStep> = (f, x) => ({ ...x, token: f(x.token) });
+
+const viewToken = view(tokenL);
+const viewNodes = view(nodesL);
+
+const matchNextToken = (token: TokenStep): Match<TokenStep> => nonNullable(token.next());
+const matchFirstNode = (nodes: AnyRegexpNode[]) => nonNullable(nodes.at(0));
+const matchLastNode = (nodes: AnyRegexpNode[]) => nonNullable(nodes.at(-1));
+
+const createParserResult = (nodes: AnyRegexpNode[], token: TokenStep): NodeParserResultValue => ({ nodes, token });
+
+const createSimpleParser =
+  (fn: (token: TokenStep) => AnyRegexpNode) =>
+  ({ nodes, token }: NodeParserResultValue) =>
+    ok(createParserResult(nodes.concat(fn(token)), token));
+
+const positionRange = (t1: NodePosition, t2: NodePosition): NodePosition => ({ start: t1.start, end: t2.end });
 
 export const createParserContext = (source: string, tokenizer: RegexpTokenizer): ParserContext => ({
   source,
@@ -61,7 +89,7 @@ export const createParserContext = (source: string, tokenizer: RegexpTokenizer):
   groupSpecifierDemands: new Set(),
   reportError: (position, message) => {
     let normalizedPosition: NodePosition;
-    if (typeof position === 'number') {
+    if (isNumber(position)) {
       normalizedPosition = { start: position, end: position };
     } else {
       normalizedPosition = {
@@ -73,73 +101,52 @@ export const createParserContext = (source: string, tokenizer: RegexpTokenizer):
   },
 });
 
-const createSimpleParser =
-  (fn: (token: Step) => AnyRegexpNode) =>
-  ({ nodes, token }: NodeParserResultValue) =>
-    match.ok(createParserResult(nodes.concat(fn(token)), token));
-
-const getToken = (x: { token: Step }) => x.token;
-const getNodes = (x: { nodes: AnyRegexpNode[] }) => x.nodes;
-
-const pipe2 = <F1 extends (...args: any[]) => any, F2 extends (arg: ReturnType<F1>) => any>(
-  f1: F1,
-  f2: F2,
-): ((...args: Parameters<F1>) => ReturnType<F2>) => {
-  return (...args) => f2(f1(...args));
-};
-
-const positionRange = (t1: NodePosition, t2: NodePosition): NodePosition => ({ start: t1.start, end: t2.end });
-
-const connectSubpatternsWithGroups = (ctx: ParserContext): match.Match<void> => {
+const connectSubpatternsWithGroups = (ctx: ParserContext): Match<void> => {
   for (const [tag, node] of ctx.groupSpecifierDemands) {
     const found = ctx.foundGroupSpecifiers.get(tag);
     if (!found) {
-      return match.err(ctx.reportError(node, `This token references a non-existent or invalid subpattern`));
+      return err(ctx.reportError(node, `This token references a non-existent or invalid subpattern`));
     }
     node.ref = found;
   }
 
-  return match.ok(void 0);
+  return ok(void 0);
 };
+
+// parser
 
 export const parseRegexp: SingleNodeParser<RegexpNode> = (firstToken, ctx) => {
   const firstContentToken = matchNextToken(firstToken).orError(() => ctx.reportError(0, "Can't parse input"));
   const body = firstContentToken
-    .matched(token => fillExpressions(token, ctx, parseNodeInRegexp))
-    .filter(pipe2(getToken, isForwardSlashToken))
+    .match(token => fillExpressions(token, ctx, parseNodeInRegexp))
+    .filter(pipe2(viewToken, isForwardSlashToken))
     .orError(() => ctx.reportError(0, 'Regexp body should end with "/" symbol, like this: /.../gm'));
 
   const flags = body
-    .matched(pipe2(getToken, matchNextToken))
-    .matched(token => parseFlags(token, ctx))
-    .orElse(() => match.ok(''));
+    .match(pipe2(viewToken, matchNextToken))
+    .match(token => parseFlags(token, ctx))
+    .orElse(() => ok(''));
 
   return connectSubpatternsWithGroups(ctx)
-    .matched(() => match.all(body.map(getNodes), flags))
+    .match(() => all([body.map(viewNodes), flags]))
     .map(([body, flags]) => ({ node: factory.createRegexpNode(body, flags) }));
 };
 
 const supportedFlags = ['g', 'i', 'm', 's', 'u', 'y'];
 const lowercaseRegexp = /[a-z]/;
-const parseFlags = (step: Step, ctx: ParserContext): match.Match<string> => {
+const parseFlags = (step: TokenStep, ctx: ParserContext): Match<string> => {
   let result = '';
   for (const currentStep of ctx.tokenizer.iterate(step)) {
     if (!isPatternCharToken(currentStep) || !lowercaseRegexp.test(currentStep.value)) {
-      return match.err(ctx.reportError(currentStep, commonErrorMessages.UnexpectedToken));
+      return err(ctx.reportError(currentStep, commonErrorMessages.UnexpectedToken));
     }
     if (!supportedFlags.includes(currentStep.value)) {
-      return match.err(ctx.reportError(currentStep, `Unknown flag '${currentStep.value}'`));
+      return err(ctx.reportError(currentStep, `Unknown flag '${currentStep.value}'`));
     }
     result += currentStep.value;
   }
-  return match.ok(result);
+  return ok(result);
 };
-
-const matchNextToken = (token: Step): match.Match<Step> => match.nonNullable(token.next());
-const matchFirstNode = (nodes: AnyRegexpNode[]) => match.nonNullable(nodes.at(0));
-const matchLastNode = (nodes: AnyRegexpNode[]) => match.nonNullable(nodes.at(-1));
-
-const createParserResult = (nodes: AnyRegexpNode[], token: Step): NodeParserResultValue => ({ nodes, token });
 
 // eslint-disable-next-line complexity
 const isQuantifiable = (node: AnyRegexpNode) =>
@@ -159,15 +166,15 @@ const isQuantifiable = (node: AnyRegexpNode) =>
 
 // Implementation .* ; .+ ; .? - quantifiers
 export const parseQuantifier: NodeParser = ({ nodes, token }, ctx) => {
-  const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, questionMarkMatcher]);
-  const lastToken = lazy.map(getToken).orElse(() => match.ok(token));
+  const lazy = matchTokenSequence(token, [TokenKind.SyntaxChar, createSyntaxCharMatcher('?')]);
+  const lastToken = lazy.map(viewToken).orElse(() => ok(token));
 
   const quantifiableNode = matchLastNode(nodes)
     .orError(() => ctx.reportError(token, 'There is nothing to quantify'))
     .filter(isQuantifiable)
     .orError(() => ctx.reportError(token, 'The preceding token is not quantifiable'));
 
-  const quantifierNode = match.all(lazy.isMatched(), lastToken).map(([isLazy, lastToken]) => {
+  const quantifierNode = all([lazy.isMatched(), lastToken]).map(([isLazy, lastToken]) => {
     return factory.createQuantifierNode(
       {
         type:
@@ -182,131 +189,123 @@ export const parseQuantifier: NodeParser = ({ nodes, token }, ctx) => {
     );
   });
 
-  return match
-    .all(quantifiableNode, quantifierNode, lastToken)
-    .map(([quantifiable, quantifier, lastToken]) =>
-      createParserResult(
-        replace(nodes, quantifiable, factory.createRepetitionNode(quantifiable, quantifier)),
-        lastToken,
-      ),
-    );
+  return all([quantifiableNode, quantifierNode, lastToken]).map(([quantifiable, quantifier, lastToken]) =>
+    createParserResult(replace(nodes, quantifiable, factory.createRepetitionNode(quantifiable, quantifier)), lastToken),
+  );
 };
+
+// TODO move parser to separated file
+const fromMatcher = mapMatcher<number, QuantifierNodeRangeValue>(numberMatcher, (f, x) => ({
+  ...x,
+  from: f(x.from),
+}));
+const toMatcher = mapMatcher<number, QuantifierNodeRangeValue>(numberMatcher, (f, x) => ({
+  ...x,
+  to: f(x.to ?? 0),
+}));
+
+const rangeExactSeq = [createSyntaxCharMatcher('{'), fromMatcher, createSyntaxCharMatcher('}')];
+const rangeFromSeq = [
+  createSyntaxCharMatcher('{'),
+  fromMatcher,
+  createPatternCharMatcher(','),
+  createSyntaxCharMatcher('}'),
+];
+const rangeFromToSeq = [
+  createSyntaxCharMatcher('{'),
+  fromMatcher,
+  createPatternCharMatcher(','),
+  toMatcher,
+  createSyntaxCharMatcher('}'),
+];
 
 // Implementation Y{1} ; Y{1,} ; Y{1,2} - range quantifier
 export const parseRangeQuantifier: NodeParser = (x, ctx) => {
   const { nodes, token } = x;
-  const quantifiableNode = matchLastNode(nodes)
+  const quantifiableNode = ok(x)
+    .match(pipe2(viewNodes, matchLastNode))
     .orError(() => ctx.reportError(token, 'There is nothing to quantify'))
-    .filter(isQuantifiable)
-    .orError(() => ctx.reportError(token, 'The preceding token is not quantifiable'));
+    .filterOrThrow(isQuantifiable, () => ctx.reportError(token, 'The preceding token is not quantifiable'));
 
-  const trySequence = (
-    { token, nodes }: NodeParserResultValue,
-    seq: Parameters<typeof matchTokenSequence<number>>[1],
-  ) => {
-    const range = matchTokenSequence<number>(token, seq);
-    const from = range
-      .map(x => x.values.at(0))
-      .filter(isNumber)
-      .orError(() => ctx.reportError(token, "Can't parse numeric values from range."));
-    const to = range.map(x => x.values.at(1));
-
-    const lazy = range.matched(x => matchTokenSequence(getToken(x), [TokenKind.SyntaxChar, questionMarkMatcher]));
-    const lastToken = lazy.map(getToken).orElse(() => range.map(getToken));
-
-    const quantifierNode = match.all(lazy.isMatched(), lastToken, from, to).matched(([isLazy, lastToken, from, to]) => {
-      const position = positionRange(token, lastToken);
-
-      if (typeof to === 'number' && from > to) {
-        return match.err(ctx.reportError(position, 'The quantifier range is out of order'));
-      }
-      return match.ok(
-        factory.createQuantifierNode(
-          {
-            type: QuantifierType.Range,
-            greedy: !isLazy,
-            from,
-            to,
-          },
-          position,
-        ),
-      );
-    });
-
-    return match
-      .all(quantifiableNode, quantifierNode, lastToken)
-      .map(([quantifiable, quantifier, token]) =>
-        createParserResult(replace(nodes, quantifiable, factory.createRepetitionNode(quantifiable, quantifier)), token),
-      );
-  };
-
-  return trySequence(x, [curlyBracketOpenMatcher, numberMatcher, curlyBracketCloseMatcher])
-    .unmatched(() =>
-      trySequence(x, [
-        curlyBracketOpenMatcher,
-        numberMatcher,
-        [TokenKind.PatternChar, { value: ',' }, token => match.ok({ value: Number.POSITIVE_INFINITY, token })],
-        curlyBracketCloseMatcher,
-      ]),
+  const range = matchTokenSequence<QuantifierNodeRangeValue>(token, rangeExactSeq, { from: 0 })
+    .unmatch(() =>
+      matchTokenSequence<QuantifierNodeRangeValue>(token, rangeFromSeq, {
+        from: 0,
+        to: Number.POSITIVE_INFINITY,
+      }),
     )
-    .unmatched(() =>
-      trySequence(x, [
-        curlyBracketOpenMatcher,
-        numberMatcher,
-        [TokenKind.PatternChar, { value: ',' }],
-        numberMatcher,
-        curlyBracketCloseMatcher,
-      ]),
+    .unmatch(() => matchTokenSequence<QuantifierNodeRangeValue>(token, rangeFromToSeq, { from: 0, to: 0 }));
+
+  const value = range.map(({ value }) => value);
+  const lazy = range.match(x => matchTokenSequence(viewToken(x), [TokenKind.SyntaxChar, createSyntaxCharMatcher('?')]));
+
+  const lastToken = lazy.orElse(() => range).map(viewToken);
+
+  const quantifierNode = all([lazy.isMatched(), lastToken, value]).map(([isLazy, lastToken, { from, to }]) => {
+    const position = positionRange(token, lastToken);
+
+    if (isNumber(to) && from > to) {
+      throw ctx.reportError(position, 'The quantifier range is out of order');
+    }
+
+    return factory.createQuantifierNode(
+      {
+        type: QuantifierType.Range,
+        greedy: !isLazy,
+        from,
+        to,
+      },
+      position,
     );
+  });
+
+  return all([quantifiableNode, quantifierNode, lastToken]).map(([quantifiable, quantifier, token]) =>
+    createParserResult(replace(nodes, quantifiable, factory.createRepetitionNode(quantifiable, quantifier)), token),
+  );
 };
 
 // Implementation \k<...> - subpattern match
 export const parseSubpatternMatch: NodeParser = ({ token, nodes }, ctx) => {
-  const subpattern = matchTokenSequence(token, [
-    [TokenKind.CharEscape, { value: 'k' }],
-    chevronsOpenMatcher,
-    wordMatcher,
-    chevronsCloseMatcher,
-  ]);
+  const subpattern = matchTokenSequence(
+    token,
+    [createCharEscapeMatcher('k'), createPatternCharMatcher('<'), wordMatcher, createPatternCharMatcher('>')],
+    '',
+  );
 
-  return subpattern.matched(subpattern => {
-    const groupName = subpattern.values.at(0);
-    if (!groupName) {
-      return match.err(ctx.reportError(subpattern, `Can't parse subpattern name`));
-    }
+  return subpattern.map(subpattern => {
+    const groupName = subpattern.value;
     const node = factory.createSubpatternNode(groupName, null, subpattern);
     ctx.groupSpecifierDemands.add([groupName, node]);
-    return match.ok(createParserResult(nodes.concat(node), subpattern.token));
+    return createParserResult(nodes.concat(node), subpattern.token);
   });
 };
 
 // Implementation \0 - null char
 export const parseNullChar: NodeParser = x => {
-  if (getToken(x).value === '0') {
+  if (viewToken(x).value === '0') {
     return createSimpleParser(factory.createNullCharNode)(x);
   }
-  return match.none();
+  return none();
 };
 
 // Implementation (...)\1 - back reference
 export const parseBackReferenceChar: NodeParser = ({ token, nodes }) => {
   const groupNode = matchLastNode(nodes).filter(isGroupNode);
-  const backReferenceToken = match.ok(token).filter(x => x.value === '1');
-  const backReferenceNode = match
-    .all(groupNode, backReferenceToken)
-    .map(([group, token]) => factory.createBackReferenceNode(group, positionRange(group, token)));
+  const backReferenceToken = ok(token).filter(x => x.value === '1');
+  const backReferenceNode = all([groupNode, backReferenceToken]).map(([group, token]) =>
+    factory.createBackReferenceNode(group, positionRange(group, token)),
+  );
 
-  return match
-    .all(groupNode, backReferenceNode, backReferenceToken)
-    .map(([group, backReference, token]) => createParserResult(replace(nodes, group, backReference), token));
+  return all([groupNode, backReferenceNode, backReferenceToken]).map(([group, backReference, token]) =>
+    createParserResult(replace(nodes, group, backReference), token),
+  );
 };
 
 // Implementation [\b] - backspace
 export const parseBackspace: NodeParser = x =>
-  match
-    .ok(x)
-    .filter(x => isEscapedCharToken(getToken(x), 'b'))
-    .matched(createSimpleParser(factory.createBackspaceNode));
+  ok(x)
+    .filter(pipe2(viewToken, x => isEscapedCharToken(x, 'b')))
+    .match(createSimpleParser(factory.createBackspaceNode));
 
 // Implementation .|. - disjunction
 export const parseDisjunction: NodeParser = (
@@ -316,24 +315,23 @@ export const parseDisjunction: NodeParser = (
 ) => {
   const wrappedRecursiveParser = (x: NodeParserResultValue, ctx: ParserContext) => {
     // creating tail recursion for correct nesting of multiple disjunctions
-    return match
-      .ok(x)
-      .filter(x => !isSyntaxCharToken(getToken(x), '|'))
-      .matched(x => recursiveFn(x, ctx));
+    return ok(x)
+      .filter(pipe2(viewToken, x => !isSyntaxCharToken(x, '|')))
+      .match(x => recursiveFn(x, ctx));
   };
   const rightNodesFirstToken = matchNextToken(separatorToken);
 
-  return match.first(
+  return first(
     () =>
       rightNodesFirstToken
-        .matched(x => fillExpressions(x, ctx, wrappedRecursiveParser))
+        .match(x => fillExpressions(x, ctx, wrappedRecursiveParser))
         .map(({ nodes: rightNodes, token }) =>
           createParserResult([factory.createDisjunctionNode(leftNodes, rightNodes, separatorToken)], token.prev()),
         ),
 
     () =>
-      rightNodesFirstToken.unmatched(() =>
-        match.ok(createParserResult([factory.createDisjunctionNode(leftNodes, [], separatorToken)], separatorToken)),
+      rightNodesFirstToken.unmatch(() =>
+        ok(createParserResult([factory.createDisjunctionNode(leftNodes, [], separatorToken)], separatorToken)),
       ),
   );
 };
@@ -348,58 +346,38 @@ export const parseLineEnd: NodeParser = createSimpleParser(factory.createLineEnd
 export const parseAnyChar: NodeParser = createSimpleParser(factory.createAnyCharNode);
 
 // Implementation \uYYYY - unicode symbol code
-export const parseUnicodeChar: NodeParser = ({ nodes, token }, ctx) =>
-  matchTokenSequence(token, [[TokenKind.CharEscape, { value: 'u' }], hexMatcher, hexMatcher]).matched(unicode => {
-    const value = unicode.values.join('');
-    if (!value) {
-      return match.err(ctx.reportError(token, `Can't parse value as unicode number`));
-    }
-
-    return match.ok(
-      createParserResult(
-        nodes.concat(factory.createCharNode(String.fromCharCode(parseInt(value, 16)), CharType.Unicode, unicode)),
-        unicode.token,
-      ),
-    );
-  });
+export const parseUnicodeChar: NodeParser = ({ nodes, token }) =>
+  matchTokenSequence(token, [createCharEscapeMatcher('u'), hexMatcher, hexMatcher], '').map(unicode =>
+    createParserResult(
+      nodes.concat(factory.createCharNode(String.fromCharCode(parseInt(unicode.value, 16)), CharType.Unicode, unicode)),
+      unicode.token,
+    ),
+  );
 
 // Implementation \xYY - hex symbol code
-export const parseHexChar: NodeParser = ({ nodes, token }, ctx) =>
-  matchTokenSequence(token, [[TokenKind.CharEscape, { value: 'x' }], hexMatcher]).matched(hex => {
-    const value = hex.values.at(0);
-    if (!value) {
-      return match.err(ctx.reportError(token, `Can't parse value as hex code`));
-    }
-    return match.ok(
-      createParserResult(
-        nodes.concat(factory.createCharNode(String.fromCharCode(parseInt(value, 16)), CharType.Hex, hex)),
-        hex.token,
-      ),
-    );
-  });
+export const parseHexChar: NodeParser = ({ nodes, token }) =>
+  matchTokenSequence(token, [createCharEscapeMatcher('x'), hexMatcher], '').map(hex =>
+    createParserResult(
+      nodes.concat(factory.createCharNode(String.fromCharCode(parseInt(hex.value, 16)), CharType.Hex, hex)),
+      hex.token,
+    ),
+  );
 
 // Implementation \ddd - octal char number
-export const parseOctalChar: NodeParser = ({ nodes, token }, ctx) =>
-  matchTokenSequence(token, [octalMatcher]).matched(octal => {
-    const value = octal.values.at(0);
-    if (!value) {
-      return match.err(ctx.reportError(token, "Can't parse octal value"));
-    }
-
-    return match.ok(
-      createParserResult(
-        nodes.concat(factory.createCharNode(String.fromCodePoint(parseInt(value, 8)), CharType.Octal, octal)),
-        octal.token,
-      ),
-    );
-  });
+export const parseOctalChar: NodeParser = ({ nodes, token }) =>
+  matchTokenSequence(token, [octalMatcher], '').map(octal =>
+    createParserResult(
+      nodes.concat(factory.createCharNode(String.fromCodePoint(parseInt(octal.value, 8)), CharType.Octal, octal)),
+      octal.token,
+    ),
+  );
 
 // Implementation \cA - ASCII control char
 export const parseASCIIControlChar: NodeParser = ({ token, nodes }, ctx) => {
-  const possibleValueToken = matchNextToken(token).filter(x => !isForwardSlashToken(x));
-  const valueToken = possibleValueToken
-    .filter(({ value }) => /[A-Za-z]/.test(value))
-    .orError(() =>
+  const possibleValueToken = matchNextToken(token).filter(not(isForwardSlashToken));
+  const valueToken = possibleValueToken.filterOrThrow(
+    ({ value }) => /[A-Za-z]/.test(value),
+    () =>
       ctx.reportError(
         {
           start: token.start,
@@ -407,125 +385,95 @@ export const parseASCIIControlChar: NodeParser = ({ token, nodes }, ctx) => {
         },
         'Invalid control character',
       ),
-    );
+  );
 
-  return possibleValueToken
-    .matched(() => valueToken)
-    .map(valueToken => {
-      const node = factory.createASCIIControlCharNode(valueToken.value, positionRange(token, valueToken));
-      return createParserResult(nodes.concat(node), valueToken);
-    });
+  return valueToken.map(valueToken => {
+    const node = factory.createASCIIControlCharNode(valueToken.value, positionRange(token, valueToken));
+    return createParserResult(nodes.concat(node), valueToken);
+  });
 };
 
 const parseUnicodeProperty: NodeParser = x => {
-  const unicodePropertyWithValue = matchTokenSequence(x.token, [
-    [TokenKind.CharEscape, { value: 'p' }],
-    curlyBracketOpenMatcher,
-    wordMatcher,
-    equalsMatcher,
-    wordMatcher,
-    curlyBracketCloseMatcher,
-  ]);
-  const unicodePropertyWithoutValue = matchTokenSequence(x.token, [
-    [TokenKind.CharEscape, { value: 'p' }],
-    curlyBracketOpenMatcher,
-    wordMatcher,
-    curlyBracketCloseMatcher,
-  ]);
+  const unicodePropertyWithValue = matchTokenSequence<{ name: string; value: string }>(
+    x.token,
+    [
+      createCharEscapeMatcher('p'),
+      createSyntaxCharMatcher('{'),
+      mapMatcher(wordMatcher, (f, x) => ({ ...x, name: f(x.name) })),
+      createPatternCharMatcher('='),
+      mapMatcher(wordMatcher, (f, x) => ({ ...x, value: f(x.value) })),
+      createSyntaxCharMatcher('}'),
+    ],
+    { name: '', value: '' },
+  );
+  const unicodePropertyWithoutValue = matchTokenSequence<{ name: string; value: null }>(
+    x.token,
+    [
+      createCharEscapeMatcher('p'),
+      createSyntaxCharMatcher('{'),
+      mapMatcher(wordMatcher, (f, x) => ({ ...x, name: f(x.name) })),
+      createSyntaxCharMatcher('}'),
+    ],
+    { name: '', value: null },
+  );
 
   const matchedConstruction = unicodePropertyWithValue.orElse(() => unicodePropertyWithoutValue);
   const position = matchedConstruction.map(y => positionRange(x.token, y.token));
-  const name = matchedConstruction.matched(({ values }) => match.nonNullable(values.at(0)));
-  const value = matchedConstruction.map(({ values }) => values.at(1) ?? null);
-  const unicodePropertyNode = match
-    .all(name, value, position)
-    .map(([name, value, position]) => factory.createUnicodePropertyNode(name, value, position));
+  const value = matchedConstruction.map(({ value }) => value);
+  const unicodePropertyNode = all([value, position]).map(([{ name, value }, position]) =>
+    factory.createUnicodePropertyNode(name, value, position),
+  );
 
-  return match
-    .all(unicodePropertyNode, matchedConstruction.map(getToken))
-    .map(([node, token]) => createParserResult(x.nodes.concat(node), token));
+  return all([unicodePropertyNode, matchedConstruction.map(viewToken)]).map(([node, token]) =>
+    createParserResult(x.nodes.concat(node), token),
+  );
 };
 
 const parseNonUnicodeProperty: NodeParser = x => {
-  const unicodePropertyWithValue = matchTokenSequence(x.token, [
-    [TokenKind.CharEscape, { value: 'P' }],
-    curlyBracketOpenMatcher,
-    wordMatcher,
-    equalsMatcher,
-    wordMatcher,
-    curlyBracketCloseMatcher,
-  ]);
-  const unicodePropertyWithoutValue = matchTokenSequence(x.token, [
-    [TokenKind.CharEscape, { value: 'P' }],
-    curlyBracketOpenMatcher,
-    wordMatcher,
-    curlyBracketCloseMatcher,
-  ]);
+  const unicodePropertyWithValue = matchTokenSequence<{ name: string; value: string }>(
+    x.token,
+    [
+      createCharEscapeMatcher('P'),
+      createSyntaxCharMatcher('{'),
+      mapMatcher(wordMatcher, (f, x) => ({ ...x, name: f(x.name) })),
+      createPatternCharMatcher('='),
+      mapMatcher(wordMatcher, (f, x) => ({ ...x, value: f(x.value) })),
+      createSyntaxCharMatcher('}'),
+    ],
+    { name: '', value: '' },
+  );
+  const unicodePropertyWithoutValue = matchTokenSequence<{ name: string; value: null }>(
+    x.token,
+    [
+      createCharEscapeMatcher('P'),
+      createSyntaxCharMatcher('{'),
+      mapMatcher(wordMatcher, (f, x) => ({ ...x, name: f(x.name) })),
+      createSyntaxCharMatcher('}'),
+    ],
+    { name: '', value: null },
+  );
 
   const matchedConstruction = unicodePropertyWithValue.orElse(() => unicodePropertyWithoutValue);
   const position = matchedConstruction.map(y => positionRange(x.token, y.token));
-  const name = matchedConstruction.matched(({ values }) => match.nonNullable(values.at(0)));
-  const value = matchedConstruction.map(({ values }) => values.at(1) ?? null);
-  const unicodePropertyNode = match
-    .all(name, value, position)
-    .map(([name, value, position]) => factory.createNonUnicodePropertyNode(name, value, position));
+  const value = matchedConstruction.map(({ value }) => value);
+  const unicodePropertyNode = all([value, position]).map(([{ name, value }, position]) =>
+    factory.createNonUnicodePropertyNode(name, value, position),
+  );
 
-  return match
-    .all(unicodePropertyNode, matchedConstruction.map(getToken))
-    .map(([node, token]) => createParserResult(x.nodes.concat(node), token));
+  return all([unicodePropertyNode, matchedConstruction.map(viewToken)]).map(([node, token]) =>
+    createParserResult(x.nodes.concat(node), token),
+  );
 };
 
 // eslint-disable-next-line complexity
 export const parseNodeInRegexp: NodeParser = (x, ctx, recursiveFn = parseNodeInRegexp) => {
-  const token = getToken(x);
+  const token = viewToken(x);
   switch (token.kind) {
-    case TokenKind.CharClassEscape:
-      return parseCharClassEscape(x, ctx);
-
-    case TokenKind.ControlEscape:
-      return parseControlEscapeHandler(x, ctx);
-
-    case TokenKind.CharEscape:
-      switch (token.value) {
-        case 'b':
-          return createSimpleParser(factory.createWordBoundaryNode)(x);
-        case 'B':
-          return createSimpleParser(factory.createNonWordBoundaryNode)(x);
-        case 'p':
-          return match.first(
-            () => parseUnicodeProperty(x, ctx),
-            () => parseEscapedChar(x, ctx),
-          );
-        case 'P':
-          return match.first(
-            () => parseNonUnicodeProperty(x, ctx),
-            () => parseEscapedChar(x, ctx),
-          );
-        case 'k':
-          return match.first(
-            () => parseSubpatternMatch(x, ctx),
-            () => parseEscapedChar(x, ctx),
-          );
-        default:
-          return match.first(
-            () => parseCharEscape(x, ctx),
-            () => parseEscapedChar(x, ctx),
-          );
-      }
-
-    case TokenKind.DecimalEscape:
-      return match.first(
-        () => parseOctalChar(x, ctx),
-        () => parseNullChar(x, ctx),
-        () => parseBackReferenceChar(x, ctx),
-        () => parseEscapedChar(x, ctx),
-      );
-
     case TokenKind.PatternChar:
       switch (token.value) {
         case '/':
           // End of regexp body
-          return match.none();
+          return none();
 
         default:
           return parseSimpleChar(x, ctx);
@@ -540,7 +488,7 @@ export const parseNodeInRegexp: NodeParser = (x, ctx, recursiveFn = parseNodeInR
           return parseCharClass(x, ctx);
 
         case '{':
-          return match.first(
+          return first(
             () => parseRangeQuantifier(x, ctx),
             () => parseSimpleChar(x, ctx),
           );
@@ -569,11 +517,53 @@ export const parseNodeInRegexp: NodeParser = (x, ctx, recursiveFn = parseNodeInR
           return parseSimpleChar(x, ctx);
 
         case ')':
-          return match.err(ctx.reportError(token, 'Unmatched parenthesis'));
+          return err(ctx.reportError(token, 'Unmatched parenthesis'));
 
         default:
-          return match.err(ctx.reportError(token, commonErrorMessages.UnexpectedToken));
+          return err(ctx.reportError(token, commonErrorMessages.UnexpectedToken));
       }
+
+    case TokenKind.CharClassEscape:
+      return parseCharClassEscape(x, ctx);
+
+    case TokenKind.ControlEscape:
+      return parseControlEscapeHandler(x, ctx);
+
+    case TokenKind.CharEscape:
+      switch (token.value) {
+        case 'b':
+          return createSimpleParser(factory.createWordBoundaryNode)(x);
+        case 'B':
+          return createSimpleParser(factory.createNonWordBoundaryNode)(x);
+        case 'p':
+          return first(
+            () => parseUnicodeProperty(x, ctx),
+            () => parseEscapedChar(x, ctx),
+          );
+        case 'P':
+          return first(
+            () => parseNonUnicodeProperty(x, ctx),
+            () => parseEscapedChar(x, ctx),
+          );
+        case 'k':
+          return first(
+            () => parseSubpatternMatch(x, ctx),
+            () => parseEscapedChar(x, ctx),
+          );
+        default:
+          return first(
+            () => parseCharEscape(x, ctx),
+            () => parseEscapedChar(x, ctx),
+          );
+      }
+
+    case TokenKind.DecimalEscape:
+      return first(
+        () => parseOctalChar(x, ctx),
+        () => parseNullChar(x, ctx),
+        () => parseBackReferenceChar(x, ctx),
+        () => parseEscapedChar(x, ctx),
+      );
   }
 };
 
@@ -581,41 +571,44 @@ export const parseNodeInRegexp: NodeParser = (x, ctx, recursiveFn = parseNodeInR
 // eslint-disable-next-line complexity
 export const parseGroup: NodeParser = ({ token: inputToken, nodes: parentNodes }, ctx) => {
   const parseNodeInGroup: NodeParser = (x, ctx) => {
-    const token = getToken(x);
-    // Closing group
-    if (isParenthesesCloseToken(token)) {
-      return match.none();
-    }
-
-    if (isForwardSlashToken(token) || ctx.tokenizer.isLastToken(token)) {
-      return match.err(ctx.reportError(positionRange(inputToken, token), 'Incomplete group structure'));
-    }
-
-    return parseNodeInRegexp(x, ctx, parseNodeInGroup);
+    return (
+      ok(x)
+        // Closing group
+        .filter(pipe2(viewToken, not(isParenthesesCloseToken)))
+        // We shouldn't find any forward slash inside group
+        .filterOrThrow(
+          pipe2(viewToken, not(isForwardSlashToken)),
+          pipe2(viewToken, x => ctx.reportError(positionRange(inputToken, x), 'Incomplete group structure')),
+        )
+        .match(x => parseNodeInRegexp(x, ctx, parseNodeInGroup))
+    );
   };
 
-  const firstToken = match
-    .ok(inputToken)
+  const firstToken = ok(inputToken)
     .filter(isParenthesesOpenToken)
     .orError(() => ctx.reportError(inputToken, 'Trying to parse expression as group, but got invalid input'));
 
-  const groupMeta = match.first<{ token: Step; specifier: GroupNameNode | null; type: GroupNode['type'] }>(
+  const groupMeta = first<{ token: TokenStep; specifier: GroupNameNode | null; type: GroupNode['type'] }>(
     // Implementation (?=...) - positive lookahead
     () =>
       firstToken
-        .matched(firstToken =>
-          matchTokenSequence(firstToken, [parenthesisOpenMatcher, questionMarkMatcher, equalsMatcher]),
+        .match(firstToken =>
+          matchTokenSequence(firstToken, [
+            createSyntaxCharMatcher('('),
+            createSyntaxCharMatcher('?'),
+            createPatternCharMatcher('='),
+          ]),
         )
         .map(({ token }) => ({ token, type: 'positiveLookahead', specifier: null } as const)),
 
     // Implementation (?!...) - negative lookahead
     () =>
       firstToken
-        .matched(firstToken =>
+        .match(firstToken =>
           matchTokenSequence(firstToken, [
-            parenthesisOpenMatcher,
-            questionMarkMatcher,
-            [TokenKind.PatternChar, { value: '!' }],
+            createSyntaxCharMatcher('('),
+            createSyntaxCharMatcher('?'),
+            createPatternCharMatcher('!'),
           ]),
         )
         .map(({ token }) => ({ token, type: 'negativeLookahead', specifier: null } as const)),
@@ -623,12 +616,12 @@ export const parseGroup: NodeParser = ({ token: inputToken, nodes: parentNodes }
     // Implementation (?<=...) - positive lookbehind
     () =>
       firstToken
-        .matched(firstToken =>
+        .match(firstToken =>
           matchTokenSequence(firstToken, [
-            parenthesisOpenMatcher,
-            questionMarkMatcher,
-            chevronsOpenMatcher,
-            equalsMatcher,
+            createSyntaxCharMatcher('('),
+            createSyntaxCharMatcher('?'),
+            createPatternCharMatcher('<'),
+            createPatternCharMatcher('='),
           ]),
         )
         .map(({ token }) => ({ token, type: 'positiveLookbehind', specifier: null } as const)),
@@ -636,12 +629,12 @@ export const parseGroup: NodeParser = ({ token: inputToken, nodes: parentNodes }
     // Implementation (?<!...) - negative lookbehind
     () =>
       firstToken
-        .matched(firstToken =>
+        .match(firstToken =>
           matchTokenSequence(firstToken, [
-            parenthesisOpenMatcher,
-            questionMarkMatcher,
-            chevronsOpenMatcher,
-            [TokenKind.PatternChar, { value: '!' }],
+            createSyntaxCharMatcher('('),
+            createSyntaxCharMatcher('?'),
+            createPatternCharMatcher('<'),
+            createPatternCharMatcher('!'),
           ]),
         )
         .map(({ token }) => ({ token, type: 'negativeLookbehind', specifier: null } as const)),
@@ -649,11 +642,11 @@ export const parseGroup: NodeParser = ({ token: inputToken, nodes: parentNodes }
     // Implementation (?:...) - non-capturing group
     () =>
       firstToken
-        .matched(firstToken =>
+        .match(firstToken =>
           matchTokenSequence(firstToken, [
-            parenthesisOpenMatcher,
-            questionMarkMatcher,
-            [TokenKind.PatternChar, { value: ':' }],
+            createSyntaxCharMatcher('('),
+            createSyntaxCharMatcher('?'),
+            createPatternCharMatcher(':'),
           ]),
         )
         .map(({ token }) => ({ token, type: 'nonCapturing', specifier: null } as const)),
@@ -661,92 +654,94 @@ export const parseGroup: NodeParser = ({ token: inputToken, nodes: parentNodes }
     // Implementation (?<tag_name>...) - named capturing group
     () =>
       firstToken
-        .matched(firstToken =>
-          matchTokenSequence<string>(firstToken, [
-            parenthesisOpenMatcher,
-            questionMarkMatcher,
-            chevronsOpenMatcher,
-            wordMatcher,
-            chevronsCloseMatcher,
-          ]),
+        .match(firstToken =>
+          matchTokenSequence<string>(
+            firstToken,
+            [
+              createSyntaxCharMatcher('('),
+              createSyntaxCharMatcher('?'),
+              createPatternCharMatcher('<'),
+              wordMatcher,
+              createPatternCharMatcher('>'),
+            ],
+            '',
+          ),
         )
-        .matched(groupName => {
-          const name = groupName.values.at(0);
+        .match(groupName => {
+          const name = groupName.value;
           if (!name) {
-            return match.err(ctx.reportError(groupName.token, "Can't parse group name"));
+            return err(ctx.reportError(groupName.token, "Can't parse group name"));
           }
           if (ctx.foundGroupSpecifiers.has(name)) {
-            return match.err(ctx.reportError(groupName.token, `Group name '${name}' is already defined`));
+            return err(ctx.reportError(groupName.token, `Group name '${name}' is already defined`));
           }
 
           const specifier = factory.createGroupNameNode(name, { start: groupName.start + 2, end: groupName.end });
-          return match.ok({ token: groupName.token, type: 'capturing', specifier } as const);
+          return ok({ token: groupName.token, type: 'capturing', specifier } as const);
         }),
 
     () => firstToken.map(token => ({ token, type: 'capturing', specifier: null })),
   );
 
   const collectedNodes = groupMeta
-    .matched(pipe2(getToken, matchNextToken))
-    .matched(x => fillExpressions(x, ctx, parseNodeInGroup));
+    .match(pipe2(viewToken, matchNextToken))
+    .match(x => fillExpressions(x, ctx, parseNodeInGroup));
 
-  return match
-    .all(firstToken, groupMeta, collectedNodes)
-    .map(([firstToken, { type, specifier }, { nodes, token: lastToken }]) => {
+  return all([firstToken, groupMeta, collectedNodes]).map(
+    ([firstToken, { type, specifier }, { nodes, token: lastToken }]) => {
       const node = factory.createGroupNode(type, specifier, nodes, positionRange(firstToken, lastToken));
       if (specifier) {
         ctx.foundGroupSpecifiers.set(specifier.name, node);
       }
 
       return createParserResult(parentNodes.concat(node), lastToken);
-    });
+    },
+  );
 };
 
 // Implementation A-z - char range
 export const parseCharRange: NodeParser = ({ token: startToken, nodes }, ctx, recursiveFn = parseCharRange) => {
   const nextNodes = matchNextToken(startToken)
     .orError(() => ctx.reportError(startToken, commonErrorMessages.EOL))
-    .matched(nextToken => recursiveFn(createParserResult([], nextToken), ctx));
+    .match(nextToken => recursiveFn(createParserResult([], nextToken), ctx));
 
   const fromNode = matchLastNode(nodes).filter(isCharNode);
   const toNode = nextNodes
-    .matched(pipe2(getNodes, matchFirstNode))
+    .match(pipe2(viewNodes, matchFirstNode))
     .filter(isCharNode)
     .orError(() => ctx.reportError(0, commonErrorMessages.UnexpectedToken));
 
-  const rangeNode = match.all(fromNode, toNode).matched(([from, to]) => {
+  const rangeNode = all([fromNode, toNode]).match(([from, to]) => {
     const fromCharCode = from.value.charCodeAt(0);
     const toCharCode = to.value.charCodeAt(0);
     if (fromCharCode > toCharCode) {
-      return match.err(
+      return err(
         ctx.reportError(
           positionRange(from, to),
           `Character range is out of order: from '${from.value}' (index ${fromCharCode}) to '${to.value}' (index ${toCharCode})`,
         ),
       );
     }
-    return match.ok(factory.createCharRangeNode(from, to));
+    return ok(factory.createCharRangeNode(from, to));
   });
 
-  return match
-    .all(nextNodes, fromNode, toNode, rangeNode)
-    .map(([next, from, to, range]) =>
-      createParserResult(replace(nodes, from, range).concat(remove(next.nodes, to)), next.token),
-    );
+  return all([nextNodes, fromNode, toNode, rangeNode]).map(([next, from, to, range]) =>
+    createParserResult(replace(nodes, from, range).concat(remove(next.nodes, to)), next.token),
+  );
 };
 
 // Implementation [...] - char class
 // Implementation [^...] - negative char class
 export const parseCharClass: NodeParser = ({ token: inputToken, nodes: parentNodes }, ctx) => {
   const parseTokenInCharClass: NodeParser = (x, ctx) => {
-    const token = getToken(x);
+    const token = viewToken(x);
 
     if (isBracketsCloseToken(token)) {
-      return match.none();
+      return none();
     }
 
     if (ctx.tokenizer.isLastToken(token)) {
-      return match.err(ctx.reportError(positionRange(inputToken, token), 'Character class missing closing bracket'));
+      return err(ctx.reportError(positionRange(inputToken, token), 'Character class missing closing bracket'));
     }
 
     switch (token.kind) {
@@ -754,7 +749,7 @@ export const parseCharClass: NodeParser = ({ token: inputToken, nodes: parentNod
         return parseSimpleChar(x, ctx);
 
       case TokenKind.CharEscape:
-        return match.first(
+        return first(
           () => parseBackspace(x, ctx),
           () => parseCharEscape(x, ctx),
           () => parseEscapedChar(x, ctx),
@@ -767,7 +762,7 @@ export const parseCharClass: NodeParser = ({ token: inputToken, nodes: parentNod
         return parseControlEscapeHandler(x, ctx);
 
       case TokenKind.DecimalEscape:
-        return match.first(
+        return first(
           () => parseOctalChar(x, ctx),
           () => parseEscapedChar(x, ctx),
         );
@@ -778,7 +773,7 @@ export const parseCharClass: NodeParser = ({ token: inputToken, nodes: parentNod
       case TokenKind.PatternChar:
         switch (token.value) {
           case '-':
-            return match.first(
+            return first(
               () => parseCharRange(x, ctx, parseTokenInCharClass),
               () => parseSimpleChar(x, ctx),
             );
@@ -789,55 +784,51 @@ export const parseCharClass: NodeParser = ({ token: inputToken, nodes: parentNod
     }
   };
 
-  const firstToken = match
-    .ok(inputToken)
+  const firstToken = ok(inputToken)
     .filter(isBracketsOpenToken)
     .orError(() => ctx.reportError(inputToken, 'Trying to parse expression as character class, but got invalid input'));
 
-  const negative = firstToken.matched(firstToken =>
-    matchTokenSequence(firstToken, [
-      [TokenKind.SyntaxChar, { value: '[' }],
-      [TokenKind.SyntaxChar, { value: '^' }],
-    ]),
+  const negative = firstToken.match(firstToken =>
+    matchTokenSequence(firstToken, [createSyntaxCharMatcher('['), createSyntaxCharMatcher('^')]),
   );
 
   const startingStep = negative
-    .matched(pipe2(getToken, matchNextToken))
-    .orElse(() => firstToken.matched(matchNextToken))
+    .match(pipe2(viewToken, matchNextToken))
+    .orElse(() => firstToken.match(matchNextToken))
     .orError(() => ctx.reportError(inputToken, commonErrorMessages.EOL));
 
-  const foundNodes = startingStep.matched(x => fillExpressions(x, ctx, parseTokenInCharClass));
+  const foundNodes = startingStep.match(x => fillExpressions(x, ctx, parseTokenInCharClass));
 
-  return match
-    .all(firstToken, negative.isMatched(), foundNodes)
-    .map(([firstToken, isNegative, { token: lastToken, nodes }]) => {
+  return all([negative.isMatched(), firstToken, foundNodes]).map(
+    ([isNegative, firstToken, { token: lastToken, nodes }]) => {
       const charClassNode = factory.createCharClassNode(isNegative, nodes, positionRange(firstToken, lastToken));
       return createParserResult(parentNodes.concat(charClassNode), lastToken);
-    });
+    },
+  );
 };
 
 export const parseCharEscape: NodeParser = (x, ctx) => {
   switch (x.token.value) {
     case 'x':
-      return match.first(
+      return first(
         () => parseHexChar(x, ctx),
         () => parseEscapedChar(x, ctx),
       );
 
     case 'u':
-      return match.first(
+      return first(
         () => parseUnicodeChar(x, ctx),
         () => parseEscapedChar(x, ctx),
       );
 
     case 'c':
-      return match.first(
+      return first(
         () => parseASCIIControlChar(x, ctx),
         () => parseEscapedChar(x, ctx),
       );
 
     default:
-      return match.none();
+      return none();
   }
 };
 
@@ -850,7 +841,7 @@ export const parseSimpleChar: NodeParser = createSimpleParser(token =>
 );
 
 export const parseCharClassEscape: NodeParser = x => {
-  const token = getToken(x);
+  const token = viewToken(x);
   switch (token.value) {
     // Implementation \d - any digit
     case 'd':
@@ -872,10 +863,11 @@ export const parseCharClassEscape: NodeParser = x => {
       return createSimpleParser(factory.createNonWordNode)(x);
   }
 
-  return match.none();
+  return none();
 };
+
 export const parseControlEscapeHandler: NodeParser = (x, ctx) => {
-  const token = getToken(x);
+  const token = viewToken(x);
   let type: ControlEscapeCharType;
   switch (token.value) {
     // Implementation \n - new line
@@ -899,7 +891,7 @@ export const parseControlEscapeHandler: NodeParser = (x, ctx) => {
       type = ControlEscapeCharType.FormFeedChar;
       break;
     default:
-      return match.err(ctx.reportError(token, `Unsupported Control escape character: \\${token.value}`));
+      return err(ctx.reportError(token, `Unsupported Control escape character: \\${token.value}`));
   }
 
   return createSimpleParser(token => factory.createControlEscapeNode(type, token))(x);

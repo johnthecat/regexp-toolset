@@ -1,21 +1,103 @@
-import type { AnyRegexpToken, Step } from './regexpTokenizer.js';
+import type {
+  AnyRegexpToken,
+  CharEscapeToken,
+  PatternCharToken,
+  SyntaxCharToken,
+  TokenStep,
+} from './regexpTokenizer.js';
 import { isDecimalEscapeToken, isDecimalToken, isPatternCharToken, TokenKind } from './regexpTokenizer.js';
-import { isBoolean } from './common/typeCheckers.js';
+import { isBoolean, isFunction, isNumber, type IsVoid } from './common/typeCheckers.js';
+import { ok, none, all, type Match } from './common/fp/match.js';
+import { set, view, type Lens } from './common/fp/lens.js';
+import { memo } from './common/memo.js';
+import type { InferTokenValue } from './abstract/tokenizer.js';
 import type { NodePosition } from './regexpNodes.js';
-import * as match from './common/match/match.js';
 
-type FullMatcherResult<V> = match.Match<{ value: NonNullable<V> | null; token: Step }>;
+type FullMatcherResultValue<V> = { value: V; token: TokenStep };
+type FullMatcherResult<V> = Match<FullMatcherResultValue<V>>;
 type MatcherResult<V> = boolean | FullMatcherResult<V>;
 
-type CustomMatcher<V> = (token: Step) => MatcherResult<V>;
+type CustomMatcher<V> = (x: FullMatcherResultValue<V>) => MatcherResult<V>;
 
 type Matcher<V, T extends AnyRegexpToken = AnyRegexpToken> = T['kind'] | Partial<T> | CustomMatcher<V>;
 type MatcherList<V, T extends AnyRegexpToken = AnyRegexpToken> = Matcher<V, T>[];
 
+type MatchedSeqResult<V> = NodePosition & { value: V; token: TokenStep };
+
+export const matchTokenSequence = <V = void>(
+  ...[token, seq, initialValue]: IsVoid<V> extends true
+    ? [token: TokenStep, seq: (Matcher<V> | MatcherList<V>)[]]
+    : [token: TokenStep, seq: (Matcher<V> | MatcherList<V>)[], initialValue: V]
+): Match<MatchedSeqResult<V>> => {
+  let lastToken = token;
+  let intermediateResult: MatchedSeqResult<V> = {
+    token,
+    value: initialValue as V,
+    start: token.start,
+    end: token.end,
+  };
+
+  for (const condition of seq) {
+    const { token: currentToken, value, start } = intermediateResult;
+    let result: Match<MatchedSeqResult<V>>;
+
+    if (Array.isArray(condition)) {
+      result = all(condition.map(x => applyMatcher(currentToken, x, value))).map(res => {
+        const nextValue = res.find(v => v.value !== value)?.value ?? value;
+        const token = res.at(-1)?.token ?? currentToken;
+        return {
+          token,
+          value: nextValue,
+          start,
+          end: token.end,
+        };
+      });
+    } else {
+      result = applyMatcher(currentToken, condition, value).map(({ token, value }) => ({
+        token,
+        value,
+        start,
+        end: token.end,
+      }));
+    }
+
+    const unwrapped = result.unwrap();
+    if (!unwrapped.match) {
+      return result;
+    }
+
+    const nextToken = unwrapped.value.token.next();
+    if (!nextToken) {
+      return none();
+    }
+
+    lastToken = unwrapped.value.token;
+    unwrapped.value.token = nextToken;
+    intermediateResult = unwrapped.value;
+  }
+
+  intermediateResult.token = lastToken;
+  return ok(intermediateResult);
+};
+
+const applyMatcher = <V>(token: TokenStep, matcher: Matcher<V>, value: V): FullMatcherResult<V> => {
+  let result: MatcherResult<V>;
+
+  if (isNumber(matcher)) {
+    result = kindMatcher(token, matcher);
+  } else if (isFunction(matcher)) {
+    result = matcher({ token, value });
+  } else {
+    result = patternMatcher(token, matcher);
+  }
+
+  return isBoolean(result) ? (result ? ok({ value, token }) : none()) : result;
+};
+
 const kindMatcher = <V>(a: AnyRegexpToken, b: TokenKind): MatcherResult<V> => {
   return a.kind === b;
 };
-const partialMatcher = <V>(token: Record<string, unknown>, fields: Record<string, unknown>): MatcherResult<V> => {
+const patternMatcher = <V>(token: Record<string, unknown>, fields: Record<string, unknown>): MatcherResult<V> => {
   for (const key in fields) {
     if (!(key in token)) {
       return false;
@@ -27,76 +109,12 @@ const partialMatcher = <V>(token: Record<string, unknown>, fields: Record<string
   return true;
 };
 
-const applyMatcher = <V>(token: Step, matcher: Matcher<V>): FullMatcherResult<V> => {
-  let result: MatcherResult<V>;
-
-  if (typeof matcher === 'number') {
-    result = kindMatcher(token, matcher);
-  } else if (typeof matcher === 'function') {
-    result = matcher(token);
-  } else {
-    result = partialMatcher(token, matcher);
-  }
-
-  return isBoolean(result) ? (result ? match.ok({ value: null, token }) : match.none()) : result;
-};
-
-type MatchedSeqResult<V> = match.Match<NodePosition & { values: NonNullable<V>[]; token: Step }>;
-
-export const matchTokenSequence = <V>(token: Step, seq: (Matcher<V> | MatcherList<V>)[]): MatchedSeqResult<V> => {
-  let intermediateResult: MatchedSeqResult<V> = match.ok({
-    token,
-    values: [],
-    start: token.start,
-    end: token.end,
-  });
-
-  for (const condition of seq) {
-    intermediateResult = intermediateResult
-      .matched(({ start, values, token: currentToken }) => {
-        if (Array.isArray(condition)) {
-          return match.all(...condition.map(x => applyMatcher(currentToken, x))).map(res => {
-            const value = res.find(v => v.value !== null)?.value ?? null;
-            const token = res.at(-1)?.token ?? currentToken;
-            return {
-              token,
-              values: value !== null ? values.concat(value) : values,
-              start,
-              end: token.end,
-            };
-          });
-        }
-
-        return applyMatcher(currentToken, condition).map(({ token, value }) => ({
-          token,
-          values: value !== null ? values.concat(value) : values,
-          start,
-          end: token.end,
-        }));
-      })
-      .matched(({ token, values, start, end }) => {
-        const next = token.next();
-        if (!next) {
-          return match.none();
-        }
-        return match.ok({
-          token: next,
-          values,
-          start,
-          end,
-        });
-      });
-  }
-
-  return intermediateResult.map(({ token, ...etc }) => ({ token: token.prev(), ...etc }));
-};
-
 const wordRegexp = /\w/;
-export const wordMatcher: CustomMatcher<string> = (token: Step) => {
+export const wordMatcher: CustomMatcher<string> = ({ token, value: prevValue }) => {
   let wordMatched = false;
-  let last: Step = token;
-  let current: Step | null = token;
-  let value = '';
+  let last: TokenStep = token;
+  let current: TokenStep | null = token;
+  let value = prevValue;
   do {
     if (wordRegexp.test(current.value)) {
       wordMatched = true;
@@ -106,14 +124,15 @@ export const wordMatcher: CustomMatcher<string> = (token: Step) => {
       break;
     }
   } while ((current = current.next()));
-  return wordMatched ? match.ok({ value, token: last }) : match.none();
+  return wordMatched ? ok({ value, token: last }) : none();
 };
 
-export const numberMatcher: CustomMatcher<number> = step => {
+export const numberMatcher: CustomMatcher<number> = ({ token, value: prevValue }) => {
   let numberMatched = false;
-  let last: Step = step;
-  let current: Step | null = step;
+  let last: TokenStep = token;
+  let current: TokenStep | null = token;
   let value = '';
+
   do {
     if (isDecimalToken(current) || isDecimalEscapeToken(current)) {
       numberMatched = true;
@@ -124,17 +143,17 @@ export const numberMatcher: CustomMatcher<number> = step => {
     }
   } while ((current = current.next()));
 
-  return numberMatched ? match.ok({ value: parseInt(value), token: last }) : match.none();
+  return numberMatched ? ok({ value: prevValue + parseInt(value), token: last }) : none();
 };
 
-export const octalMatcher: CustomMatcher<string> = firstToken => {
+export const octalMatcher: CustomMatcher<string> = ({ token: firstToken }) => {
   const secondToken = firstToken.next();
   if (!secondToken) {
-    return match.none();
+    return none();
   }
   const thirdToken = secondToken.next();
   if (!thirdToken) {
-    return match.none();
+    return none();
   }
 
   let value = '';
@@ -143,42 +162,64 @@ export const octalMatcher: CustomMatcher<string> = firstToken => {
     if ((token === firstToken && isDecimalEscapeToken(token)) || isDecimalToken(token)) {
       const num = parseInt(token.value);
       if (num > 7 || num < 0) {
-        return match.none();
+        return none();
       }
 
       value = value + token.value;
       if (parseInt(value) > 377) {
-        return match.none();
+        return none();
       }
     }
   }
 
-  return value.length ? match.ok({ value, token: thirdToken }) : match.none();
+  return value.length ? ok({ value, token: thirdToken }) : none();
 };
 
-export const hexMatcher: CustomMatcher<string> = firstToken => {
+export const hexMatcher: CustomMatcher<string> = ({ token: firstToken, value: prevValue }) => {
   const secondToken = firstToken.next();
   if (!secondToken) {
-    return match.none();
+    return none();
   }
 
-  let value = '';
+  let value = prevValue;
   for (const token of [firstToken, secondToken]) {
     if ((isPatternCharToken(token) || isDecimalToken(token)) && /^[0-9A-Fa-f]$/.test(token.value)) {
       value += token.value;
     } else {
-      return match.none();
+      return none();
     }
   }
 
-  return match.ok({ value, token: secondToken });
+  return ok({ value, token: secondToken });
 };
 
-export const curlyBracketOpenMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '{' }];
-export const curlyBracketCloseMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '}' }];
-export const chevronsOpenMatcher: MatcherList<never> = [TokenKind.PatternChar, { value: '<' }];
-export const chevronsCloseMatcher: MatcherList<never> = [TokenKind.PatternChar, { value: '>' }];
-export const equalsMatcher: MatcherList<never> = [TokenKind.PatternChar, { value: '=' }];
-export const questionMarkMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '?' }];
-export const parenthesisOpenMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: '(' }];
-export const parenthesisCloseMatcher: MatcherList<never> = [TokenKind.SyntaxChar, { value: ')' }];
+export const createPatternCharMatcher = memo((value: InferTokenValue<PatternCharToken>) => [
+  TokenKind.PatternChar,
+  { value },
+]);
+export const createSyntaxCharMatcher = memo((value: InferTokenValue<SyntaxCharToken>) => [
+  TokenKind.SyntaxChar,
+  { value },
+]);
+export const createCharEscapeMatcher = memo((value: InferTokenValue<CharEscapeToken>) => [
+  TokenKind.CharEscape,
+  { value },
+]);
+
+export const mapMatcher = <Original, Mapped>(
+  matcher: CustomMatcher<Original>,
+  valueL: Lens<Mapped, Original>,
+): CustomMatcher<Mapped> => {
+  const viewValue = view(valueL);
+  const setValue = set(valueL);
+
+  return x => {
+    const initialValue = viewValue(viewMatcherResultValue(x));
+    const result = matcher(setMatcherResultValue(x, initialValue));
+    return isBoolean(result) ? result : result.map(y => setMatcherResultValue(y, setValue(x.value, y.value)));
+  };
+};
+
+export const matcherResultValueL: Lens<FullMatcherResultValue<any>, any> = (f, x) => ({ ...x, value: f(x.value) });
+export const viewMatcherResultValue = view(matcherResultValueL);
+export const setMatcherResultValue = set(matcherResultValueL);

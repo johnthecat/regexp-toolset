@@ -5,7 +5,7 @@ export type LintedListNode<Value extends object> = Value & {
   __linkedListValue?: Value | undefined;
 };
 
-export class LazyDoublyLinkedList<Value extends object> {
+export class LazyLinkedList<Value extends object> {
   private length = 0;
   private rootNode: LintedListNode<Value> | null = null;
   private lastNode: LintedListNode<Value> | null = null;
@@ -16,7 +16,7 @@ export class LazyDoublyLinkedList<Value extends object> {
   constructor(private valueFactory: () => Value | null) {}
 
   private next(prevNode: LintedListNode<Value>) {
-    let nextNode = this.forwardCache.get(prevNode) ?? null;
+    let nextNode = this.forwardCache.get(prevNode);
     if (!nextNode) {
       nextNode = this.createNode(this.valueFactory());
       this.forwardCache.set(prevNode, nextNode);

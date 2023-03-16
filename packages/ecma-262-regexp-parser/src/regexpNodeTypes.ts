@@ -31,11 +31,12 @@ import type {
   WordBoundaryNode,
 } from './regexpNodes.js';
 import { SyntaxKind } from './regexpNodes.js';
+import { isObject } from './common/typeCheckers.js';
 
 const createTypeChecker =
   <T extends Node<SyntaxKind, Record<string, unknown>>>(kind: T['kind']) =>
   (node: unknown): node is T =>
-    typeof node === 'object' && !!node ? (node as Node).kind === kind : false;
+    isObject(node) ? (node as Node).kind === kind : false;
 
 export const isRegexpNode = createTypeChecker<RegexpNode>(SyntaxKind.Regexp);
 export const isLineStartNode = createTypeChecker<LineStartNode>(SyntaxKind.LineStart);

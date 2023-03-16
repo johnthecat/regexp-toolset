@@ -110,7 +110,7 @@ export type GroupNode = Node<
 >;
 export type BackReferenceNode = Node<SyntaxKind.BackReference, { group: GroupNode }>;
 
-type QuantifierNodeRangeValue = { from: number; to?: number | void };
+export type QuantifierNodeRangeValue = { from: number; to?: number | void };
 
 export type QuantifierNode = Node<
   SyntaxKind.Quantifier,

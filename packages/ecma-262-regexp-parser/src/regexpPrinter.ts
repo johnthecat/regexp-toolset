@@ -1,5 +1,6 @@
 import type { RegexpNode } from './regexpNodes.js';
 import { type AnyRegexpNode, CharType, ControlEscapeCharType, QuantifierType, SyntaxKind } from './regexpNodes.js';
+import { isVoid } from './common/typeCheckers.js';
 
 // eslint-disable-next-line complexity
 export const printRegexpNode = (node: AnyRegexpNode): string => {
@@ -123,7 +124,7 @@ export const printRegexpNode = (node: AnyRegexpNode): string => {
           quantifier = '*';
           break;
         case QuantifierType.Range:
-          if (typeof node.to === 'undefined') {
+          if (isVoid(node.to)) {
             quantifier = `{${node.from}}`;
           } else {
             quantifier = `{${node.from},${node.to === Number.POSITIVE_INFINITY ? '' : node.to}}`;

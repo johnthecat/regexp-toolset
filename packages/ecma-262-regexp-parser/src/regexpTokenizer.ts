@@ -1,6 +1,7 @@
 import { waterfall } from './common/waterfall.js';
 import { createHandler, createTokenizer } from './abstract/tokenizer.js';
 import type { TokenizerStep, Token, Tokenizer } from './abstract/tokenizer.js';
+import { isObject } from './common/typeCheckers.js';
 
 export const enum TokenKind {
   SyntaxChar,
@@ -32,7 +33,7 @@ export type AnyRegexpToken =
   | DecimalEscapeToken
   | DecimalToken;
 export type RegexpTokenizer = Tokenizer<AnyRegexpToken>;
-export type Step = TokenizerStep<AnyRegexpToken>;
+export type TokenStep = TokenizerStep<AnyRegexpToken>;
 
 export const syntaxCharHandler = createHandler<SyntaxCharToken>(TokenKind.SyntaxChar, /([\\.*+?)(\]\[}{|$^])/);
 export const controlEscapeHandler = createHandler<ControlEscapeToken>(TokenKind.ControlEscape, /\\([fnrtv])/);
@@ -61,8 +62,8 @@ const genericChecker = <T extends AnyRegexpToken>(
   token: unknown,
   value?: string,
 ): token is T => {
-  return typeof token === 'object' && !!token && 'kind' in token
-    ? token.kind === kind && (value && 'value' in token ? token.value === value : true)
+  return isObject(token) && 'kind' in token
+    ? token['kind'] === kind && (value && 'value' in token ? token['value'] === value : true)
     : false;
 };
 

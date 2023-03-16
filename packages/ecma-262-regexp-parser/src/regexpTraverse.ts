@@ -31,6 +31,7 @@ import type {
   WordBoundaryNode,
 } from './regexpNodes.js';
 import { SyntaxKind } from './regexpNodes.js';
+import { isObject } from './common/typeCheckers.js';
 
 type Nodes = {
   [SyntaxKind.Regexp]: RegexpNode;
@@ -79,20 +80,20 @@ const applyEnterVisitor = <T extends SyntaxKind>(node: Nodes[T], visitors: Parti
   const specificKindVisitor = visitors[node.kind] as Visitor<T> | void;
   const genericVisitor = visitors['*'];
   if (specificKindVisitor) {
-    typeof specificKindVisitor === 'function' ? specificKindVisitor(node) : specificKindVisitor.enter?.(node);
+    isObject(specificKindVisitor) ? specificKindVisitor.enter?.(node) : specificKindVisitor(node);
   }
   if (genericVisitor) {
-    typeof genericVisitor === 'function' ? genericVisitor(node) : genericVisitor.enter?.(node);
+    isObject(genericVisitor) ? genericVisitor.enter?.(node) : genericVisitor(node);
   }
 };
 
 const applyExitVisitor = <T extends SyntaxKind>(node: Nodes[T], visitors: Partial<Visitors>) => {
   const specificKindVisitor = visitors[node.kind] as Visitor<T> | void;
   const genericVisitor = visitors['*'];
-  if (typeof specificKindVisitor === 'object') {
+  if (isObject(specificKindVisitor)) {
     specificKindVisitor.exit?.(node);
   }
-  if (typeof genericVisitor === 'object') {
+  if (isObject(genericVisitor)) {
     genericVisitor.exit?.(node);
   }
 };

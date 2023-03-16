@@ -1,10 +1,10 @@
 import type { AnyRegexpNode, GroupNode, NodePosition, SubpatternNode } from './regexpNodes.js';
-import type { RegexpTokenizer, Step } from './regexpTokenizer.js';
+import type { RegexpTokenizer, TokenStep } from './regexpTokenizer.js';
 import type { ParsingError } from './common/parsingError.js';
-import type { Match } from './common/match/match.js';
+import type { Match } from './common/fp/match.js';
 
 // export type NodeParserResult = EitherMatch<AnyRegexpNode>;
-export type NodeParserResultValue = { nodes: AnyRegexpNode[]; token: Step };
+export type NodeParserResultValue = { nodes: AnyRegexpNode[]; token: TokenStep };
 export type NodeParserResult = Match<NodeParserResultValue>;
 export type SingleNodeParserResult<T extends AnyRegexpNode = AnyRegexpNode> = Match<{ node: T }>;
 
@@ -15,7 +15,7 @@ export type NodeParser = (
 ) => NodeParserResult;
 
 export type SingleNodeParser<T extends AnyRegexpNode = AnyRegexpNode> = (
-  token: Step,
+  token: TokenStep,
   ctx: ParserContext,
 ) => SingleNodeParserResult<T>;
 
