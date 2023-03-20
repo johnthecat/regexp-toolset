@@ -1,6 +1,9 @@
 import { expect, describe, it } from 'vitest';
 import { parseRegexp } from '../../index.js';
 
+/**
+ * @see parseLineEnd
+ */
 describe('Line End', () => {
   it('should correctly parse line end in the end of regexp', () => {
     expect(parseRegexp(/a$/)).toMatchSnapshot();

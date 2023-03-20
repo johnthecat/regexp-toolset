@@ -1,6 +1,9 @@
 import { expect, describe, it } from 'vitest';
 import { parseRegexp } from '../../index.js';
 
+/**
+ * @see parseGroup
+ */
 describe('Group', () => {
   describe('Common', () => {
     it('should throw, if group is not closed', () => {
@@ -16,7 +19,7 @@ describe('Group', () => {
       expect(() => parseRegexp('/(ab))/')).toThrowErrorMatchingInlineSnapshot(`
         "
          ❱ /(ab))/
-                ═
+                ↑
          Unmatched parenthesis"
       `);
     });
@@ -26,39 +29,17 @@ describe('Group', () => {
     });
   });
 
-  describe('Capturing group', () => {
-    it('should parse simple capturing group', () => {
-      expect(parseRegexp('/(ab)/')).toMatchSnapshot();
-    });
-  });
-
-  describe('Non Capturing group', () => {
-    it('should parse simple non capturing group', () => {
-      expect(parseRegexp('/(?:ab)/')).toMatchSnapshot();
-    });
-  });
-
-  describe('Positive lookahead', () => {
-    it('should parse simple positive lookahead', () => {
-      expect(parseRegexp('/(?=ab)/')).toMatchSnapshot();
-    });
-  });
-
-  describe('Negative lookahead', () => {
-    it('should parse simple negative lookahead', () => {
-      expect(parseRegexp('/(?!ab)/')).toMatchSnapshot();
-    });
-  });
-
-  describe('Positive lookbehind', () => {
-    it('should parse simple positive lookbehind', () => {
-      expect(parseRegexp('/(?<=ab)/')).toMatchSnapshot();
-    });
-  });
-
-  describe('Negative lookbehind', () => {
-    it('should parse simple negative lookbehind', () => {
-      expect(parseRegexp('/(?<!ab)/')).toMatchSnapshot();
+  describe.each([
+    { name: 'Capturing Group', prefix: '' },
+    { name: 'Named Capturing Group', prefix: '?<my_name>' },
+    { name: 'Non Capturing Group', prefix: '?:' },
+    { name: 'Positive lookahead', prefix: '?=' },
+    { name: 'Positive lookbehind', prefix: '?<=' },
+    { name: 'Negative lookahead', prefix: '?!' },
+    { name: 'Negative lookbehind', prefix: '?<!' },
+  ])('$name', ({ prefix }) => {
+    it('should parse simple', () => {
+      expect(parseRegexp(new RegExp(`(${prefix}a)`))).toMatchSnapshot();
     });
   });
 });

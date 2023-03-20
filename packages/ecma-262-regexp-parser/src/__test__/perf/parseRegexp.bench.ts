@@ -13,15 +13,21 @@ const scanL = <T, R>(arr: T[], fn: (acc: R, item: T, index: number) => R, initia
   return result;
 };
 
-const createTitle = (title: string, repetitionsCount: number): string => {
-  return `${title.slice(0, 10)}${title.length > 10 ? '...' : ''} (reps: ${repetitionsCount}, length: ${title.length})`;
+const printNumber = (n: number) => (Number.isInteger(n) ? n.toString() : n.toFixed(2));
+
+const createTitle = (regexp: string, repetitionsCount: number): string => {
+  return `${regexp.slice(0, 10)}${regexp.length > 10 ? '...' : ''} (reps: ${printNumber(repetitionsCount)})`;
 };
 
-const alphabet = Array.from({ length: 26 }).map((_, index) => String.fromCharCode(index + 97));
-const highlights = [1, 2, 5, 10, 15, 20];
-const smallRegExps = scanL<string, string[]>(alphabet, (a, t) => a.concat(t), []).filter((_, i) =>
-  highlights.includes(i + 1),
-);
+const alphabetUppercase = Array.from({ length: 26 }).map((_, index) => String.fromCharCode(index + 65));
+const alphabetLowercase = Array.from({ length: 26 }).map((_, index) => String.fromCharCode(index + 97));
+
+const highlights = [1, 2, 5, 10, 20, 40];
+const smallRegExps = scanL<string, string[]>(
+  alphabetUppercase.concat(alphabetLowercase),
+  (a, t) => a.concat(t),
+  [],
+).filter((_, i) => highlights.includes(i + 1));
 
 const createSyntaxBench = (title: string, prepare: (rawValues: string[]) => string) => {
   describe(title, () => {
@@ -33,7 +39,7 @@ const createSyntaxBench = (title: string, prepare: (rawValues: string[]) => stri
         () => {
           parseRegexp(regExp);
         },
-        { iterations: 250, time: 250, warmupTime: 50 },
+        { iterations: 100, time: 250, warmupTime: 50 },
       );
     }
   });
@@ -41,20 +47,12 @@ const createSyntaxBench = (title: string, prepare: (rawValues: string[]) => stri
 
 createSyntaxBench('Disjunction', x => x.join('|'));
 createSyntaxBench('Range Quantifier', x => x.map(x => `${x}{1,}`).join(''));
+createSyntaxBench('Greedy Quantifier', x => x.map(x => `${x}*`).join(''));
 createSyntaxBench('Char Class', x => `[${x.join('')}]`);
 createSyntaxBench('Char Classes', x => x.map(x => `[${x}]`).join(''));
 createSyntaxBench('Group', x => `(${x.join('')})`);
 createSyntaxBench('Groups', x => x.map(x => `(${x})`).join(''));
-
-describe('Medium', () => {
-  bench(
-    'Medium regexp',
-    () => {
-      parseRegexp(/\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}/g);
-    },
-    { iterations: 500, warmupTime: 250 },
-  );
-});
+createSyntaxBench('Char Range', x => `[${x.map(a => `${a}-${String.fromCharCode(a.charCodeAt(0) + 1)}`).join('')}]`);
 
 describe('Large', () => {
   bench(

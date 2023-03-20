@@ -1,6 +1,10 @@
 import { expect, describe, it } from 'vitest';
 import { parseRegexp } from '../../index.js';
 
+/**
+ * @see parseGroup
+ * @see parseSubpatternMatch
+ */
 describe('Subpattern Match', () => {
   it('should refer to group with same name', () => {
     expect(parseRegexp(/(?<my_name>a) \k<my_name>/)).toMatchSnapshot();

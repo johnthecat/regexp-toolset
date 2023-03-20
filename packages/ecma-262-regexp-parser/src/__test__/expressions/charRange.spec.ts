@@ -1,6 +1,9 @@
 import { expect, describe, it } from 'vitest';
 import { parseRegexp } from '../../index.js';
 
+/**
+ * @see parseCharRange
+ */
 describe('CharRange', () => {
   it('should correctly parse simple char range', () => {
     expect(parseRegexp(/[a-z]/)).toMatchSnapshot();

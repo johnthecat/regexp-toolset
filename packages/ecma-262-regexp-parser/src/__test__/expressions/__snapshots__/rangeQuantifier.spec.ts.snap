@@ -1,0 +1,187 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Range quantifier > 'exact' (a'{2}') > should correct work with lazy quantifier 1`] = `
+{
+  "body": {
+    "end": 5,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 5,
+      "from": 2,
+      "greedy": false,
+      "kind": "Quantifier",
+      "start": 2,
+      "to": undefined,
+      "type": 3,
+    },
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Range quantifier > 'exact' (a'{2}') > should parse repetition count 1`] = `
+{
+  "body": {
+    "end": 4,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 4,
+      "from": 2,
+      "greedy": true,
+      "kind": "Quantifier",
+      "start": 2,
+      "to": undefined,
+      "type": 3,
+    },
+    "start": 1,
+  },
+  "end": 5,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Range quantifier > 'from to' (a'{2,3}') > should correct work with lazy quantifier 1`] = `
+{
+  "body": {
+    "end": 7,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 7,
+      "from": 2,
+      "greedy": false,
+      "kind": "Quantifier",
+      "start": 2,
+      "to": 3,
+      "type": 3,
+    },
+    "start": 1,
+  },
+  "end": 8,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Range quantifier > 'from to' (a'{2,3}') > should parse repetition count 1`] = `
+{
+  "body": {
+    "end": 6,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 6,
+      "from": 2,
+      "greedy": true,
+      "kind": "Quantifier",
+      "start": 2,
+      "to": 3,
+      "type": 3,
+    },
+    "start": 1,
+  },
+  "end": 7,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Range quantifier > 'from' (a'{2,}') > should correct work with lazy quantifier 1`] = `
+{
+  "body": {
+    "end": 6,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 6,
+      "from": 2,
+      "greedy": false,
+      "kind": "Quantifier",
+      "start": 2,
+      "to": 9007199254740991,
+      "type": 3,
+    },
+    "start": 1,
+  },
+  "end": 7,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Range quantifier > 'from' (a'{2,}') > should parse repetition count 1`] = `
+{
+  "body": {
+    "end": 5,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 5,
+      "from": 2,
+      "greedy": true,
+      "kind": "Quantifier",
+      "start": 2,
+      "to": 9007199254740991,
+      "type": 3,
+    },
+    "start": 1,
+  },
+  "end": 6,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;

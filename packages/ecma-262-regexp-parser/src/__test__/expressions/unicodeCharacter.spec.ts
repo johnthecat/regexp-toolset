@@ -1,7 +1,10 @@
 import { expect, describe, it } from 'vitest';
 import { parseRegexp } from '../../index.js';
 
-describe('Octal char', () => {
+/**
+ * @see parseUnicodeChar
+ */
+describe('Unicode char', () => {
   it('should correctly unicode value', () => {
     expect(parseRegexp(/\u0061/)).toMatchSnapshot();
   });

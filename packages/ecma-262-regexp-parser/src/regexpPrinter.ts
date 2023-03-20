@@ -127,7 +127,7 @@ export const printRegexpNode = (node: AnyRegexpNode): string => {
           if (isVoid(node.to)) {
             quantifier = `{${node.from}}`;
           } else {
-            quantifier = `{${node.from},${node.to === Number.POSITIVE_INFINITY ? '' : node.to}}`;
+            quantifier = `{${node.from},${node.to === Number.MAX_SAFE_INTEGER ? '' : node.to}}`;
           }
           break;
       }

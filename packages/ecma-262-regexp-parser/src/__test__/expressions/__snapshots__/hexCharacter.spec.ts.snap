@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Octal char > should correctly unicode value 1`] = `
+exports[`Hex character > should correctly unicode value 1`] = `
 {
   "body": {
     "charCode": 97,
@@ -17,7 +17,7 @@ exports[`Octal char > should correctly unicode value 1`] = `
 }
 `;
 
-exports[`Octal char > should fallback to char sequence, if octal value is out of range > largest value 1`] = `
+exports[`Hex character > should fallback to char sequence, if octal value is out of range > largest value 1`] = `
 {
   "body": {
     "charCode": 255,
@@ -34,7 +34,7 @@ exports[`Octal char > should fallback to char sequence, if octal value is out of
 }
 `;
 
-exports[`Octal char > should fallback to char sequence, if octal value is out of range > out of range 1`] = `
+exports[`Hex character > should fallback to char sequence, if octal value is out of range > out of range 1`] = `
 {
   "body": {
     "end": 4,
@@ -74,7 +74,7 @@ exports[`Octal char > should fallback to char sequence, if octal value is out of
 }
 `;
 
-exports[`Octal char > should fallback to char sequence, if there is not enough chars > with char at the end 1`] = `
+exports[`Hex character > should fallback to char sequence, if there is not enough chars > with char at the end 1`] = `
 {
   "body": {
     "end": 5,
@@ -114,7 +114,7 @@ exports[`Octal char > should fallback to char sequence, if there is not enough c
 }
 `;
 
-exports[`Octal char > should fallback to char sequence, if there is not enough chars > with regexp end at the end 1`] = `
+exports[`Hex character > should fallback to char sequence, if there is not enough chars > with regexp end at the end 1`] = `
 {
   "body": {
     "end": 3,

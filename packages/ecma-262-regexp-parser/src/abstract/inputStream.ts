@@ -6,30 +6,28 @@ export type StringStream = {
 
 export type InputStreamIterator = Iterator<string, null> & {
   isDone(): boolean;
+  getPosition(): number;
   collect(regexp: RegExp): { value: string; start: number; end: number } | null;
 };
 
 export const createStringStream = (input: string): StringStream => {
   const collectRegexpCache: Map<string, RegExp> = new Map();
+  const size = input.length - 1;
 
   const self: StringStream = {
     chars: () => self[Symbol.iterator](),
-    size: () => input.length - 1,
+    size: () => size,
     [Symbol.iterator]: () => {
       let pos = 0;
       const inputIterator: InputStreamIterator = {
         isDone: () => pos === input.length,
+        getPosition: () => pos,
         next: () => {
           if (inputIterator.isDone()) {
             return { done: true, value: null };
           }
 
-          const char = input.charAt(pos++);
-
-          return {
-            done: false,
-            value: char,
-          };
+          return { done: false, value: input.charAt(pos++) };
         },
         collect: regexp => {
           let normalizedRegexp = collectRegexpCache.get(regexp.source);
@@ -45,14 +43,13 @@ export const createStringStream = (input: string): StringStream => {
           }
 
           const fullMatch = found[0];
-          const foundValue = found[1] ?? fullMatch;
           const possibleNextPos = pos + fullMatch.length;
 
           if (possibleNextPos === normalizedRegexp.lastIndex) {
             const start = pos;
             pos = possibleNextPos;
             return {
-              value: foundValue,
+              value: fullMatch,
               start,
               end: pos - 1,
             };
@@ -61,7 +58,6 @@ export const createStringStream = (input: string): StringStream => {
           return null;
         },
       };
-
       return inputIterator;
     },
   };

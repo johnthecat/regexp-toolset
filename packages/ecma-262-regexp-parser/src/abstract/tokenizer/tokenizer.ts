@@ -1,30 +1,18 @@
-import { createStringStream, type InputStreamIterator } from './inputStream.js';
-import { LazyLinkedList, type LintedListNode } from '../common/lazyLinkedList.js';
+import { createStringStream, type InputStreamIterator } from '../inputStream.js';
+import { LazyTokenLinkedList, type LinkedListNode } from './lazyTokenLinkedList.js';
+import type { AnyToken } from './entities.js';
 
-export type Token<K, V extends string = string> = {
-  kind: K;
-  value: V;
-  start: number;
-  end: number;
-};
+export type TokenizerIterator<T extends LinkedListNode> = Iterator<T, null>;
 
-export type AnyToken<K = any, V extends string = string> = Token<K, V>;
-
-export type InferTokenValue<T> = T extends Token<any, infer U> ? U : never;
-
-export type TokenizerStep<Token extends AnyToken = AnyToken> = LintedListNode<Token>;
-
-export type TokenizerIterator<T extends TokenizerStep> = Iterator<T, null>;
-
-export type TokenizerIterable<T extends TokenizerStep> = {
+export type TokenizerIterable<T extends LinkedListNode> = {
   [Symbol.iterator](): TokenizerIterator<T>;
 };
 
-export type TokenizerApi<T extends AnyToken> = TokenizerIterable<TokenizerStep<T>> & {
-  isFirstToken(token: T): boolean;
-  isLastToken(token: T): boolean;
-  getFirstStep(): TokenizerStep<T> | null;
-  iterate(step: TokenizerStep<T>): TokenizerIterable<TokenizerStep<T>>;
+export type TokenizerApi<T extends AnyToken> = TokenizerIterable<LinkedListNode<T>> & {
+  isFirstToken(token: T | LinkedListNode<T>): boolean;
+  isLastToken(token: T | LinkedListNode<T>): boolean;
+  getFirstStep(): LinkedListNode<T> | null;
+  iterate(step: LinkedListNode<T>): TokenizerIterable<LinkedListNode<T>>;
 };
 
 export type Tokenizer<T extends AnyToken = AnyToken> = TokenizerApi<T>;
@@ -33,8 +21,8 @@ export type Handler<T extends AnyToken> = (inputStream: InputStreamIterator) => 
 
 type InferHandlerResult<T> = T extends Handler<infer U> ? Exclude<U, null> : never;
 
-export const createStepIterator = <T extends TokenizerStep>(step: T | null): TokenizerIterator<T> => {
-  let currentToken: TokenizerStep | null = step;
+export const createStepIterator = <T extends LinkedListNode>(step: T | null): TokenizerIterator<T> => {
+  let currentToken: LinkedListNode | null = step;
   return {
     next() {
       if (!currentToken) {
@@ -48,7 +36,7 @@ export const createStepIterator = <T extends TokenizerStep>(step: T | null): Tok
   };
 };
 
-export const createStepIterable = <T extends TokenizerStep>(step: T | null): TokenizerIterable<T> => {
+export const createStepIterable = <T extends LinkedListNode>(step: T | null): TokenizerIterable<T> => {
   return {
     [Symbol.iterator]: () => createStepIterator(step),
   };
@@ -60,7 +48,7 @@ export const createTokenizer = <T extends Handler<AnyToken>>(
 ): Tokenizer<InferHandlerResult<T>> => {
   const stream = createStringStream(input);
   const chars = stream.chars();
-  const list = new LazyLinkedList<AnyToken>(() => (chars.isDone() ? null : handler(chars)));
+  const list = new LazyTokenLinkedList<AnyToken>(() => (chars.isDone() ? null : handler(chars)));
   const api: Tokenizer = {
     ...createStepIterable(list.getHead()),
     isFirstToken: token => token.start === 0,
@@ -85,7 +73,11 @@ export const createToken = <CurrentToken extends AnyToken>(
   } as CurrentToken);
 
 export const createHandler =
-  <CurrentToken extends AnyToken>(kind: CurrentToken['kind'], regexp: RegExp): Handler<CurrentToken> =>
+  <CurrentToken extends AnyToken>(
+    kind: CurrentToken['kind'],
+    regexp: RegExp,
+    valueMapper?: (x: string) => string,
+  ): Handler<CurrentToken> =>
   input => {
     const result = input.collect(regexp);
     if (!result) {
@@ -93,7 +85,7 @@ export const createHandler =
     }
     return {
       kind,
-      value: result.value,
+      value: valueMapper ? valueMapper(result.value) : result.value,
       start: result.start,
       end: result.end,
     } as CurrentToken;

@@ -1,6 +1,9 @@
 import { expect, describe, it } from 'vitest';
 import { parseRegexp } from '../../index.js';
 
+/**
+ * @see parseASCIIControlChar
+ */
 describe('ASCII Control Character', () => {
   it('should correctly parse control character', () => {
     expect(parseRegexp(/\cA/)).toMatchSnapshot('A');

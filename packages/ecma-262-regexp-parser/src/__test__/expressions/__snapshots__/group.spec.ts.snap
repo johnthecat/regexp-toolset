@@ -1,38 +1,172 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Group > Capturing group > should parse simple capturing group 1`] = `
+exports[`Group > 'Capturing Group' > should parse simple 1`] = `
 {
   "body": {
     "body": {
-      "end": 3,
-      "expressions": [
-        {
-          "charCode": 97,
-          "end": 2,
-          "kind": "Char",
-          "start": 2,
-          "type": "Simple",
-          "value": "a",
-        },
-        {
-          "charCode": 98,
-          "end": 3,
-          "kind": "Char",
-          "start": 3,
-          "type": "Simple",
-          "value": "b",
-        },
-      ],
-      "kind": "Alternative",
+      "charCode": 97,
+      "end": 2,
+      "kind": "Char",
       "start": 2,
+      "type": "Simple",
+      "value": "a",
     },
-    "end": 4,
+    "end": 3,
     "kind": "Group",
     "specifier": null,
     "start": 1,
     "type": "capturing",
   },
-  "end": 5,
+  "end": 4,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Group > 'Named Capturing Group' > should parse simple 1`] = `
+{
+  "body": {
+    "body": {
+      "charCode": 97,
+      "end": 12,
+      "kind": "Char",
+      "start": 12,
+      "type": "Simple",
+      "value": "a",
+    },
+    "end": 13,
+    "kind": "Group",
+    "specifier": {
+      "end": 11,
+      "kind": "GroupName",
+      "name": "my_name",
+      "start": 3,
+    },
+    "start": 1,
+    "type": "capturing",
+  },
+  "end": 14,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Group > 'Negative lookahead' > should parse simple 1`] = `
+{
+  "body": {
+    "body": {
+      "charCode": 97,
+      "end": 4,
+      "kind": "Char",
+      "start": 4,
+      "type": "Simple",
+      "value": "a",
+    },
+    "end": 5,
+    "kind": "Group",
+    "specifier": null,
+    "start": 1,
+    "type": "negativeLookahead",
+  },
+  "end": 6,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Group > 'Negative lookbehind' > should parse simple 1`] = `
+{
+  "body": {
+    "body": {
+      "charCode": 97,
+      "end": 5,
+      "kind": "Char",
+      "start": 5,
+      "type": "Simple",
+      "value": "a",
+    },
+    "end": 6,
+    "kind": "Group",
+    "specifier": null,
+    "start": 1,
+    "type": "negativeLookbehind",
+  },
+  "end": 7,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Group > 'Non Capturing Group' > should parse simple 1`] = `
+{
+  "body": {
+    "body": {
+      "charCode": 97,
+      "end": 4,
+      "kind": "Char",
+      "start": 4,
+      "type": "Simple",
+      "value": "a",
+    },
+    "end": 5,
+    "kind": "Group",
+    "specifier": null,
+    "start": 1,
+    "type": "nonCapturing",
+  },
+  "end": 6,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Group > 'Positive lookahead' > should parse simple 1`] = `
+{
+  "body": {
+    "body": {
+      "charCode": 97,
+      "end": 4,
+      "kind": "Char",
+      "start": 4,
+      "type": "Simple",
+      "value": "a",
+    },
+    "end": 5,
+    "kind": "Group",
+    "specifier": null,
+    "start": 1,
+    "type": "positiveLookahead",
+  },
+  "end": 6,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Group > 'Positive lookbehind' > should parse simple 1`] = `
+{
+  "body": {
+    "body": {
+      "charCode": 97,
+      "end": 5,
+      "kind": "Char",
+      "start": 5,
+      "type": "Simple",
+      "value": "a",
+    },
+    "end": 6,
+    "kind": "Group",
+    "specifier": null,
+    "start": 1,
+    "type": "positiveLookbehind",
+  },
+  "end": 7,
   "flags": "",
   "kind": "Regexp",
   "start": 0,
@@ -85,201 +219,6 @@ exports[`Group > Common > should correctly parse nested groups 1`] = `
     "specifier": null,
     "start": 1,
     "type": "capturing",
-  },
-  "end": 8,
-  "flags": "",
-  "kind": "Regexp",
-  "start": 0,
-}
-`;
-
-exports[`Group > Negative lookahead > should parse simple negative lookahead 1`] = `
-{
-  "body": {
-    "body": {
-      "end": 5,
-      "expressions": [
-        {
-          "charCode": 97,
-          "end": 4,
-          "kind": "Char",
-          "start": 4,
-          "type": "Simple",
-          "value": "a",
-        },
-        {
-          "charCode": 98,
-          "end": 5,
-          "kind": "Char",
-          "start": 5,
-          "type": "Simple",
-          "value": "b",
-        },
-      ],
-      "kind": "Alternative",
-      "start": 4,
-    },
-    "end": 6,
-    "kind": "Group",
-    "specifier": null,
-    "start": 1,
-    "type": "negativeLookahead",
-  },
-  "end": 7,
-  "flags": "",
-  "kind": "Regexp",
-  "start": 0,
-}
-`;
-
-exports[`Group > Negative lookbehind > should parse simple negative lookbehind 1`] = `
-{
-  "body": {
-    "body": {
-      "end": 6,
-      "expressions": [
-        {
-          "charCode": 97,
-          "end": 5,
-          "kind": "Char",
-          "start": 5,
-          "type": "Simple",
-          "value": "a",
-        },
-        {
-          "charCode": 98,
-          "end": 6,
-          "kind": "Char",
-          "start": 6,
-          "type": "Simple",
-          "value": "b",
-        },
-      ],
-      "kind": "Alternative",
-      "start": 5,
-    },
-    "end": 7,
-    "kind": "Group",
-    "specifier": null,
-    "start": 1,
-    "type": "negativeLookbehind",
-  },
-  "end": 8,
-  "flags": "",
-  "kind": "Regexp",
-  "start": 0,
-}
-`;
-
-exports[`Group > Non Capturing group > should parse simple non capturing group 1`] = `
-{
-  "body": {
-    "body": {
-      "end": 5,
-      "expressions": [
-        {
-          "charCode": 97,
-          "end": 4,
-          "kind": "Char",
-          "start": 4,
-          "type": "Simple",
-          "value": "a",
-        },
-        {
-          "charCode": 98,
-          "end": 5,
-          "kind": "Char",
-          "start": 5,
-          "type": "Simple",
-          "value": "b",
-        },
-      ],
-      "kind": "Alternative",
-      "start": 4,
-    },
-    "end": 6,
-    "kind": "Group",
-    "specifier": null,
-    "start": 1,
-    "type": "nonCapturing",
-  },
-  "end": 7,
-  "flags": "",
-  "kind": "Regexp",
-  "start": 0,
-}
-`;
-
-exports[`Group > Positive lookahead > should parse simple positive lookahead 1`] = `
-{
-  "body": {
-    "body": {
-      "end": 5,
-      "expressions": [
-        {
-          "charCode": 97,
-          "end": 4,
-          "kind": "Char",
-          "start": 4,
-          "type": "Simple",
-          "value": "a",
-        },
-        {
-          "charCode": 98,
-          "end": 5,
-          "kind": "Char",
-          "start": 5,
-          "type": "Simple",
-          "value": "b",
-        },
-      ],
-      "kind": "Alternative",
-      "start": 4,
-    },
-    "end": 6,
-    "kind": "Group",
-    "specifier": null,
-    "start": 1,
-    "type": "positiveLookahead",
-  },
-  "end": 7,
-  "flags": "",
-  "kind": "Regexp",
-  "start": 0,
-}
-`;
-
-exports[`Group > Positive lookbehind > should parse simple positive lookbehind 1`] = `
-{
-  "body": {
-    "body": {
-      "end": 6,
-      "expressions": [
-        {
-          "charCode": 97,
-          "end": 5,
-          "kind": "Char",
-          "start": 5,
-          "type": "Simple",
-          "value": "a",
-        },
-        {
-          "charCode": 98,
-          "end": 6,
-          "kind": "Char",
-          "start": 6,
-          "type": "Simple",
-          "value": "b",
-        },
-      ],
-      "kind": "Alternative",
-      "start": 5,
-    },
-    "end": 7,
-    "kind": "Group",
-    "specifier": null,
-    "start": 1,
-    "type": "positiveLookbehind",
   },
   "end": 8,
   "flags": "",

@@ -1,6 +1,9 @@
 import { expect, describe, it } from 'vitest';
 import { parseRegexp } from '../../index.js';
 
+/**
+ * @see parseDisjunction
+ */
 describe('Disjunction', () => {
   it('should parse simple disjunction', () => {
     expect(parseRegexp(/a|b/)).toMatchSnapshot();

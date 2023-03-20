@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`property 'General_Category=Letter' > Non Unicode Property 1`] = `
+exports[`Unicode property 'General_Category=Letter' > should parse non unicode property 1`] = `
 {
   "body": {
     "end": 27,
@@ -16,7 +16,7 @@ exports[`property 'General_Category=Letter' > Non Unicode Property 1`] = `
 }
 `;
 
-exports[`property 'General_Category=Letter' > Unicode Property 1`] = `
+exports[`Unicode property 'General_Category=Letter' > should parse unicode property 1`] = `
 {
   "body": {
     "end": 27,
@@ -32,7 +32,7 @@ exports[`property 'General_Category=Letter' > Unicode Property 1`] = `
 }
 `;
 
-exports[`property 'Hex' > Non Unicode Property 1`] = `
+exports[`Unicode property 'Hex' > should parse non unicode property 1`] = `
 {
   "body": {
     "end": 7,
@@ -48,7 +48,7 @@ exports[`property 'Hex' > Non Unicode Property 1`] = `
 }
 `;
 
-exports[`property 'Hex' > Unicode Property 1`] = `
+exports[`Unicode property 'Hex' > should parse unicode property 1`] = `
 {
   "body": {
     "end": 7,
@@ -64,7 +64,7 @@ exports[`property 'Hex' > Unicode Property 1`] = `
 }
 `;
 
-exports[`property 'L' > Non Unicode Property 1`] = `
+exports[`Unicode property 'L' > should parse non unicode property 1`] = `
 {
   "body": {
     "end": 5,
@@ -80,7 +80,7 @@ exports[`property 'L' > Non Unicode Property 1`] = `
 }
 `;
 
-exports[`property 'L' > Unicode Property 1`] = `
+exports[`Unicode property 'L' > should parse unicode property 1`] = `
 {
   "body": {
     "end": 5,
@@ -96,7 +96,7 @@ exports[`property 'L' > Unicode Property 1`] = `
 }
 `;
 
-exports[`property 'Script=Latin' > Non Unicode Property 1`] = `
+exports[`Unicode property 'Script=Latin' > should parse non unicode property 1`] = `
 {
   "body": {
     "end": 16,
@@ -112,7 +112,7 @@ exports[`property 'Script=Latin' > Non Unicode Property 1`] = `
 }
 `;
 
-exports[`property 'Script=Latin' > Unicode Property 1`] = `
+exports[`Unicode property 'Script=Latin' > should parse unicode property 1`] = `
 {
   "body": {
     "end": 16,

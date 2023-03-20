@@ -1,0 +1,217 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Quantifier > 'none or many' ('*') > should be parsed 1`] = `
+{
+  "body": {
+    "end": 2,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 2,
+      "greedy": true,
+      "kind": "Quantifier",
+      "start": 2,
+      "type": 1,
+    },
+    "start": 1,
+  },
+  "end": 3,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Quantifier > 'none or many' ('*') > should correct work with lazy quantifier 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 3,
+      "greedy": false,
+      "kind": "Quantifier",
+      "start": 2,
+      "type": 1,
+    },
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Quantifier > 'none or many' ('*') > should detect to quantifiable tokens 1`] = `
+"
+ ❱ /$*/
+    ↑
+ The preceding token is not quantifiable"
+`;
+
+exports[`Quantifier > 'none or many' ('*') > should throw if there is no expression before 1`] = `
+"
+ ❱ /*/
+    ↑
+ There is nothing to quantify"
+`;
+
+exports[`Quantifier > 'none or single' ('?') > should be parsed 1`] = `
+{
+  "body": {
+    "end": 2,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 2,
+      "greedy": true,
+      "kind": "Quantifier",
+      "start": 2,
+      "type": 0,
+    },
+    "start": 1,
+  },
+  "end": 3,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Quantifier > 'none or single' ('?') > should correct work with lazy quantifier 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 3,
+      "greedy": false,
+      "kind": "Quantifier",
+      "start": 2,
+      "type": 0,
+    },
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Quantifier > 'none or single' ('?') > should detect to quantifiable tokens 1`] = `
+"
+ ❱ /$?/
+    ↑
+ The preceding token is not quantifiable"
+`;
+
+exports[`Quantifier > 'none or single' ('?') > should throw if there is no expression before 1`] = `
+"
+ ❱ /?/
+    ↑
+ There is nothing to quantify"
+`;
+
+exports[`Quantifier > 'single or many' ('*') > should be parsed 1`] = `
+{
+  "body": {
+    "end": 2,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 2,
+      "greedy": true,
+      "kind": "Quantifier",
+      "start": 2,
+      "type": 1,
+    },
+    "start": 1,
+  },
+  "end": 3,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Quantifier > 'single or many' ('*') > should correct work with lazy quantifier 1`] = `
+{
+  "body": {
+    "end": 3,
+    "expression": {
+      "charCode": 97,
+      "end": 1,
+      "kind": "Char",
+      "start": 1,
+      "type": "Simple",
+      "value": "a",
+    },
+    "kind": "Repetition",
+    "quantifier": {
+      "end": 3,
+      "greedy": false,
+      "kind": "Quantifier",
+      "start": 2,
+      "type": 1,
+    },
+    "start": 1,
+  },
+  "end": 4,
+  "flags": "",
+  "kind": "Regexp",
+  "start": 0,
+}
+`;
+
+exports[`Quantifier > 'single or many' ('*') > should detect to quantifiable tokens 1`] = `
+"
+ ❱ /$*/
+    ↑
+ The preceding token is not quantifiable"
+`;
+
+exports[`Quantifier > 'single or many' ('*') > should throw if there is no expression before 1`] = `
+"
+ ❱ /*/
+    ↑
+ There is nothing to quantify"
+`;

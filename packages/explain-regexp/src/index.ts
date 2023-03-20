@@ -429,7 +429,7 @@ export const explainNode = (node: AnyRegexpNode, parentNode: AnyRegexpNode, ctx:
             repetition = `${node.quantifier.from} time${node.quantifier.from === 1 ? '' : 's'}`;
           } else {
             repetition = `between ${node.quantifier.from} to ${
-              node.quantifier.to === Number.POSITIVE_INFINITY ? 'infinite' : node.quantifier.to
+              node.quantifier.to === Number.MAX_SAFE_INTEGER ? 'infinite' : node.quantifier.to
             } time${node.quantifier.to === 1 ? '' : 's'}`;
           }
           break;

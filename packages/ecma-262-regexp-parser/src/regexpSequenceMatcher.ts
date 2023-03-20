@@ -1,19 +1,13 @@
-import type {
-  AnyRegexpToken,
-  CharEscapeToken,
-  PatternCharToken,
-  SyntaxCharToken,
-  TokenStep,
-} from './regexpTokenizer.js';
+import type { LinkedListNode } from './abstract/tokenizer/lazyTokenLinkedList.js';
+import type { AnyRegexpToken, CharEscapeToken, PatternCharToken, SyntaxCharToken } from './regexpTokenizer.js';
 import { isDecimalEscapeToken, isDecimalToken, isPatternCharToken, TokenKind } from './regexpTokenizer.js';
 import { isBoolean, isFunction, isNumber, type IsVoid } from './common/typeCheckers.js';
 import { ok, none, all, type Match } from './common/fp/match.js';
 import { set, view, type Lens } from './common/fp/lens.js';
 import { memo } from './common/memo.js';
-import type { InferTokenValue } from './abstract/tokenizer.js';
 import type { NodePosition } from './regexpNodes.js';
 
-type FullMatcherResultValue<V> = { value: V; token: TokenStep };
+type FullMatcherResultValue<V> = { value: V; token: LinkedListNode };
 type FullMatcherResult<V> = Match<FullMatcherResultValue<V>>;
 type MatcherResult<V> = boolean | FullMatcherResult<V>;
 
@@ -22,12 +16,12 @@ type CustomMatcher<V> = (x: FullMatcherResultValue<V>) => MatcherResult<V>;
 type Matcher<V, T extends AnyRegexpToken = AnyRegexpToken> = T['kind'] | Partial<T> | CustomMatcher<V>;
 type MatcherList<V, T extends AnyRegexpToken = AnyRegexpToken> = Matcher<V, T>[];
 
-type MatchedSeqResult<V> = NodePosition & { value: V; token: TokenStep };
+type MatchedSeqResult<V> = NodePosition & { value: V; token: LinkedListNode };
 
 export const matchTokenSequence = <V = void>(
   ...[token, seq, initialValue]: IsVoid<V> extends true
-    ? [token: TokenStep, seq: (Matcher<V> | MatcherList<V>)[]]
-    : [token: TokenStep, seq: (Matcher<V> | MatcherList<V>)[], initialValue: V]
+    ? [token: LinkedListNode, seq: (Matcher<V> | MatcherList<V>)[]]
+    : [token: LinkedListNode, seq: (Matcher<V> | MatcherList<V>)[], initialValue: V]
 ): Match<MatchedSeqResult<V>> => {
   let lastToken = token;
   let intermediateResult: MatchedSeqResult<V> = {
@@ -80,7 +74,7 @@ export const matchTokenSequence = <V = void>(
   return ok(intermediateResult);
 };
 
-const applyMatcher = <V>(token: TokenStep, matcher: Matcher<V>, value: V): FullMatcherResult<V> => {
+const applyMatcher = <V>(token: LinkedListNode, matcher: Matcher<V>, value: V): FullMatcherResult<V> => {
   let result: MatcherResult<V>;
 
   if (isNumber(matcher)) {
@@ -97,7 +91,7 @@ const applyMatcher = <V>(token: TokenStep, matcher: Matcher<V>, value: V): FullM
 const kindMatcher = <V>(a: AnyRegexpToken, b: TokenKind): MatcherResult<V> => {
   return a.kind === b;
 };
-const patternMatcher = <V>(token: Record<string, unknown>, fields: Record<string, unknown>): MatcherResult<V> => {
+const patternMatcher = <V>(token: Record<any, any>, fields: Record<string, unknown>): MatcherResult<V> => {
   for (const key in fields) {
     if (!(key in token)) {
       return false;
@@ -112,8 +106,8 @@ const patternMatcher = <V>(token: Record<string, unknown>, fields: Record<string
 const wordRegexp = /\w/;
 export const wordMatcher: CustomMatcher<string> = ({ token, value: prevValue }) => {
   let wordMatched = false;
-  let last: TokenStep = token;
-  let current: TokenStep | null = token;
+  let last: LinkedListNode = token;
+  let current: LinkedListNode | null = token;
   let value = prevValue;
   do {
     if (wordRegexp.test(current.value)) {
@@ -129,8 +123,8 @@ export const wordMatcher: CustomMatcher<string> = ({ token, value: prevValue }) 
 
 export const numberMatcher: CustomMatcher<number> = ({ token, value: prevValue }) => {
   let numberMatched = false;
-  let last: TokenStep = token;
-  let current: TokenStep | null = token;
+  let last: LinkedListNode = token;
+  let current: LinkedListNode | null = token;
   let value = '';
 
   do {
@@ -193,18 +187,9 @@ export const hexMatcher: CustomMatcher<string> = ({ token: firstToken, value: pr
   return ok({ value, token: secondToken });
 };
 
-export const createPatternCharMatcher = memo((value: InferTokenValue<PatternCharToken>) => [
-  TokenKind.PatternChar,
-  { value },
-]);
-export const createSyntaxCharMatcher = memo((value: InferTokenValue<SyntaxCharToken>) => [
-  TokenKind.SyntaxChar,
-  { value },
-]);
-export const createCharEscapeMatcher = memo((value: InferTokenValue<CharEscapeToken>) => [
-  TokenKind.CharEscape,
-  { value },
-]);
+export const createPatternCharMatcher = memo((value: PatternCharToken['value']) => [TokenKind.PatternChar, { value }]);
+export const createSyntaxCharMatcher = memo((value: SyntaxCharToken['value']) => [TokenKind.SyntaxChar, { value }]);
+export const createCharEscapeMatcher = memo((value: CharEscapeToken['value']) => [TokenKind.CharEscape, { value }]);
 
 export const mapMatcher = <Original, Mapped>(
   matcher: CustomMatcher<Original>,

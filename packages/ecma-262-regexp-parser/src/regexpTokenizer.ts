@@ -1,6 +1,8 @@
 import { waterfall } from './common/waterfall.js';
-import { createHandler, createTokenizer } from './abstract/tokenizer.js';
-import type { TokenizerStep, Token, Tokenizer } from './abstract/tokenizer.js';
+import type { Token } from './abstract/tokenizer/entities.js';
+import type { Tokenizer, Handler } from './abstract/tokenizer/tokenizer.js';
+import type { LinkedListNode } from './abstract/tokenizer/lazyTokenLinkedList.js';
+import { createHandler, createToken, createTokenizer } from './abstract/tokenizer/tokenizer.js';
 import { isObject } from './common/typeCheckers.js';
 
 export const enum TokenKind {
@@ -17,7 +19,7 @@ export type SyntaxCharToken = Token<
   TokenKind.SyntaxChar,
   '$' | '^' | '\\' | '.' | '*' | '+' | '?' | '(' | ')' | '[' | ']' | '{' | '}' | '|'
 >;
-export type CharClassEscape = Token<TokenKind.CharClassEscape, 'd' | 'D' | 's' | 'S' | 'w' | 'W'>;
+export type CharClassEscapeToken = Token<TokenKind.CharClassEscape, 'd' | 'D' | 's' | 'S' | 'w' | 'W'>;
 export type ControlEscapeToken = Token<TokenKind.ControlEscape, 'f' | 'n' | 'r' | 't' | 'v'>;
 export type CharEscapeToken = Token<TokenKind.CharEscape>;
 export type PatternCharToken = Token<TokenKind.PatternChar>;
@@ -26,36 +28,48 @@ export type DecimalToken = Token<TokenKind.Decimal, `${number}`>;
 
 export type AnyRegexpToken =
   | SyntaxCharToken
-  | CharClassEscape
+  | CharClassEscapeToken
   | ControlEscapeToken
   | CharEscapeToken
   | PatternCharToken
   | DecimalEscapeToken
   | DecimalToken;
 export type RegexpTokenizer = Tokenizer<AnyRegexpToken>;
-export type TokenStep = TokenizerStep<AnyRegexpToken>;
+export type TokenStep = LinkedListNode<AnyRegexpToken>;
 
-export const syntaxCharHandler = createHandler<SyntaxCharToken>(TokenKind.SyntaxChar, /([\\.*+?)(\]\[}{|$^])/);
-export const controlEscapeHandler = createHandler<ControlEscapeToken>(TokenKind.ControlEscape, /\\([fnrtv])/);
-export const charClassEscapeHandler = createHandler<CharClassEscape>(TokenKind.CharClassEscape, /\\([dDsSwW])/);
-export const charEscapeHandler = createHandler<CharEscapeToken>(TokenKind.CharEscape, /\\(.)/);
-export const decimalEscapeHandler = createHandler<DecimalEscapeToken>(TokenKind.DecimalEscape, /\\([0-9])/);
+const getSecondChar = (x: string) => x.charAt(1);
+
+export const syntaxCharHandler = createHandler<SyntaxCharToken>(TokenKind.SyntaxChar, /[\\.*+?)(\]\[}{|$^]/);
+export const controlEscapeHandler = createHandler<ControlEscapeToken>(
+  TokenKind.ControlEscape,
+  /\\[fnrtv]/,
+  getSecondChar,
+);
+export const charClassEscapeHandler = createHandler<CharClassEscapeToken>(
+  TokenKind.CharClassEscape,
+  /\\[dDsSwW]/,
+  getSecondChar,
+);
+export const charEscapeHandler = createHandler<CharEscapeToken>(TokenKind.CharEscape, /\\./, getSecondChar);
+export const decimalEscapeHandler = createHandler<DecimalEscapeToken>(TokenKind.DecimalEscape, /\\\d/, getSecondChar);
 export const decimalHandler = createHandler<DecimalToken>(TokenKind.Decimal, /\d/);
-export const patternCharHandler = createHandler<PatternCharToken>(TokenKind.PatternChar, /(.)/);
+export const patternCharHandler: Handler<PatternCharToken> = stream => {
+  const position = stream.getPosition();
+  const result = stream.next();
+  return result.done ? null : createToken<PatternCharToken>(TokenKind.PatternChar, result.value, position, position);
+};
 
-export const createRegexpTokenizer = (input: string): Tokenizer<AnyRegexpToken> =>
-  createTokenizer(
-    input,
-    waterfall([
-      controlEscapeHandler,
-      charClassEscapeHandler,
-      decimalEscapeHandler,
-      decimalHandler,
-      charEscapeHandler,
-      syntaxCharHandler,
-      patternCharHandler,
-    ]),
-  );
+const tokenHandler = waterfall([
+  controlEscapeHandler,
+  charClassEscapeHandler,
+  decimalEscapeHandler,
+  decimalHandler,
+  charEscapeHandler,
+  syntaxCharHandler,
+  patternCharHandler,
+]);
+
+export const createRegexpTokenizer = (input: string): Tokenizer<AnyRegexpToken> => createTokenizer(input, tokenHandler);
 
 const genericChecker = <T extends AnyRegexpToken>(
   kind: AnyRegexpToken['kind'],

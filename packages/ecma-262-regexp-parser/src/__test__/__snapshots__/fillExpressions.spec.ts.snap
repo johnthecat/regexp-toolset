@@ -53,12 +53,11 @@ exports[`fillExpressions > should work 1`] = `
         "value": "o",
       },
     ],
-    "token": {
+    "token": LinkedListNode {
+      "_next": [Function],
+      "_prev": [Function],
       "end": 4,
-      "index": 4,
       "kind": 1,
-      "next": [Function],
-      "prev": [Function],
       "start": 4,
       "value": "o",
     },

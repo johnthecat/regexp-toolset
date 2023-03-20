@@ -1,6 +1,9 @@
 import { expect, describe, it } from 'vitest';
 import { parseRegexp } from '../../index.js';
 
+/**
+ * @see parseCharClass
+ */
 describe('CharClass', () => {
   it('should correctly parse simple char class', () => {
     expect(parseRegexp(/[a]/)).toMatchSnapshot();

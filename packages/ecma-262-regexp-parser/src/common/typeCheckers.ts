@@ -14,6 +14,6 @@ export const nonNullable = <T>(value: T): value is Exclude<T, null | void> => {
 
 // helpers
 
-export const not = <T extends (...args: unknown[]) => boolean>(fn: T): ((...args: Parameters<T>) => boolean) => {
+export const not = <T extends (...args: any[]) => boolean>(fn: T): ((...args: Parameters<T>) => boolean) => {
   return (...args) => !fn(...args);
 };
