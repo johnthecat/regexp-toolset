@@ -46,6 +46,7 @@ exports[`Back Reference > should parse back reference 1`] = `
         "value": "a",
       },
       "end": 3,
+      "index": 1,
       "kind": "Group",
       "specifier": null,
       "start": 1,

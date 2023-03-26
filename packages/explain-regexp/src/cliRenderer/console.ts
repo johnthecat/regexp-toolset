@@ -75,21 +75,6 @@ const slicePrintable = (str: string, start: number, end?: number) => {
 
 const INDENT = 1;
 
-export const pluralCount = (i: number): string => {
-  const j = i % 10;
-  const k = i % 100;
-  if (j === 1 && k !== 11) {
-    return i.toString() + 'st';
-  }
-  if (j === 2 && k !== 12) {
-    return i.toString() + 'nd';
-  }
-  if (j === 3 && k !== 13) {
-    return i.toString() + 'rd';
-  }
-  return i.toString() + 'th';
-};
-
 export const addIndent = (string: string, level = 1, prefix: string = ''): string => {
   return string || level === 0
     ? string.replace(/^(\s*)/gm, `${prefix}$1${' '.repeat(Math.max(0, INDENT * level))}`)

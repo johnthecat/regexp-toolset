@@ -22,6 +22,7 @@ export type SingleNodeParser<T extends AnyRegexpNode = AnyRegexpNode> = (
 export type ParserContext = {
   source: string;
   tokenizer: RegexpTokenizer;
+  groupIndex: number;
   foundGroupSpecifiers: Map<string, GroupNode>;
   groupSpecifierDemands: Set<[tag: string, node: SubpatternNode]>;
   reportError: (position: Partial<NodePosition> | number, message: string) => ParsingError;

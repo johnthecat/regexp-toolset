@@ -209,15 +209,26 @@ export const createControlEscapeNode = (type: ControlEscapeCharType, position: N
 
 export const createGroupNode = (
   type: GroupNode['type'],
-  specifier: GroupNode['specifier'],
+  index: number,
+  specifier: GroupNameNode | null,
   expressions: AnyRegexpNode[],
   position: NodePosition,
 ) =>
-  createNode<GroupNode>(SyntaxKind.Group, position, {
-    type,
-    specifier,
-    body: sealExpressions(expressions, position),
-  });
+  createNode<GroupNode>(
+    SyntaxKind.Group,
+    position,
+    type === 'capturing'
+      ? {
+          type,
+          index,
+          specifier,
+          body: sealExpressions(expressions, position),
+        }
+      : {
+          type,
+          body: sealExpressions(expressions, position),
+        },
+  );
 
 export const createSubpatternNode = (groupName: string, ref: GroupNode | null, position: NodePosition) =>
   createNode<SubpatternNode>(SyntaxKind.Subpattern, position, {

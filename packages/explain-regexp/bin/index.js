@@ -3,7 +3,7 @@ import { isatty } from 'node:tty';
 import { readFileSync } from 'node:fs';
 import { stdout, stderr } from 'node:process';
 import { program } from 'commander';
-import { explainRegexp, explainRegexpPart } from '../dist/index.js';
+import { explainRegexp, explainRegexpPart, createCliRenderer } from '../dist/index.js';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), { encoding: 'utf-8' }));
 const isColorSupportedByEnv =
@@ -25,7 +25,7 @@ program
   .option('--color', 'Forces color output', isColorSupportedByEnv)
   .action((regexp, { debug, color: enableColors }) => {
     try {
-      stdout.write(terminalPrefix + explainRegexp(regexp, { enableColors }) + terminalPostfix);
+      stdout.write(terminalPrefix + explainRegexp(regexp, createCliRenderer(enableColors)) + terminalPostfix);
     } catch (e) {
       if (debug) {
         console.error(e);
@@ -45,7 +45,7 @@ program
   .option('--color', 'Forces color output', isColorSupportedByEnv)
   .action((regexp, { debug, color: enableColors }) => {
     try {
-      stdout.write(terminalPrefix + explainRegexpPart(regexp, { enableColors }) + terminalPostfix);
+      stdout.write(terminalPrefix + explainRegexpPart(regexp, createCliRenderer(enableColors)) + terminalPostfix);
     } catch (e) {
       if (debug) {
         console.error(e);

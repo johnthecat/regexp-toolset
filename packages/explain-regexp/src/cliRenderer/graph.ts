@@ -13,10 +13,6 @@ export class Graph<T> {
     }
   }
 
-  get(value: T): GraphNode<T> | null {
-    return this.map.get(value) ?? null;
-  }
-
   add(value: T): GraphNode<T> {
     const existingValue = this.map.get(value);
     if (existingValue) {
@@ -32,17 +28,15 @@ export class Graph<T> {
   }
 
   addChild(parent: T, child: T): GraphNode<T> {
-    const parentNode = this.getNodeOrThrow(parent);
-    let childNode = this.get(child);
-    if (!childNode) {
-      childNode = this.add(child);
-    }
-    childNode.level = parentNode.level + 1;
+    const parentNode = this.add(parent);
+    const childNode = this.add(child);
+    childNode.level = parentNode.level;
+    this.bfs(childNode.value, x => (x.level += 1));
     parentNode.children.add(childNode);
     return childNode;
   }
 
-  bfs(start: T, fn: (value: T) => unknown) {
+  bfs(start: T, fn: (node: GraphNode<T>) => unknown) {
     const startNode = this.getNodeOrThrow(start);
     const queue: GraphNode<T>[] = [startNode];
     const visited = new Map<GraphNode<T>, boolean>();
@@ -53,7 +47,7 @@ export class Graph<T> {
         break;
       }
 
-      fn(currentNode.value);
+      fn(currentNode);
       for (const child of currentNode.children) {
         if (visited.get(child)) {
           continue;

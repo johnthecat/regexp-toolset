@@ -98,15 +98,16 @@ export type GroupNode = Node<
   SyntaxKind.Group,
   {
     body: AnyRegexpNode;
-    specifier: GroupNameNode | null;
-    type:
-      | 'capturing'
-      | 'nonCapturing'
-      | 'positiveLookahead'
-      | 'negativeLookahead'
-      | 'positiveLookbehind'
-      | 'negativeLookbehind';
-  }
+  } & (
+    | {
+        type: 'capturing';
+        index: number;
+        specifier: GroupNameNode | null;
+      }
+    | {
+        type: 'nonCapturing' | 'positiveLookahead' | 'negativeLookahead' | 'positiveLookbehind' | 'negativeLookbehind';
+      }
+  )
 >;
 export type BackReferenceNode = Node<SyntaxKind.BackReference, { group: GroupNode }>;
 

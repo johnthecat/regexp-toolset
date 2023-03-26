@@ -87,6 +87,7 @@ export const createParserContext = (source: string, tokenizer: RegexpTokenizer):
   tokenizer,
   foundGroupSpecifiers: new Map(),
   groupSpecifierDemands: new Set(),
+  groupIndex: 0,
   reportError: (position, message) => {
     let normalizedPosition: NodePosition;
     if (isNumber(position)) {
@@ -676,13 +677,16 @@ export const parseGroup: NodeParser = ({ token: inputToken, nodes: parentNodes }
     ctx.reportError(inputToken, 'Trying to parse expression as group, but got invalid input'),
   );
   const groupMeta = collectGroupMeta(firstToken, ctx);
+
+  const index = ++ctx.groupIndex;
+
   const collectedNodes = groupMeta
     .match(pipe2(viewToken, matchNextToken))
     .match(x => fillExpressions(x, ctx, parseNodeInGroup));
 
   return all([firstToken, groupMeta, collectedNodes]).map(
     ([firstToken, { type, specifier }, { nodes, token: lastToken }]) => {
-      const node = factory.createGroupNode(type, specifier, nodes, positionRange(firstToken, lastToken));
+      const node = factory.createGroupNode(type, index, specifier, nodes, positionRange(firstToken, lastToken));
       if (specifier) {
         ctx.foundGroupSpecifiers.set(specifier.name, node);
       }

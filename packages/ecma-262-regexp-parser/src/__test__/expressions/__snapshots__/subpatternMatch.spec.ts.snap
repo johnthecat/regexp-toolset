@@ -176,6 +176,7 @@ exports[`Subpattern Match > should refer to group with same name 1`] = `
           "value": "a",
         },
         "end": 13,
+        "index": 1,
         "kind": "Group",
         "specifier": {
           "end": 11,
@@ -208,6 +209,7 @@ exports[`Subpattern Match > should refer to group with same name 1`] = `
             "value": "a",
           },
           "end": 13,
+          "index": 1,
           "kind": "Group",
           "specifier": {
             "end": 11,
