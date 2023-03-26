@@ -17,6 +17,8 @@
   ],
   "type": "module",
   "bin": "./bin/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "prepublishOnly": "npm run build",
     "build": "vite build",
