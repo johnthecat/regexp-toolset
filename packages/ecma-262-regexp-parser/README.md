@@ -3,6 +3,7 @@
 Regexp Parser, implemented according to [EMCA-262 Specification](https://tc39.es/ecma262/#sec-patterns).
 Implemented all syntax constructions from es2022.
 
+[![codecov](https://codecov.io/gh/johnthecat/regexp-toolset/branch/main/graph/badge.svg?token=YZWQNC6BW2&flag=ecma-262-regexp-parser)](https://codecov.io/gh/johnthecat/regexp-toolset)
 [![npm](https://badgen.net/npm/v/ecma-262-regexp-parser?color=blue)](https://www.npmjs.com/package/ecma-262-regexp-parser)
 ![size](https://badgen.net/packagephobia/install/ecma-262-regexp-parser)
 
@@ -15,6 +16,14 @@ Implemented all syntax constructions from es2022.
 
 ```shell
 $ npm i ecma-262-regexp-parser --save
+```
+
+```shell
+$ yarn global add ecma-262-regexp-parser
+```
+
+```shell
+$ pnpm install --global ecma-262-regexp-parser
 ```
 
 ## API Reference
@@ -75,8 +84,10 @@ const regexpNode = parseRegexp(/a|b/);
 traverseRegexp(regexpNode, {
   '*': (node) => console.log(node), // will log every node enter,
   Group: {
-    enter(node) {}, // will be called before child nodes traversing
-    exit(node) {}, // will be called after all child nodes got traversed
+    enter(node) {
+    }, // will be called before child nodes traversing
+    exit(node) {
+    }, // will be called after all child nodes got traversed
   },
 })
 ```
