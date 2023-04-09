@@ -6,6 +6,7 @@
   "scripts": {
     "build": "nx run-many --target=build",
     "test": "nx run-many --target=test",
+    "test:coverage": "nx run-many --target=test:coverage",
     "lint": "nx run-many --target=lint",
     "postinstall": "husky install",
     "precommit": "nx affected --target=test && nx affected --target=lint",

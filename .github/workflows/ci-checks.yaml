@@ -26,7 +26,7 @@ jobs:
       - name: Linting
         run: npm run lint
       - name: Unit Testing
-        run: npm test
+        run: npm test:coverage
       - name: Upload coverage reports to Codecov
         if: ${{ matrix.node-version == '19.x' }}
         uses: codecov/codecov-action@v3
