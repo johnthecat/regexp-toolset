@@ -57,7 +57,7 @@ export const createViteConfig = (input: Partial<ConfigInput> = defaultConfig) =>
       reporters: ['verbose'],
       coverage: {
         provider: 'c8',
-        reporter: ['html', 'json'],
+        reporter: ['json'],
         reportsDirectory: './.coverage',
       },
     },
