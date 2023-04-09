@@ -28,7 +28,9 @@ jobs:
       - name: Unit Testing
         run: npm test
       - name: Upload coverage reports to Codecov
+        if: ${{ matrix.node-version == '19.x' }}
         uses: codecov/codecov-action@v3
         with:
-          files: ./packages/ecma-262-regexp-parser/.coverage/coverage-final.json
           flags: ecma-262-regexp-parser
+          files: ./packages/ecma-262-regexp-parser/.coverage/coverage-final.json
+          token: ${{ secrets.CODECOV_TOKEN }}
