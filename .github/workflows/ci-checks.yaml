@@ -32,5 +32,5 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           flags: ecma-262-regexp-parser
-          files: ./packages/ecma-262-regexp-parser/.coverage/coverage-final.json
+          directory: ./packages/ecma-262-regexp-parser/.coverage
           token: ${{ secrets.CODECOV_TOKEN }}
