@@ -1,7 +1,12 @@
 import { createCodeFrame } from './console.js';
 
 export class ParsingError extends Error {
-  constructor(source: string, start: number, end: number, message: string) {
+  constructor(
+    public readonly source: string,
+    public readonly start: number,
+    public readonly end: number,
+    message: string,
+  ) {
     super('\n' + createCodeFrame(source, start, end, message));
   }
 

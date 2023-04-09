@@ -69,7 +69,7 @@ const tokenL: Lens<{ token: TokenStep }, TokenStep> = (f, x) => ({ ...x, token: 
 const viewToken = view(tokenL);
 const viewNodes = view(nodesL);
 
-const matchNextToken = (token: TokenStep): Match<TokenStep> => nonNullable(token.next());
+const matchNextToken = (token: TokenStep) => nonNullable(token.next());
 const matchFirstNode = (nodes: AnyRegexpNode[]) => nonNullable(nodes.at(0));
 const matchLastNode = (nodes: AnyRegexpNode[]) => nonNullable(nodes.at(-1));
 
@@ -106,7 +106,7 @@ const connectSubpatternsWithGroups = (ctx: ParserContext): Match<void> => {
   for (const [tag, node] of ctx.groupSpecifierDemands) {
     const found = ctx.foundGroupSpecifiers.get(tag);
     if (!found) {
-      return err(ctx.reportError(node, `This token references a non-existent or invalid subpattern`));
+      return err(ctx.reportError(node, `Token "${node.groupName}" references a non-existent or invalid subpattern`));
     }
     node.ref = found;
   }
@@ -117,10 +117,14 @@ const connectSubpatternsWithGroups = (ctx: ParserContext): Match<void> => {
 // parser
 
 export const parseRegexp: SingleNodeParser<RegexpNode> = (firstToken, ctx) => {
-  const firstContentToken = matchNextToken(firstToken).orError(() => ctx.reportError(0, "Can't parse input"));
+  const firstContentToken = ok(firstToken)
+    .filterOrError(isForwardSlashToken, x =>
+      ctx.reportError(x, 'Regexp body should start with "/" symbol, like this: /.../gm'),
+    )
+    .matchOrError(matchNextToken, x => ctx.reportError(x, "Can't parse input"));
   const body = firstContentToken
     .match(token => fillExpressions(token, ctx, parseNodeInRegexp))
-    .filterOrThrow(
+    .filterOrError(
       pipe2(viewToken, isForwardSlashToken),
       pipe2(viewToken, x => ctx.reportError(x, 'Regexp body should end with "/" symbol, like this: /.../gm')),
     );
@@ -174,7 +178,7 @@ export const parseQuantifier: NodeParser = ({ nodes, token }, ctx) => {
 
   const quantifiableNode = matchLastNode(nodes)
     .orError(() => ctx.reportError(token, 'There is nothing to quantify'))
-    .filterOrThrow(isQuantifiable, x => ctx.reportError(x, 'The preceding token is not quantifiable'));
+    .filterOrError(isQuantifiable, x => ctx.reportError(x, 'The preceding token is not quantifiable'));
 
   const quantifierNode = all([lazy.isMatched(), lastToken]).map(([isLazy, lastToken]) => {
     return factory.createQuantifierNode(
@@ -209,9 +213,8 @@ const toMatcher = mapMatcher<number, QuantifierNodeRangeValue>(numberMatcher, (f
 // Implementation Y{1} ; Y{1,} ; Y{1,2} - range quantifier
 export const parseRangeQuantifier: NodeParser = (x, ctx) => {
   const quantifiableNode = ok(viewNodes(x))
-    .match(matchLastNode)
-    .orError(() => ctx.reportError(viewToken(x), 'There is nothing to quantify'))
-    .filterOrThrow(isQuantifiable, x => ctx.reportError(x, 'The preceding token is not quantifiable'));
+    .matchOrError(matchLastNode, () => ctx.reportError(viewToken(x), 'There is nothing to quantify'))
+    .filterOrError(isQuantifiable, x => ctx.reportError(x, 'The preceding token is not quantifiable'));
 
   const range = first(
     () =>
@@ -243,7 +246,6 @@ export const parseRangeQuantifier: NodeParser = (x, ctx) => {
       ),
   );
 
-  const value = range.map(({ value }) => value);
   const lazy = range
     .match(pipe2(viewToken, matchNextToken))
     .match(x => matchTokenSequence(x, [createSyntaxCharMatcher('?')]));
@@ -251,12 +253,15 @@ export const parseRangeQuantifier: NodeParser = (x, ctx) => {
   const lastToken = lazy.orElse(() => range).map(viewToken);
   const position = lastToken.map(a => positionRange(viewToken(x), a));
 
-  const quantifierNode = all([lazy.isMatched(), position, value]).map(([isLazy, position, { from, to }]) => {
-    if (isNumber(to) && from > to) {
-      throw ctx.reportError(position, 'The quantifier range is out of order');
-    }
+  const value = range
+    .map(({ value }) => value)
+    .filterOrError(
+      ({ from, to }) => !isNumber(to) || from <= to,
+      () => position.map(x => ctx.reportError(x, 'The quantifier range is out of order')),
+    );
 
-    return factory.createQuantifierNode(
+  const quantifierNode = all([lazy.isMatched(), position, value]).map(([isLazy, position, { from, to }]) =>
+    factory.createQuantifierNode(
       {
         type: QuantifierType.Range,
         greedy: !isLazy,
@@ -264,8 +269,8 @@ export const parseRangeQuantifier: NodeParser = (x, ctx) => {
         to,
       },
       position,
-    );
-  });
+    ),
+  );
 
   return all([quantifiableNode, quantifierNode, lastToken]).map(([quantifiable, quantifier, token]) =>
     createParserResult(
@@ -389,7 +394,7 @@ export const parseOctalChar: NodeParser = ({ nodes, token }) =>
 // Implementation \cA - ASCII control char
 export const parseASCIIControlChar: NodeParser = ({ token, nodes }, ctx) => {
   const possibleValueToken = matchNextToken(token).filter(not(isForwardSlashToken));
-  const valueToken = possibleValueToken.filterOrThrow(
+  const valueToken = possibleValueToken.filterOrError(
     ({ value }) => /[A-Za-z]/.test(value),
     () =>
       ctx.reportError(
@@ -647,7 +652,7 @@ const collectGroupMeta = (token: Match<TokenStep>, ctx: ParserContext): Match<Gr
             [createPatternCharMatcher('<'), wordMatcher, createPatternCharMatcher('>')],
             '',
           )
-            .filterOrThrow(
+            .filterOrError(
               ({ value }) => !ctx.foundGroupSpecifiers.has(value),
               ({ value, token }) => ctx.reportError(token, `Group name '${value}' is already defined`),
             )
@@ -668,12 +673,12 @@ export const parseGroup: NodeParser = ({ token: inputToken, nodes: parentNodes }
       // Closing group
       .filter(not(isParenthesesCloseToken))
       // We shouldn't find any forward slash inside group
-      .filterOrThrow(not(isForwardSlashToken), x =>
+      .filterOrError(not(isForwardSlashToken), x =>
         ctx.reportError(positionRange(inputToken, x), 'Incomplete group structure'),
       )
       .match(() => parseNodeInRegexp(x, ctx, parseNodeInGroup));
 
-  const firstToken = ok(inputToken).filterOrThrow(isParenthesesOpenToken, () =>
+  const firstToken = ok(inputToken).filterOrError(isParenthesesOpenToken, () =>
     ctx.reportError(inputToken, 'Trying to parse expression as group, but got invalid input'),
   );
   const groupMeta = collectGroupMeta(firstToken, ctx);
@@ -705,10 +710,10 @@ export const parseCharRange: NodeParser = ({ token: startToken, nodes }, ctx, re
   const fromNode = matchLastNode(nodes).filter(isCharNode);
   const toNode = nextNodes
     .match(pipe2(viewNodes, matchFirstNode))
-    .filterOrThrow(isCharNode, x => ctx.reportError(x, commonErrorMessages.UnexpectedToken));
+    .filterOrError(isCharNode, x => ctx.reportError(x, commonErrorMessages.UnexpectedToken));
 
   const rangeNode = all([fromNode, toNode])
-    .filterOrThrow(
+    .filterOrError(
       ([from, to]) => from.value.charCodeAt(0) <= to.value.charCodeAt(0),
       ([from, to]) =>
         ctx.reportError(
@@ -731,7 +736,7 @@ export const parseCharClass: NodeParser = ({ token: inputToken, nodes: parentNod
   const parseTokenInCharClass: NodeParser = (x, ctx) => {
     return ok(viewToken(x))
       .filter(not(isBracketsCloseToken))
-      .filterOrThrow(not(ctx.tokenizer.isLastToken), x =>
+      .filterOrError(not(ctx.tokenizer.isLastToken), x =>
         ctx.reportError(positionRange(inputToken, x), 'Character class missing closing bracket'),
       )
       .match(token => {
@@ -776,7 +781,7 @@ export const parseCharClass: NodeParser = ({ token: inputToken, nodes: parentNod
       });
   };
 
-  const firstToken = ok(inputToken).filterOrThrow(isBracketsOpenToken, x =>
+  const firstToken = ok(inputToken).filterOrError(isBracketsOpenToken, x =>
     ctx.reportError(x, 'Trying to parse expression as character class, but got invalid input'),
   );
 

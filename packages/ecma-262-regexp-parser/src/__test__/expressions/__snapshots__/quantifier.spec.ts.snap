@@ -60,14 +60,14 @@ exports[`Quantifier > 'none or many' ('*') > should correct work with lazy quant
 
 exports[`Quantifier > 'none or many' ('*') > should detect to quantifiable tokens 1`] = `
 "
- ❱ /$*/
+ ❯ /$*/
     ↑
  The preceding token is not quantifiable"
 `;
 
 exports[`Quantifier > 'none or many' ('*') > should throw if there is no expression before 1`] = `
 "
- ❱ /*/
+ ❯ /*/
     ↑
  There is nothing to quantify"
 `;
@@ -132,14 +132,14 @@ exports[`Quantifier > 'none or single' ('?') > should correct work with lazy qua
 
 exports[`Quantifier > 'none or single' ('?') > should detect to quantifiable tokens 1`] = `
 "
- ❱ /$?/
+ ❯ /$?/
     ↑
  The preceding token is not quantifiable"
 `;
 
 exports[`Quantifier > 'none or single' ('?') > should throw if there is no expression before 1`] = `
 "
- ❱ /?/
+ ❯ /?/
     ↑
  There is nothing to quantify"
 `;
@@ -204,14 +204,14 @@ exports[`Quantifier > 'single or many' ('*') > should correct work with lazy qua
 
 exports[`Quantifier > 'single or many' ('*') > should detect to quantifiable tokens 1`] = `
 "
- ❱ /$*/
+ ❯ /$*/
     ↑
  The preceding token is not quantifiable"
 `;
 
 exports[`Quantifier > 'single or many' ('*') > should throw if there is no expression before 1`] = `
 "
- ❱ /*/
+ ❯ /*/
     ↑
  There is nothing to quantify"
 `;

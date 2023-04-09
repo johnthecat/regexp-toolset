@@ -117,6 +117,11 @@ const paint = (content: string, color: Colors, index = 0) => {
   return pickColor(color, index)(content);
 };
 
+const shouldWrapInBlock = (node: AnyRegexpNode) =>
+  !types.isDisjunctionNode(node) &&
+  !(types.isAlternativeNode(node) && node.expressions.length) &&
+  !types.isCharClassNode(node);
+
 const renderBlock = (colorMap: ColorMap, content: string, index = 0, of = 1): string => {
   const borderColor: Formatter = x => paint(x, colorMap.border);
   const isFirst = index === 0;
@@ -279,8 +284,13 @@ export const createCliRenderer = (enableColors: boolean): ExplainRenderer<string
       const printed = paint(rawPrinted, colorMap.dim);
 
       switch (node.kind) {
-        case SyntaxKind.Regexp:
-          return renderBlock(colorMap, Array.isArray(children) ? children.join('') : children ?? '');
+        case SyntaxKind.Regexp: {
+          const child = Array.isArray(children) ? children.join('') : children ?? '';
+          if (shouldWrapInBlock(node.body)) {
+            return renderBlock(colorMap, child);
+          }
+          return child;
+        }
 
         case SyntaxKind.Alternative: {
           if (Array.isArray(children)) {

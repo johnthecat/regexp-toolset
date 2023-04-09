@@ -16,7 +16,7 @@ export const printRegexpNode = (node: AnyRegexpNode): string => {
       switch (node.type) {
         case 'capturing':
           if (node.specifier) {
-            heading = `?<${node.specifier.name}>`;
+            heading = `?${printRegexpNode(node.specifier)}`;
           }
           break;
         case 'nonCapturing':
@@ -78,9 +78,9 @@ export const printRegexpNode = (node: AnyRegexpNode): string => {
     case SyntaxKind.Subpattern:
       return `\\k<${node.groupName}>`;
     case SyntaxKind.UnicodeProperty:
-      return `\\p{${node.name}${node.value ? `=${node.value}` : ''}`;
+      return `\\p{${node.name}${node.value ? `=${node.value}` : ''}}`;
     case SyntaxKind.NonUnicodeProperty:
-      return `\\P{${node.name}${node.value ? `=${node.value}` : ''}`;
+      return `\\P{${node.name}${node.value ? `=${node.value}` : ''}}`;
     case SyntaxKind.LineStart:
       return '^';
     case SyntaxKind.LineEnd:
@@ -108,9 +108,9 @@ export const printRegexpNode = (node: AnyRegexpNode): string => {
     case SyntaxKind.WordBoundary:
       return '\\b';
     case SyntaxKind.NonWordBoundary:
-      return '\\b';
+      return '\\B';
     case SyntaxKind.GroupName:
-      return node.name;
+      return `<${node.name}>`;
     case SyntaxKind.Quantifier: {
       let quantifier: string = '';
       switch (node.type) {

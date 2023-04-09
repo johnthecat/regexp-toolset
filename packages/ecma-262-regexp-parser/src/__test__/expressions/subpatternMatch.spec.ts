@@ -20,9 +20,9 @@ describe('Subpattern Match', () => {
   it('should throw if there is no group with such name', () => {
     expect(() => parseRegexp('/\\k<my_name>/')).toThrowErrorMatchingInlineSnapshot(`
       "
-       ❱ /\\\\k<my_name>/
+       ❯ /\\\\k<my_name>/
           ═══════════
-       This token references a non-existent or invalid subpattern"
+       Token \\"my_name\\" references a non-existent or invalid subpattern"
     `);
   });
 });

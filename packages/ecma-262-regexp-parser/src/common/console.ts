@@ -1,12 +1,14 @@
 export const createUnderline = (start: number, end: number): string => {
-  if (start === end) {
-    return ' '.repeat(start) + '↑';
-  }
-  return ' '.repeat(start) + '═'.repeat(1 + end - start);
+  const padding = ' '.repeat(start);
+  return padding + (start === end ? '↑' : '═'.repeat(1 + end - start));
 };
 export const createCodeFrame = (source: string, start: number, end: number, message: string) => {
   const commonPadding = ' ';
-  const lineStart = '❱ ';
+  const lineStart = '❯ ';
+
+  if (source.length === 0) {
+    return lineStart + message;
+  }
 
   return (
     commonPadding +

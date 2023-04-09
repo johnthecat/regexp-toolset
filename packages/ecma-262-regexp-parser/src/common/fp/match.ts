@@ -39,6 +39,16 @@ export class Match<M> {
     return isUnmatched(x) ? fn() : (this as never);
   }
 
+  matchOrError<R1>(fn: (value: M) => Match<R1>, error: (value: M) => Error | Match<Error>): Match<R1> {
+    const { x } = this;
+    return isMatched(x)
+      ? caught(() => fn(x.value)).unmatch(() => {
+          const result = error(x.value);
+          return result instanceof Error ? err(result) : result.match(err);
+        })
+      : (this as never);
+  }
+
   map<R1>(fn: (value: M) => R1): Match<R1> {
     const { x } = this;
     return isMatched(x) ? caught(() => ok(fn(x.value))) : (this as never);
@@ -51,11 +61,19 @@ export class Match<M> {
     return isMatched(x) ? (fn(x.value) ? (this as never) : none()) : (this as never);
   }
 
-  filterOrThrow<R extends M>(fn: (value: M) => value is R, err: (value: M) => Error): Match<R>;
-  filterOrThrow(fn: (value: M) => boolean, err: (value: M) => Error): Match<M>;
-  filterOrThrow(fn: (x: M) => boolean, error: (x: M) => Error): Match<M> {
+  filterOrError<R extends M>(fn: (value: M) => value is R, err: (value: M) => Error | Match<Error>): Match<R>;
+  filterOrError(fn: (value: M) => boolean, err: (value: M) => Error | Match<Error>): Match<M>;
+  filterOrError(fn: (x: M) => boolean, error: (x: M) => Error | Match<Error>): Match<M> {
     const { x } = this;
-    return isMatched(x) ? caught(() => (fn(x.value) ? (this as never) : err(error(x.value)))) : (this as never);
+    return isMatched(x)
+      ? caught(() => {
+          if (fn(x.value)) {
+            return this as never;
+          }
+          const result = error(x.value);
+          return result instanceof Error ? err(result) : result.match(err);
+        })
+      : (this as never);
   }
 
   isMatched(): Match<boolean> {
@@ -74,6 +92,17 @@ export class Match<M> {
 
   unwrap(): Matched<M> | Unmatched | UnmatchedError {
     return this.x;
+  }
+
+  unwrapOrThrow(): M {
+    const { x } = this;
+    if (isMatched(x)) {
+      return x.value;
+    }
+    if ('error' in x) {
+      throw x.error;
+    }
+    throw new Error('Unknown error!');
   }
 }
 

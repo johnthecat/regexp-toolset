@@ -6,6 +6,7 @@ import { ok, none, all, type Match } from './common/fp/match.js';
 import { set, view, type Lens } from './common/fp/lens.js';
 import { memo } from './common/memo.js';
 import type { NodePosition } from './regexpNodes.js';
+import { pipe2 } from './common/pipe.js';
 
 type FullMatcherResultValue<V> = { value: V; token: LinkedListNode };
 type FullMatcherResult<V> = Match<FullMatcherResultValue<V>>;
@@ -197,10 +198,10 @@ export const mapMatcher = <Original, Mapped>(
 ): CustomMatcher<Mapped> => {
   const viewValue = view(valueL);
   const setValue = set(valueL);
+  const viewMatchedValue = pipe2(viewMatcherResultValue, viewValue);
 
   return x => {
-    const initialValue = viewValue(viewMatcherResultValue(x));
-    const result = matcher(setMatcherResultValue(x, initialValue));
+    const result = matcher(setMatcherResultValue(x, viewMatchedValue(x)));
     return isBoolean(result) ? result : result.map(y => setMatcherResultValue(y, setValue(x.value, y.value)));
   };
 };

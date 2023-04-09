@@ -34,7 +34,7 @@ describe('CharClass', () => {
     it('should throw, if char class is not closed', () => {
       expect(() => parseRegexp('/[ab/')).toThrowErrorMatchingInlineSnapshot(`
         "
-         ❱ /[ab/
+         ❯ /[ab/
             ════
          Character class missing closing bracket"
       `);

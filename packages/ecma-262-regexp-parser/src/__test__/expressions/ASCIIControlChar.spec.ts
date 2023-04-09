@@ -19,7 +19,7 @@ describe('ASCII Control Character', () => {
   it('should throw, if there is invalid character', () => {
     expect(() => parseRegexp(/\c1/)).toThrowErrorMatchingInlineSnapshot(`
       "
-       ❱ /\\\\c1/
+       ❯ /\\\\c1/
           ═══
        Invalid control character"
     `);

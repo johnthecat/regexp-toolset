@@ -5,6 +5,7 @@ export { factory, types };
 export { parseRegexp, parseRegexpNode } from './api.js';
 export { printRegexpNode, createRegExpFromRegexpNode } from './regexpPrinter.js';
 export { traverseRegexpNode } from './regexpTraverse.js';
+export { ParsingError } from './common/parsingError.js';
 export { SyntaxKind, ControlEscapeCharType, QuantifierType, CharType } from './regexpNodes.js';
 export type {
   AnyRegexpNode,

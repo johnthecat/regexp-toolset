@@ -9,7 +9,7 @@ describe('Group', () => {
     it('should throw, if group is not closed', () => {
       expect(() => parseRegexp('/(ab/')).toThrowErrorMatchingInlineSnapshot(`
         "
-         ❱ /(ab/
+         ❯ /(ab/
             ════
          Incomplete group structure"
       `);
@@ -18,7 +18,7 @@ describe('Group', () => {
     it('should throw, there is unmatched parenthesis', () => {
       expect(() => parseRegexp('/(ab))/')).toThrowErrorMatchingInlineSnapshot(`
         "
-         ❱ /(ab))/
+         ❯ /(ab))/
                 ↑
          Unmatched parenthesis"
       `);

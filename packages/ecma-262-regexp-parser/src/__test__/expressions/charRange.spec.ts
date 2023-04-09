@@ -37,7 +37,7 @@ describe('CharRange', () => {
     it('should throw, if range is out of order', () => {
       expect(() => parseRegexp('/[z-a]/')).toThrowErrorMatchingInlineSnapshot(`
         "
-         ❱ /[z-a]/
+         ❯ /[z-a]/
              ═══
          Character range is out of order: from 'z' (index 122) to 'a' (index 97)"
       `);

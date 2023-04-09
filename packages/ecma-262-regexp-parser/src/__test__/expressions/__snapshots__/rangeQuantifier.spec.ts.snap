@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Range quantifier > 'exact' (a'{2}') > should correct work with lazy quantifier 1`] = `
+exports[`Range quantifier > 'exact' '{2}' > should correct work with lazy quantifier 1`] = `
 {
   "body": {
     "end": 5,
@@ -31,7 +31,7 @@ exports[`Range quantifier > 'exact' (a'{2}') > should correct work with lazy qua
 }
 `;
 
-exports[`Range quantifier > 'exact' (a'{2}') > should parse repetition count 1`] = `
+exports[`Range quantifier > 'exact' '{2}' > should parse repetition count 1`] = `
 {
   "body": {
     "end": 4,
@@ -62,7 +62,7 @@ exports[`Range quantifier > 'exact' (a'{2}') > should parse repetition count 1`]
 }
 `;
 
-exports[`Range quantifier > 'from to' (a'{2,3}') > should correct work with lazy quantifier 1`] = `
+exports[`Range quantifier > 'from to' '{2,3}' > should correct work with lazy quantifier 1`] = `
 {
   "body": {
     "end": 7,
@@ -93,7 +93,7 @@ exports[`Range quantifier > 'from to' (a'{2,3}') > should correct work with lazy
 }
 `;
 
-exports[`Range quantifier > 'from to' (a'{2,3}') > should parse repetition count 1`] = `
+exports[`Range quantifier > 'from to' '{2,3}' > should parse repetition count 1`] = `
 {
   "body": {
     "end": 6,
@@ -124,7 +124,7 @@ exports[`Range quantifier > 'from to' (a'{2,3}') > should parse repetition count
 }
 `;
 
-exports[`Range quantifier > 'from' (a'{2,}') > should correct work with lazy quantifier 1`] = `
+exports[`Range quantifier > 'from' '{2,}' > should correct work with lazy quantifier 1`] = `
 {
   "body": {
     "end": 6,
@@ -155,7 +155,7 @@ exports[`Range quantifier > 'from' (a'{2,}') > should correct work with lazy qua
 }
 `;
 
-exports[`Range quantifier > 'from' (a'{2,}') > should parse repetition count 1`] = `
+exports[`Range quantifier > 'from' '{2,}' > should parse repetition count 1`] = `
 {
   "body": {
     "end": 5,
