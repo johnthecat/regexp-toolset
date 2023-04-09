@@ -1,6 +1,6 @@
 {
   "name": "explain-regexp",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "license": "MIT",
   "description": "CLI util for fast analyze of RegExp",
   "homepage": "https://github.com/johnthecat/regexp-toolset/tree/main/packages/explain-regexp",
@@ -31,7 +31,7 @@
   ],
   "dependencies": {
     "commander": "^10.0.0",
-    "ecma-262-regexp-parser": "^0.8.0"
+    "ecma-262-regexp-parser": "^0.9.0"
   },
   "engines": {
     "node": ">=16"
