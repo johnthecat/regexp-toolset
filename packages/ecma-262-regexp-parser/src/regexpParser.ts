@@ -396,14 +396,7 @@ export const parseASCIIControlChar: NodeParser = ({ token, nodes }, ctx) => {
   const possibleValueToken = matchNextToken(token).filter(not(isForwardSlashToken));
   const valueToken = possibleValueToken.filterOrError(
     ({ value }) => /[A-Za-z]/.test(value),
-    () =>
-      ctx.reportError(
-        {
-          start: token.start,
-          end: token.end + 1,
-        },
-        'Invalid control character',
-      ),
+    valueToken => ctx.reportError(positionRange(token, valueToken), 'Invalid control character'),
   );
 
   return valueToken.map(valueToken => {
