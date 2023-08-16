@@ -36,7 +36,7 @@
     "test:coverage": "vitest run --coverage",
     "build": "vite build --mode production",
     "build:watch": "vite build --mode development --watch",
-    "lint": "eslint src/**"
+    "lint": "eslint src/**/*.ts"
   },
   "engines": {
     "node": ">=16"

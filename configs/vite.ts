@@ -46,7 +46,6 @@ export const createViteConfig = (input: Partial<ConfigInput> = defaultConfig) =>
     },
     plugins: [
       dts({
-        noEmitOnError: true,
         copyDtsFiles: true,
         include: mergedConfig.includeTypes,
         rollupTypes: true,
@@ -56,7 +55,7 @@ export const createViteConfig = (input: Partial<ConfigInput> = defaultConfig) =>
       testTimeout: 3000,
       reporters: ['verbose'],
       coverage: {
-        provider: 'c8',
+        provider: 'v8',
         reporter: ['json'],
         reportsDirectory: './.coverage',
       },

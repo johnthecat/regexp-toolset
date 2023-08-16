@@ -19,21 +19,11 @@ describe('Range quantifier', () => {
     });
 
     it('should detect non-quantifiable tokens', () => {
-      expect(() => parseRegexp(`/^${quantifier}/`)).toThrowErrorMatchingInlineSnapshot(`
-        "
-         ❯ /\^${quantifier}/
-            ↑
-         The preceding token is not quantifiable"
-      `);
+      expect(() => parseRegexp(`/^${quantifier}/`)).toThrowErrorMatchingSnapshot();
     });
 
     it('should throw if there is no expression before', () => {
-      expect(() => parseRegexp(`/${quantifier}/`)).toThrowErrorMatchingInlineSnapshot(`
-        "
-         ❯ /${quantifier}/
-            ↑
-         There is nothing to quantify"
-      `);
+      expect(() => parseRegexp(`/${quantifier}/`)).toThrowErrorMatchingSnapshot();
     });
   });
 
@@ -43,12 +33,7 @@ describe('Range quantifier', () => {
     });
 
     it('should throw if range start is bigger than end', () => {
-      expect(() => parseRegexp('/a{4,2}/')).toThrowErrorMatchingInlineSnapshot(`
-        "
-         ❯ /a{4,2}/
-             ═════
-         The quantifier range is out of order"
-      `);
+      expect(() => parseRegexp('/a{4,2}/')).toThrowErrorMatchingSnapshot();
     });
   });
 });

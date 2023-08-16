@@ -57,7 +57,6 @@
         ],
         "@typescript-eslint/switch-exhaustiveness-check": "error",
         "@typescript-eslint/restrict-plus-operands": "error",
-        "@typescript-eslint/no-duplicate-imports": "error",
         "@typescript-eslint/prefer-ts-expect-error": "error",
         "@typescript-eslint/adjacent-overload-signatures": "error",
         "@typescript-eslint/ban-ts-comment": [
@@ -103,8 +102,7 @@
       "error",
       {
         "functions": "always",
-        "classes": "always",
-
+        "classes": "always"
       }
     ],
     "no-duplicate-imports": "off",

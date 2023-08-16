@@ -4,3 +4,4 @@
 dist
 node_modules
 lerna-debug.log
+vite.config.ts.timestamp-*
